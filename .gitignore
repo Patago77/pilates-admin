@@ -1,19 +1,6 @@
-# Secrets
-.env
-.env.*
-
-# Node
 node_modules/
+.env
+*.tgz
+payments.db
+database.sqlite
 
-# Logs
-logs/
-*.log
-.pm2/
-
-# Backups
-backups/
-*.sql
-*.sql.gz
-
-# OS
-.DS_Store
