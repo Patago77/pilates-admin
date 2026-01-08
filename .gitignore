@@ -1,0 +1,19 @@
+# Secrets
+.env
+.env.*
+
+# Node
+node_modules/
+
+# Logs
+logs/
+*.log
+.pm2/
+
+# Backups
+backups/
+*.sql
+*.sql.gz
+
+# OS
+.DS_Store
