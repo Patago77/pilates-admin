@@ -56,6 +56,8 @@ INSERT INTO users (email, password_hash, nombre, role, studio_id, active)
 VALUES ('${ADMIN_EMAIL}', '${ADMIN_PASS_HASH}', 'Administrador', 'admin', ${STUDIO_ID}, 1)
 ON DUPLICATE KEY UPDATE password_hash=VALUES(password_hash), role='admin', studio_id=${STUDIO_ID}, active=1;
 "
+# Crear tablas del estudio (students, payments, gastos)
+sudo mysql -e "USE \`${DB_NAME}\`; SOURCE /root/estudio-pilates/docs/sql/studio_schema.sql;"
 
 echo ""
 echo "✅ CLIENTE CREADO"
