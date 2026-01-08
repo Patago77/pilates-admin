@@ -1,6 +1,5 @@
 node_modules/
 .env
-*.tgz
 payments.db
 database.sqlite
-
+estudio-pilates.tgz

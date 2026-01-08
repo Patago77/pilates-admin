@@ -1,33 +1,35 @@
--- Studio DB (por cliente)
 CREATE TABLE IF NOT EXISTS students (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  nombre VARCHAR(160) NOT NULL,
-  documento VARCHAR(40) NOT NULL UNIQUE,
-  email VARCHAR(190) NULL,
-  telefono VARCHAR(60) NULL,
-  creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+  id INT NOT NULL AUTO_INCREMENT,
+  fullName VARCHAR(120) NOT NULL,
+  documento VARCHAR(30) NULL,
+  email VARCHAR(120) NULL,
+  creado_en TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY (documento)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS payments (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  fullName VARCHAR(160) NOT NULL,
-  documento VARCHAR(40) NULL,
-  subscriptionType VARCHAR(80) NOT NULL,
-  paymentDate DATE NOT NULL,
+  id INT NOT NULL AUTO_INCREMENT,
+  fullName VARCHAR(120) NOT NULL,
+  documento VARCHAR(30) NULL,
+  subscriptionType VARCHAR(50) NOT NULL,
   amount DECIMAL(10,2) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_payments_date (paymentDate),
-  INDEX idx_payments_name (fullName),
-  INDEX idx_payments_doc (documento)
-);
+  paymentDate DATE NOT NULL,
+  comentarios TEXT DEFAULT NULL,
+  creado_en TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY (documento),
+  KEY (paymentDate)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS gastos (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  categoria VARCHAR(120) NOT NULL,
-  descripcion VARCHAR(255) NOT NULL,
-  monto DECIMAL(10,2) NOT NULL,
+  id INT NOT NULL AUTO_INCREMENT,
   fecha DATE NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_gastos_fecha (fecha),
-  INDEX idx_gastos_categoria (categoria)
-);
+  categoria VARCHAR(80) NOT NULL,
+  descripcion VARCHAR(255) NULL,
+  monto DECIMAL(10,2) NOT NULL,
+  creado_en TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY (fecha),
+  KEY (categoria)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
