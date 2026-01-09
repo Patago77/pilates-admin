@@ -3,3 +3,5 @@ node_modules/
 payments.db
 database.sqlite
 estudio-pilates.tgz
+.env.*
+.env.prod
