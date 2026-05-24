@@ -248,7 +248,7 @@ small { color: var(--muted) !important; }
 }
 
 /* ── RESPONSIVE ── */
-@media (max-width: 767px) {
+@media (max-width: 1024px) {
   .sa-hamburger { display: flex; }
 
   .sa-sidebar {
@@ -1568,7 +1568,7 @@ document.querySelectorAll(".sa-nav-item").forEach(item => {
 
 // Cierra sidebar al rotar/redimensionar a desktop
 window.addEventListener("resize", () => {
-  if (window.innerWidth >= 768) closeSidebar();
+  if (window.innerWidth > 1024) closeSidebar();
 });
 
 // Override legacy nav functions
