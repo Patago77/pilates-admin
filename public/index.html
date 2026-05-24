@@ -2,322 +2,1010 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Estudio de Pilates - Finanzas</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-    :root{
-      --bg:#f6f7fb;
-      --card:#ffffff;
-      --text:#1f2937;
-      --muted:#6b7280;
-      --primary:#2563eb;
-      --radius:16px;
-    }
-    body{
-      background: var(--bg);
-      color: var(--text);
-    }
-    header h1{
-      font-size: 1.4rem;
-      font-weight: 700;
-      letter-spacing: .2px;
-      margin-bottom: .25rem;
-    }
-    .summary-card, .form-section, .table-section{
-      border-radius: var(--radius) !important;
-    }
-    .btn-primary{
-      background: var(--primary);
-      border-color: var(--primary);
-      font-weight: 600;
-    }
-    .btn{
-      border-radius: 12px;
-      padding: .55rem .9rem;
-    }
-    .form-control, .form-select{
-      border-radius: 12px;
-      padding: .55rem .75rem;
-    }
-    .table thead th{
-      font-size: .85rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .04em;
-    }
-    .table td{
-      font-size: .95rem;
-    }
-    @media (max-width: 768px){
-      .container{ padding-left: 14px; padding-right: 14px; }
-      header h1{ font-size: 1.15rem; }
-      .summary-card p{ font-size: 1.25rem; }
-    }
-
-     table tbody tr:nth-child(odd) {
-      background-color: #f4f8fc;
-    }
-    table tbody tr:nth-child(even) {
-      background-color: #ffffff;
-    }
-    table tbody tr:hover {
-      background-color: #e0eafc;
-    }
-    /* --- Tablas a tarjetas en móvil/tablet --- */
-@media (max-width: 768px){
-  .table-responsive table thead{ display:none; }
-  .table-responsive table, 
-  .table-responsive tbody, 
-  .table-responsive tr, 
-  .table-responsive td{
-    display:block; width:100%;
-  }
-  .table-responsive tr{
-    background:#fff;
-    border:1px solid rgba(17,24,39,.10);
-    border-radius: 14px;
-    padding: 12px 14px;
-    margin-bottom: 12px;
-    box-shadow: 0 10px 22px rgba(31,41,55,.06);
-  }
-  .table-responsive td{
-    border:none !important;
-    padding: 6px 0 !important;
-    display:flex;
-    justify-content: space-between;
-    gap: 12px;
-  }
-  .table-responsive td::before{
-    content: attr(data-label);
-    color: var(--muted);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .03em;
-    font-size: .78rem;
-  }
+:root {
+  --bg:        #F5F4FF;
+  --surface:   #FFFFFF;
+  --surface-2: #F0EEFF;
+  --surface-3: #E4E0FF;
+  --green:     #1D9E75;
+  --green-dim: rgba(29,158,117,.10);
+  --accent:    #6D28D9;
+  --accent-dim:rgba(109,40,217,.10);
+  --accent-mid:#7C3AED;
+  --text:      #1C1A2E;
+  --muted:     #7C7A8E;
+  --danger:    #E24B4A;
+  --shadow:    0 1px 3px rgba(0,0,0,.07);
+  --shadow-soft: 0 2px 8px rgba(109,40,217,.08);
+  --radius:    12px;
+  --border:    0.5px solid rgba(109,40,217,.12);
+  --nav:       220px;
+  --t:         .2s cubic-bezier(.4,0,.2,1);
 }
 
-/* Colores del resumen (se borraron con el bloque viejo) */
-.bg-income { background: linear-gradient(180deg, #e9fbf5, #d1f2eb); }
-.bg-expense { background: linear-gradient(180deg, #ffecec, #f9d6d5); }
-.bg-balance { background: linear-gradient(180deg, #eef5ff, #e0eafc); }
+*, *::before, *::after { box-sizing: border-box; }
 
-/* Look más "producto" */
-.summary-card{
-  border: 1px solid rgba(17,24,39,.08);
-  box-shadow: 0 10px 26px rgba(31,41,55,.08);
-}
-.summary-card{
-  padding: 20px;
-  text-align: center;
-  margin-bottom: 20px;
+body {
+  font-family: "Inter", sans-serif !important;
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  font-size: 14px;
+  display: flex;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
+.sa-sidebar {
+  width: var(--nav);
+  min-height: 100vh;
+  background: #1C1A2E;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0;
+  z-index: 200;
+  padding-bottom: 20px;
+}
 
+.sa-brand { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,.07); }
+.sa-brand-name { font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: .02em; }
+.sa-brand-sub { font-size: .6rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: #a78bfa; opacity: .65; margin-top: 2px; }
 
+.sa-nav-lbl { font-size: .56rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #a78bfa; opacity: .4; padding: 16px 20px 5px; }
 
+.sa-nav-item { display: flex; align-items: center; gap: 9px; padding: 10px 20px; cursor: pointer; color: rgba(255,255,255,.45); font-size: .8rem; font-weight: 500; border-left: 2px solid transparent; transition: var(--t); user-select: none; }
+.sa-nav-item:hover { color: rgba(255,255,255,.8); background: rgba(255,255,255,.04); }
+.sa-nav-item.active { color: #fff; background: rgba(167,139,250,.12); border-left-color: #a78bfa; }
 
-    
+.sa-nav-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.25); flex-shrink: 0; transition: var(--t); }
+.sa-nav-item.active .sa-nav-dot { background: #a78bfa; }
 
+.sa-main { margin-left: var(--nav); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+.sa-topbar { height: 56px; background: var(--surface); border-bottom: 1px solid rgba(109,40,217,.1); display: flex; align-items: center; justify-content: space-between; padding: 0 28px; position: sticky; top: 0; z-index: 100; }
+.sa-pg-title { font-size: 1rem; font-weight: 600; color: var(--text); letter-spacing: -.01em; }
+.sa-topbar-right { display: flex; align-items: center; gap: 10px; }
+
+.sa-btn-new { display: flex; align-items: center; gap: 6px; padding: 7px 16px; background: var(--accent-mid); color: #fff; border: none; border-radius: 8px; font-family: "Inter", sans-serif; font-size: .78rem; font-weight: 600; cursor: pointer; transition: var(--t); }
+.sa-btn-new:hover { background: #5B21B6; }
+
+.sa-content { flex: 1; padding: 24px 28px; }
+
+.sa-page { display: none; }
+.sa-page.active { display: block; animation: fadeUp .18s ease; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+
+.sa-kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.sa-kpi { background: var(--surface); border-radius: var(--radius); padding: 18px 18px 14px; border: 1px solid rgba(109,40,217,.1); box-shadow: var(--shadow-soft); position: relative; overflow: hidden; }
+.sa-kpi-accent { position: absolute; top: 0; right: 0; width: 48px; height: 48px; border-radius: 0 var(--radius) 0 48px; }
+.sa-kpi-lbl { font-size: .58rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.sa-kpi-val { font-size: 1.5rem; font-weight: 700; color: var(--text); letter-spacing: -.02em; line-height: 1; }
+.sa-kpi-sub { font-size: .68rem; color: var(--muted); margin-top: 4px; }
+
+.sa-card { background: var(--surface); border-radius: var(--radius); border: 1px solid rgba(109,40,217,.1); box-shadow: var(--shadow-soft); overflow: hidden; margin-bottom: 18px; }
+.sa-card-hd { padding: 14px 20px 12px; border-bottom: 1px solid rgba(109,40,217,.07); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.sa-card-ttl { font-size: .9rem; font-weight: 600; color: var(--text); }
+.sa-card-body { padding: 18px 20px; }
+
+.sa-table-wrap { overflow-x: auto; }
+.sa-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+.sa-table thead th { padding: 9px 16px; background: rgba(237,233,254,.4); text-align: left; font-size: .58rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent-mid); border-bottom: 1px solid rgba(109,40,217,.1); white-space: nowrap; }
+.sa-table tbody tr { border-bottom: 1px solid rgba(109,40,217,.06); transition: background var(--t); }
+.sa-table tbody tr:last-child { border-bottom: none; }
+.sa-table tbody tr:hover { background: rgba(237,233,254,.25); }
+.sa-table td { padding: 11px 16px; color: #374151; vertical-align: middle; }
+
+.sa-bdg { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 99px; font-size: .6rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.sa-bdg-ok   { background: rgba(29,158,117,.1); color: #085041; }
+.sa-bdg-pend { background: rgba(226,75,74,.1);  color: #791F1F; }
+.sa-bdg-info { background: rgba(109,40,217,.1); color: #5B21B6; }
+
+.sa-edit-btn, .sa-del-btn { width: 28px; height: 28px; border: none; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; transition: var(--t); }
+.sa-edit-btn { background: rgba(109,40,217,.08); color: var(--accent-mid); }
+.sa-edit-btn:hover { background: rgba(109,40,217,.16); }
+.sa-del-btn  { background: rgba(226,75,74,.08); color: var(--danger); }
+.sa-del-btn:hover  { background: rgba(226,75,74,.16); }
+
+.modal { z-index: 9999 !important; }
+.modal-backdrop { z-index: 9998 !important; }
+.modal-content { background: var(--surface) !important; border: var(--border) !important; border-radius: var(--radius) !important; color: var(--text) !important; }
+.modal-header { border-bottom: var(--border) !important; padding: 16px 20px !important; }
+.modal-footer { border-top: var(--border) !important; padding: 12px 20px !important; }
+.btn-close { opacity: .5; }
+.btn-close:hover { opacity: 1; }
+
+.card { background: var(--surface) !important; border: var(--border) !important; border-radius: var(--radius) !important; box-shadow: var(--shadow-soft) !important; color: var(--text) !important; }
+.card-header { background: transparent !important; border-bottom: var(--border) !important; font-weight: 600; }
+.card-body { color: var(--text) !important; }
+
+.btn { border-radius: 8px !important; font-weight: 500 !important; font-size: 13px !important; padding: 7px 14px !important; transition: all .15s !important; }
+.btn-primary { background: var(--accent-mid) !important; border-color: var(--accent-mid) !important; color: #fff !important; }
+.btn-primary:hover { background: #5B21B6 !important; }
+.btn-success { background: var(--green) !important; border-color: var(--green) !important; color: #fff !important; }
+.btn-outline-primary { border-color: var(--accent-mid) !important; color: var(--accent-mid) !important; background: transparent !important; }
+.btn-outline-primary:hover { background: var(--accent-dim) !important; }
+.btn-outline-success { border-color: var(--green) !important; color: var(--green) !important; background: transparent !important; }
+.btn-outline-success:hover { background: var(--green-dim) !important; }
+.btn-outline-secondary { border-color: rgba(0,0,0,.15) !important; color: var(--muted) !important; background: transparent !important; }
+.btn-outline-secondary:hover { background: var(--surface-2) !important; color: var(--text) !important; }
+.btn-outline-danger { border-color: var(--danger) !important; color: var(--danger) !important; background: transparent !important; }
+.btn-outline-danger:hover { background: rgba(226,75,74,.08) !important; }
+.btn-outline-info { border-color: var(--accent-mid) !important; color: var(--accent-mid) !important; background: transparent !important; }
+.btn-outline-info:hover { background: var(--accent-dim) !important; }
+
+.form-control, .form-select { border-radius: 8px !important; background: var(--surface) !important; border: var(--border) !important; color: var(--text) !important; font-size: 13px !important; }
+.form-control::placeholder { color: var(--muted) !important; }
+.form-control:focus, .form-select:focus { border-color: var(--accent-mid) !important; box-shadow: 0 0 0 3px rgba(109,40,217,.12) !important; background: var(--surface) !important; color: var(--text) !important; }
+.form-label { color: var(--muted) !important; font-weight: 500; font-size: 12px; }
+
+.table { color: var(--text) !important; font-size: 13px; }
+.table-dark th { background: var(--surface-2) !important; color: var(--text) !important; border-color: rgba(0,0,0,.08) !important; font-weight: 600; font-size: 12px; }
+.table-striped > tbody > tr:nth-of-type(odd) > * { background: rgba(0,0,0,.02) !important; color: var(--text) !important; }
+.table-striped > tbody > tr:nth-of-type(even) > * { background: transparent !important; color: var(--text) !important; }
+.table td, .table th { border-color: rgba(0,0,0,.06) !important; color: var(--text) !important; padding: 10px 12px !important; }
+.table-light th { background: var(--surface-2) !important; color: var(--muted) !important; }
+
+.nav-tabs { border-bottom: var(--border) !important; }
+.nav-tabs .nav-link { color: var(--muted) !important; border-radius: 8px 8px 0 0 !important; border: none !important; font-size: 13px; font-weight: 500; padding: 8px 14px !important; }
+.nav-tabs .nav-link.active { background: var(--surface) !important; color: var(--accent-mid) !important; border-bottom: 2px solid var(--accent-mid) !important; }
+
+.kpi-number { font-size: clamp(26px,3vw,40px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; color: var(--text) !important; }
+.kpi-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.kpi-sub { color: var(--muted); font-size: 12px; }
+.kpi-icon { width:40px; height:40px; border-radius:10px; display:grid; place-items:center; background:var(--accent-dim); font-size:18px; }
+#kpiActivos { color: var(--green) !important; }
+#kpiPendientes { color: var(--danger) !important; }
+.kpi-card { background: var(--surface) !important; border-radius: var(--radius) !important; border: var(--border) !important; }
+
+.alert-warning { background: #FAEEDA !important; border-color: #FAC775 !important; color: #633806 !important; border-radius: var(--radius) !important; font-size: 13px; }
+.accordion-item { border: var(--border) !important; border-radius: var(--radius) !important; overflow: hidden; margin-bottom: 8px; }
+.accordion-button { background: var(--surface) !important; color: var(--text) !important; font-weight: 500; font-size: 13px; box-shadow: none !important; }
+.accordion-button:not(.collapsed) { background: var(--surface-2) !important; color: var(--accent-mid) !important; }
+
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-top: 8px; }
+@media (min-width: 992px) { .cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.mini-card { background: var(--surface) !important; border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); transition: transform .12s, box-shadow .12s; border: var(--border); }
+.mini-card:hover { transform: translateY(-1px); box-shadow: var(--shadow-soft); }
+.mini-card .name { font-weight: 600; font-size: 13px; color: var(--text) !important; }
+.mini-card .sub  { font-size: 12px; color: var(--muted) !important; }
+.mini-card.paid    { border-left: 3px solid var(--green); }
+.mini-card.pending { border-left: 3px solid var(--danger); }
+
+.badge-soft { padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+.badge-paid    { background: rgba(29,158,117,.12); color: #085041; }
+.badge-pending { background: rgba(226,75,74,.12);  color: #791F1F; }
+
+.section-title { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; margin: 16px 0 10px; }
+.form-section { margin-bottom: 20px; }
+.block-card { background: var(--surface); border: var(--border); border-radius: var(--radius); padding: 16px; }
+.block-header { margin-bottom: 12px; }
+#paginaDiagnostico .card { margin-bottom: 16px; }
+#paginaDiagnostico h5 { font-size: 15px; font-weight: 600; }
+.login-wrap { background: var(--surface) !important; border-radius: var(--radius) !important; border: var(--border) !important; margin-top: 10vh; box-shadow: var(--shadow-soft) !important; }
+#btnAbrirMovimiento { display: none !important; }
+#logoutButton { font-size: 12px !important; padding: 6px 12px !important; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 10px; }
+.text-muted { color: var(--muted) !important; }
+.text-success { color: var(--green) !important; }
+.text-danger  { color: var(--danger) !important; }
+h1,h2,h3,h4,h5,h6 { color: var(--text) !important; }
+small { color: var(--muted) !important; }
   </style>
 </head>
 <body>
 
-  <div class="container py-4">
-
-    <!-- Login -->
-    <section id="loginContainer">
-      <div class="form-section mx-auto" style="max-width: 400px;">
-        <h4 class="text-center mb-3">🔐 Iniciar Sesión</h4>
-        <form id="loginForm">
-          <div class="mb-3">
-            <label for="username" class="form-label">Usuario</label>
-            <input type="text" id="username" name="email" class="form-control" required />
-          </div>
-          <div class="mb-3">
-            <label for="password" class="form-label">Contraseña</label>
-            <input type="password" id="password" name="password" class="form-control" required />
-          </div>
-          <button type="submit" class="btn btn-primary w-100">Ingresar</button>
-          <div id="loginError" class="text-danger mt-2" style="display: none;">⚠️ Usuario o contraseña incorrectos.</div>
-        </form>
+<div class="container-fluid px-4" id="loginWrapper" style="margin-left:0;width:100%;">
+  <section id="loginContainer">
+    <div class="form-section mx-auto login-wrap shadow-sm p-3 p-md-4" style="max-width:420px;">
+      <h2 class="mb-1" style="font-size:18px;font-weight:700;">Estudio de Pilates</h2>
+      <p class="text-muted mb-3" style="font-size:12px;">Panel de recepción</p>
+      <div class="mb-3">
+        <label class="form-label">Usuario</label>
+        <input type="text" id="username" class="form-control" placeholder="Usuario" autocomplete="username">
       </div>
-    </section>
+      <div class="mb-3">
+        <label class="form-label">Contraseña</label>
+        <input type="password" id="password" class="form-control" placeholder="Contraseña" autocomplete="current-password">
+      </div>
+      <button onclick="login(event)" class="btn btn-primary w-100">Ingresar</button>
+      <div id="loginErrorMsg" class="text-danger mt-2" style="font-size:12px;"></div>
+    </div>
+  </section>
+</div>
 
-    <!-- App -->
-    <section id="appContainer" style="display: none;">
-     <header class="d-flex flex-column flex-md-row align-items-center justify-content-between gap-2 mb-4">
-  <div>
-    <h1 class="mb-0">Estudio de Pilates - Finanzas</h1>
-    <div class="text-muted small">Panel de recepción</div>
-  </div>
-  <div class="d-flex gap-2">
-    <button id="logoutButton" class="btn btn-outline-danger">Cerrar sesión</button>
-  </div>
-</header>
+<section id="appContainer" style="display:none;width:100%;min-height:100vh;">
 
+  <nav class="sa-sidebar">
+    <div class="sa-brand">
+      <div class="sa-brand-name">Studio Admin</div>
+      <div class="sa-brand-sub">Estudio de Pilates</div>
+    </div>
+    <div class="sa-nav-lbl">Principal</div>
+    <div class="sa-nav-item active" data-sa-page="dashboard">
+      <div class="sa-nav-dot"></div><span>Dashboard</span>
+    </div>
+    <div class="sa-nav-item" data-sa-page="movimientos">
+      <div class="sa-nav-dot"></div><span>Movimientos</span>
+    </div>
+    <div class="sa-nav-item" data-sa-page="asistencias">
+      <div class="sa-nav-dot"></div><span>Asistencias</span>
+    </div>
+    <div class="sa-nav-item" data-sa-page="metricas">
+      <div class="sa-nav-dot"></div><span>Métricas</span>
+    </div>
+    <div class="sa-nav-lbl">Gestión</div>
+    <div class="sa-nav-item" data-sa-page="alumnos">
+      <div class="sa-nav-dot"></div><span>Alumnos</span>
+    </div>
+    <div class="sa-nav-item" data-sa-page="gastos">
+      <div class="sa-nav-dot"></div><span>Gastos</span>
+    </div>
+    <div class="sa-nav-item" data-sa-page="diagnostico">
+      <div class="sa-nav-dot"></div><span>Diagnóstico</span>
+    </div>
+    <div class="sa-nav-lbl">Sistema</div>
+    <div class="sa-nav-item" data-sa-page="usuarios">
+      <div class="sa-nav-dot"></div><span>Usuarios</span>
+    </div>
+  </nav>
 
-      <!-- Resumen -->
-      <div class="row text-center">
-        <div class="col-md-4">
-          <div class="summary-card bg-income">
-            <h3>Ingresos del mes</h3>
-            <p id="totalIncomeAmount">$0</p>
+  <div class="sa-main">
+    <div class="sa-topbar">
+      <span class="sa-pg-title" id="saPgTitle">Dashboard</span>
+      <div class="sa-topbar-right">
+        <button class="sa-btn-new" onclick="abrirModalMovimiento()">+ Registrar movimiento</button>
+        <button id="logoutButton" class="btn btn-outline-secondary btn-sm">Cerrar sesión</button>
+      </div>
+    </div>
+
+    <div class="sa-content">
+
+      <!-- DASHBOARD -->
+      <div id="paginaDashboard" class="sa-page active">
+        <div class="sa-kpi-row">
+          <div class="sa-kpi">
+            <div class="sa-kpi-accent" style="background:rgba(109,40,217,.07);"></div>
+            <div class="sa-kpi-lbl">Ingresos del mes</div>
+            <div id="kpiIncome" class="sa-kpi-val">$ 0</div>
+            <div class="sa-kpi-sub">Total cobrado</div>
+            <div class="mt-3"><button class="btn btn-outline-secondary btn-sm w-100" onclick="abrirModalMesHistorico()">Ver otro mes</button></div>
+          </div>
+          <div class="sa-kpi">
+            <div class="sa-kpi-accent" style="background:rgba(226,75,74,.07);"></div>
+            <div class="sa-kpi-lbl">Gastos del mes</div>
+            <div id="kpiGastos" class="sa-kpi-val">$ 0</div>
+            <div class="sa-kpi-sub">Total gastado</div>
+            <div class="mt-3"><button class="btn btn-outline-secondary btn-sm w-100" onclick="abrirModalGastosMes()">Ver detalle</button></div>
+          </div>
+          <div class="sa-kpi">
+            <div class="sa-kpi-accent" style="background:rgba(29,158,117,.07);"></div>
+            <div class="sa-kpi-lbl">Saldo del mes</div>
+            <div id="kpiSaldo" class="sa-kpi-val">$ 0</div>
+            <div class="sa-kpi-sub">Ingresos - Gastos</div>
+          </div>
+          <div class="sa-kpi">
+            <div class="sa-kpi-accent" style="background:rgba(29,158,117,.07);"></div>
+            <div class="sa-kpi-lbl">Alumnos activos</div>
+            <div id="kpiActivos" class="sa-kpi-val" style="cursor:pointer;color:var(--green);" onclick="abrirModalTarjetas('pagaron')">0</div>
+            <div class="sa-kpi-sub">Con pago este mes</div>
+            <div class="mt-3"><button class="btn btn-outline-success btn-sm w-100" onclick="abrirModalTarjetas('pagaron')">Ver lista</button></div>
+          </div>
+          <div class="sa-kpi">
+            <div class="sa-kpi-accent" style="background:rgba(226,75,74,.07);"></div>
+            <div class="sa-kpi-lbl">Pagos pendientes</div>
+            <div id="kpiPendientes" class="sa-kpi-val" style="cursor:pointer;color:var(--danger);" onclick="abrirModalTarjetas('pendientes')">0</div>
+            <div class="sa-kpi-sub">Sin pago en el mes</div>
+            <div class="mt-3"><button class="btn btn-outline-danger btn-sm w-100" onclick="abrirModalTarjetas('pendientes')">Ver lista</button></div>
           </div>
         </div>
-        <div class="col-md-4">
-          <div class="summary-card bg-expense">
-            <h3>Gastos del mes</h3>
-            <p id="totalGastosMes">$0</p>
+
+        <div id="alertaPendientes" class="alert alert-warning d-none mb-3">
+          <b id="cantidadPendientes">0</b> alumnos con pago pendiente
+          <button id="btnRecordarTodos" class="btn btn-sm btn-dark ms-2">Enviar recordatorio</button>
+        </div>
+
+        <div class="sa-card">
+          <div class="sa-card-hd">
+            <span class="sa-card-ttl">Buscar historial por documento</span>
+            <button id="btnIrSerie" class="btn btn-outline-secondary btn-sm">Serie mensual</button>
+          </div>
+          <div class="sa-card-body">
+            <div class="input-group">
+              <input type="text" id="inputDocumentoHistorial" class="form-control" placeholder="Número de documento">
+              <button id="btnBuscarHistorial" class="btn btn-primary">Buscar</button>
+            </div>
+            <div id="pendientesPanel" class="mt-3 d-none">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="mb-0">Pagos pendientes</h5>
+                <button id="btnCerrarPendientes" class="btn btn-sm btn-outline-secondary">Cerrar</button>
+              </div>
+              <div id="pendientesGrid" class="row g-3"></div>
+            </div>
           </div>
         </div>
-        <div class="col-md-4">
-          <div class="summary-card bg-balance">
-            <h3>Saldo mensual</h3>
-            <p id="saldoMensual">$0</p>
+
+        <div id="historialPagosAlumno" class="sa-card" style="display:none;">
+          <div class="sa-card-hd">
+            <span class="sa-card-ttl">Historial de pagos del alumno</span>
+          </div>
+          <div class="sa-table-wrap">
+            <table class="table table-bordered table-striped mb-0">
+              <thead><tr><th>Fecha</th><th>Abono</th><th class="text-end">Monto</th><th>Comentarios</th></tr></thead>
+              <tbody id="tablaHistorialPagos"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="display:none">
+          <select id="selectMesesSerie"></select>
+          <canvas id="chartSerieMensual"></canvas>
+          <tbody id="tbodySerieMensual"></tbody>
+        </div>
+
+        <div style="display:none">
+          <table><tbody id="clientPaymentsTableBody"></tbody></table>
+          <div id="filtroMovsSinResultados"></div>
+          <button id="btnMovsVerTodo"></button>
+          <button id="btnMovsVerMenos"></button>
+          <input id="filtroMovNombre">
+          <input id="filtroMovMes">
+          <button id="btnLimpiarFiltroMovs"></button>
+          <button id="btnIrInformeMensual"></button>
+          <table><tbody id="tablaGastosMensuales"></tbody></table>
+          <div id="detalleGastosMensuales"><table><tbody id="detalleGastosBody"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- MOVIMIENTOS -->
+      <div id="paginaMovimientos" class="sa-page">
+        <div class="sa-card">
+          <div class="sa-card-hd">
+            <span class="sa-card-ttl">Historial de movimientos</span>
+            <button class="btn btn-primary btn-sm" onclick="abrirModalMovimiento()">+ Registrar</button>
+          </div>
+          <div class="sa-card-body" style="padding-bottom:8px;">
+            <div class="row g-2 mb-2">
+              <div class="col-md-5"><input type="text" id="filtroMovNombreExt" class="form-control" placeholder="Buscar por nombre..."></div>
+              <div class="col-md-4"><input type="month" id="filtroMovMesExt" class="form-control"></div>
+              <div class="col-md-3"><button class="btn btn-outline-secondary w-100" onclick="document.getElementById('filtroMovNombreExt').value='';document.getElementById('filtroMovMesExt').value='';cargarMovimientosExt();">Limpiar</button></div>
+            </div>
+          </div>
+          <div class="sa-table-wrap">
+            <table class="sa-table">
+              <thead><tr><th>ID</th><th>Alumno</th><th>Fecha</th><th>Abono</th><th style="text-align:right">Monto</th><th>Método</th><th>Estado</th><th>Comentario</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaMovimientosExt"></tbody>
+            </table>
           </div>
         </div>
       </div>
 
-      <div class="table-section mt-3">
-  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-2">
-    <h4 class="mb-0">📈 Evolución mes a mes</h4>
-    <div class="d-flex gap-2 align-items-center">
-      <label class="small text-muted mb-0">Meses:</label>
-      <select id="selectMesesSeries" class="form-select form-select-sm" style="max-width:120px;">
-        <option value="6">6</option>
-        <option value="12" selected>12</option>
-        <option value="18">18</option>
-        <option value="24">24</option>
-      </select>
+      <!-- ASISTENCIAS -->
+      <div id="paginaAsistencias" class="sa-page">
+        <div class="sa-card">
+          <div class="sa-card-hd">
+            <span class="sa-card-ttl">Asistencias</span>
+            <button class="btn btn-primary btn-sm" onclick="abrirModalAsistencias()">Registrar asistencia</button>
+          </div>
+          <div class="sa-card-body">
+            <p class="text-muted" style="font-size:13px;">Registrá la asistencia del día o consultá el historial por alumno desde el modal.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- MÉTRICAS -->
+      <div id="paginaMetricas" class="sa-page">
+
+        <div class="sa-kpi-row" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
+          <div class="sa-kpi">
+            <div class="sa-kpi-accent" style="background:rgba(109,40,217,.07);"></div>
+            <div class="sa-kpi-lbl">Mejor mes</div>
+            <div id="metricaMejorMes" class="sa-kpi-val" style="font-size:1rem;">—</div>
+          </div>
+          <div class="sa-kpi">
+            <div class="sa-kpi-accent" style="background:rgba(29,158,117,.07);"></div>
+            <div class="sa-kpi-lbl">Promedio mensual</div>
+            <div id="metricaPromedio" class="sa-kpi-val" style="font-size:1rem;">—</div>
+          </div>
+          <div class="sa-kpi">
+            <div class="sa-kpi-accent" style="background:rgba(109,40,217,.07);"></div>
+            <div class="sa-kpi-lbl">Total acumulado</div>
+            <div id="metricaTotal" class="sa-kpi-val" style="font-size:1rem;">—</div>
+          </div>
+          <div class="sa-kpi">
+            <div class="sa-kpi-accent" style="background:rgba(29,158,117,.07);"></div>
+            <div class="sa-kpi-lbl">Pico de alumnos</div>
+            <div id="metricaPicoAlumnos" class="sa-kpi-val" style="font-size:1rem;">—</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;">
+          <div class="sa-card" style="margin-bottom:0;">
+            <div class="sa-card-hd"><span class="sa-card-ttl">Ingresos por mes</span></div>
+            <div class="sa-card-body"><div style="height:220px;"><canvas id="chartIngresosmes"></canvas></div></div>
+          </div>
+          <div class="sa-card" style="margin-bottom:0;">
+            <div class="sa-card-hd"><span class="sa-card-ttl">Alumnos activos por mes</span></div>
+            <div class="sa-card-body"><div style="height:220px;"><canvas id="chartAlumnosMes"></canvas></div></div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;">
+          <div class="sa-card" style="margin-bottom:0;">
+            <div class="sa-card-hd"><span class="sa-card-ttl">Ingresos por tipo de abono</span></div>
+            <div class="sa-card-body"><div style="height:220px;display:flex;align-items:center;justify-content:center;"><canvas id="chartAbonos"></canvas></div></div>
+          </div>
+          <div class="sa-card" style="margin-bottom:0;">
+            <div class="sa-card-hd"><span class="sa-card-ttl">Detalle por abono</span></div>
+            <div class="sa-table-wrap">
+              <table class="sa-table">
+                <thead><tr><th>Tipo de abono</th><th style="text-align:right">Total</th><th style="text-align:right">%</th></tr></thead>
+                <tbody id="tbodyAbonos"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="sa-card">
+          <div class="sa-card-hd"><span class="sa-card-ttl">Resumen mensual</span></div>
+          <div class="sa-table-wrap">
+            <table class="sa-table">
+              <thead><tr><th>Mes</th><th style="text-align:right">Ingresos</th><th style="text-align:right">Alumnos</th></tr></thead>
+              <tbody id="tbodyMetricasResumen"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ALUMNOS -->
+      <div id="paginaAlumnos" class="sa-page">
+        <div class="sa-card">
+          <div class="sa-card-hd">
+            <span class="sa-card-ttl">Gestión de alumnos</span>
+            <button class="btn btn-primary btn-sm" onclick="abrirModalAlumnos()">+ Nuevo alumno</button>
+          </div>
+          <div class="sa-card-body" style="padding-bottom:8px;">
+            <div class="row g-2 mb-2">
+              <div class="col-md-6"><input type="text" id="filtroAlumnosExt" class="form-control" placeholder="Buscar alumno..."></div>
+              <div class="col-md-6 d-flex align-items-center gap-2">
+                <input class="form-check-input" type="checkbox" id="mostrarInactivosExt">
+                <label class="form-label mb-0">Mostrar inactivos</label>
+              </div>
+            </div>
+          </div>
+          <div class="sa-table-wrap">
+            <table class="sa-table">
+              <thead><tr><th>Nombre</th><th>Documento</th><th>Estado</th><th>Último pago</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaAlumnosExt"></tbody>
+            </table>
+          </div>
+          <div class="sa-card-body" style="padding-top:8px;">
+            <span id="totalAlumnosExt" class="text-muted" style="font-size:12px;"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- GASTOS -->
+      <div id="paginaGastos" class="sa-page">
+        <div class="sa-kpi-row" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
+          <div class="sa-kpi">
+            <div class="sa-kpi-accent" style="background:rgba(226,75,74,.07);"></div>
+            <div class="sa-kpi-lbl">Total gastado</div>
+            <div id="gastosTotalExt" class="sa-kpi-val" style="color:var(--danger);">$ 0</div>
+            <div class="sa-kpi-sub">Este mes</div>
+          </div>
+        </div>
+        <div class="sa-card">
+          <div class="sa-card-hd">
+            <span class="sa-card-ttl">Detalle de gastos</span>
+            <button class="btn btn-primary btn-sm" onclick="abrirModalGastosMes()">+ Agregar gasto</button>
+          </div>
+          <div class="sa-table-wrap">
+            <table class="sa-table">
+              <thead><tr><th>Fecha</th><th>Descripción</th><th style="text-align:right">Monto</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaGastosExt"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIAGNÓSTICO -->
+      <div id="paginaDiagnostico" class="sa-page">
+        <div class="card mb-4">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h5 class="mb-0">Salud del estudio</h5>
+              <span id="saludScore" class="badge bg-warning text-dark fs-6">Cargando...</span>
+            </div>
+            <div id="saludDescripcion" class="text-muted small mb-3"></div>
+            <div class="row g-2 mb-3">
+              <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-2"><div class="small text-muted">Cobranza</div><div id="saludCobranza" class="fw-bold fs-5">-</div><div id="saludCobranzaBadge" class="small"></div></div></div>
+              <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-2"><div class="small text-muted">Margen</div><div id="saludMargen" class="fw-bold fs-5">-</div><div id="saludMargenBadge" class="small"></div></div></div>
+              <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-2"><div class="small text-muted">Ticket promedio</div><div id="saludTicket" class="fw-bold fs-5">-</div><div id="saludTicketBadge" class="small"></div></div></div>
+              <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-2"><div class="small text-muted">En riesgo</div><div id="saludRiesgo" class="fw-bold fs-5">-</div><div class="small text-muted">sin asistir</div></div></div>
+            </div>
+            <div class="alert alert-light border mb-0 py-2 px-3 small">
+              <strong>Potencial del mes:</strong>
+              <span id="saludPotencial" class="fw-bold text-success">-</span>
+              <span class="text-muted"> si activas todas las oportunidades</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h5 class="mb-0">Reformers - horas y potencial</h5>
+              <button class="btn btn-outline-secondary btn-sm" onclick="toggleConfigReformers()">Configurar</button>
+            </div>
+            <div id="configReformers" style="display:none;" class="mb-3">
+              <div class="row g-2">
+                <div class="col-6 col-md-4"><label class="form-label small text-muted mb-1">Cantidad de reformers</label><input type="number" id="rfCantidad" class="form-control form-control-sm" value="4" min="1" max="50" oninput="rfCalc()"></div>
+                <div class="col-6 col-md-4"><label class="form-label small text-muted mb-1">Precio clase (ARS)</label><input type="number" id="rfPrecioClase" class="form-control form-control-sm" value="15000" oninput="rfCalc()"></div>
+                <div class="col-6 col-md-4"><label class="form-label small text-muted mb-1">Precio alquiler / hora</label><input type="number" id="rfPrecioAlquiler" class="form-control form-control-sm" value="25000" oninput="rfCalc()"></div>
+                <div class="col-6 col-md-4"><label class="form-label small text-muted mb-1">Sueldo profe / hora</label><input type="number" id="rfSueldoProfe" class="form-control form-control-sm" value="8000" oninput="rfCalc()"></div>
+                <div class="col-6 col-md-4"><label class="form-label small text-muted mb-1">Precio clase (profe ext.)</label><input type="number" id="rfPrecioProfe" class="form-control form-control-sm" value="15000" oninput="rfCalc()"></div>
+                <div class="col-6 col-md-4"><label class="form-label small text-muted mb-1">Alumnos por reformer</label><input type="number" id="rfAlumnos" class="form-control form-control-sm" value="1" min="1" max="4" oninput="rfCalc()"></div>
+              </div>
+              <button class="btn btn-primary btn-sm mt-3" onclick="guardarConfigReformers()">Guardar configuracion</button>
+            </div>
+            <div class="small text-muted mb-2">Toca cada turno para marcar como ocupado o libre</div>
+            <div id="rfHorario" class="d-flex gap-1 mb-3 overflow-auto"></div>
+            <div class="row g-2 mb-3">
+              <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-2"><div class="small text-muted">Horas disponibles</div><div id="rfTotal" class="fw-bold fs-5">-</div><div class="small text-muted">por semana</div></div></div>
+              <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-2"><div class="small text-muted">Horas ocupadas</div><div id="rfOcupadas" class="fw-bold fs-5 text-success">-</div><div class="small text-muted">con alumnos</div></div></div>
+              <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-2"><div class="small text-muted">Horas muertas</div><div id="rfMuertas" class="fw-bold fs-5 text-danger">-</div><div class="small text-muted">reformers parados</div></div></div>
+              <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-2"><div class="small text-muted">Ocupacion</div><div id="rfOcupacion" class="fw-bold fs-5 text-warning">-</div><div class="small text-muted">del potencial</div></div></div>
+            </div>
+            <div class="row g-2">
+              <div class="col-12 col-md-6">
+                <div class="card border-success border p-3">
+                  <div class="d-flex justify-content-between align-items-center mb-2"><span class="fw-bold small">Alquilar horas libres</span><span id="rfTagA" class="badge bg-success">Recomendado</span></div>
+                  <div class="d-flex justify-content-between small text-muted"><span>Horas libres / semana</span><span id="rfAHs">-</span></div>
+                  <div class="d-flex justify-content-between small text-muted"><span>Ingreso extra / semana</span><span id="rfASem">-</span></div>
+                  <div class="d-flex justify-content-between small text-muted"><span>Costo adicional</span><span>$0</span></div>
+                  <div class="d-flex justify-content-between fw-bold mt-2"><span>Extra por mes</span><span id="rfAMes" class="text-success">-</span></div>
+                </div>
+              </div>
+              <div class="col-12 col-md-6">
+                <div class="card border p-3">
+                  <div class="d-flex justify-content-between align-items-center mb-2"><span class="fw-bold small">Contratar profe adicional</span><span id="rfTagB" class="badge bg-secondary">Alternativa</span></div>
+                  <div class="d-flex justify-content-between small text-muted"><span>Ingresos clases / semana</span><span id="rfBIng">-</span></div>
+                  <div class="d-flex justify-content-between small text-muted"><span>Costo profe / semana</span><span id="rfBCos" class="text-danger">-</span></div>
+                  <div class="d-flex justify-content-between small text-muted"><span>Ganancia neta / semana</span><span id="rfBNet">-</span></div>
+                  <div class="d-flex justify-content-between fw-bold mt-2"><span>Neto por mes</span><span id="rfBMes" class="text-primary">-</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h5 class="mb-0">Importar agenda desde NeoCita</h5>
+              <span class="badge bg-secondary" style="font-size:11px;">CSV mensual</span>
+            </div>
+            <p class="text-muted small mb-3">Exporta el CSV de agenda desde NeoCita y subilo acá.</p>
+            <ul class="nav nav-tabs mb-3" id="tabsImportar">
+              <li class="nav-item"><button class="nav-link active" onclick="switchTabImportar('asistencia',this)">Asistencias</button></li>
+              <li class="nav-item"><button class="nav-link" onclick="switchTabImportar('clientes',this)">Clientes</button></li>
+            </ul>
+            <div id="tabImportarAsistencia">
+              <div class="mb-3"><label class="form-label small text-muted">Archivo CSV de agenda (NeoCita)</label><input type="file" id="csvAgenda" accept=".csv" class="form-control form-control-sm"></div>
+              <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary btn-sm" onclick="previewAgenda()">Vista previa</button>
+                <button class="btn btn-primary btn-sm" id="btnConfirmarAgenda" style="display:none" onclick="confirmarAgenda()">Confirmar importacion</button>
+              </div>
+              <div id="previewAgenda" class="mt-3"></div>
+            </div>
+            <div id="tabImportarClientes" style="display:none">
+              <div class="mb-3"><label class="form-label small text-muted">Archivo CSV de clientes (NeoCita)</label><input type="file" id="csvClientes" accept=".csv" class="form-control form-control-sm"></div>
+              <button class="btn btn-primary btn-sm" onclick="importarClientes()">Importar clientes</button>
+              <div id="resultadoClientes" class="mt-3"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h5 class="mb-0">Informe del mes</h5>
+              <button class="btn btn-outline-secondary btn-sm" onclick="cargarInformeMes()">Actualizar</button>
+            </div>
+            <div class="row g-2 mb-3" id="informeKpis">
+              <div class="col-6 col-md-3"><div class="card border-0 text-center p-2" style="background:#FCEBEB"><div class="small fw-bold" style="color:#A32D2D">Asistieron sin pagar</div><div class="fw-bold fs-4" id="infKpiSinPagar" style="color:#791F1F">-</div><div class="small" style="color:#A32D2D">cobrar urgente</div></div></div>
+              <div class="col-6 col-md-3"><div class="card border-0 text-center p-2" style="background:#FAEEDA"><div class="small fw-bold" style="color:#633806">Pagaron sin venir</div><div class="fw-bold fs-4" id="infKpiSinVenir" style="color:#854F0B">-</div><div class="small" style="color:#633806">riesgo no renovar</div></div></div>
+              <div class="col-6 col-md-3"><div class="card border-0 text-center p-2" style="background:#FCEBEB"><div class="small fw-bold" style="color:#A32D2D">No volvieron</div><div class="fw-bold fs-4" id="infKpiNoVolvieron" style="color:#791F1F">-</div><div class="small" style="color:#A32D2D">vs mes anterior</div></div></div>
+              <div class="col-6 col-md-3"><div class="card border-0 text-center p-2" style="background:#E1F5EE"><div class="small fw-bold" style="color:#0F6E56">Regulares</div><div class="fw-bold fs-4" id="infKpiRegulares" style="color:#085041">-</div><div class="small" style="color:#0F6E56">asisten y pagan</div></div></div>
+            </div>
+            <ul class="nav nav-tabs mb-3" id="tabsInforme">
+              <li class="nav-item"><button class="nav-link active" onclick="switchTabInforme('sinPagar',this)">Asistieron sin pagar</button></li>
+              <li class="nav-item"><button class="nav-link" onclick="switchTabInforme('sinVenir',this)">Pagaron sin venir</button></li>
+            </ul>
+            <div id="tabInformeSinPagar"><p class="text-muted small mb-2">Vinieron a clase pero no registraron pago.</p><div id="listaSinPagar"></div></div>
+            <div id="tabInformeSinVenir" style="display:none"><p class="text-muted small mb-2">Pagaron el mes pero no asistieron.</p><div id="listaSinVenir"></div></div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h5 class="mb-0">Planes y precios</h5>
+              <button class="btn btn-primary btn-sm" onclick="abrirNuevoPlan()">+ Nuevo plan</button>
+            </div>
+            <div id="tablaPlanes"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="paginaUsuarios" class="sa-page">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;"><span style="font-size:1.1rem;font-weight:600;color:var(--text);">Usuarios del sistema</span><button onclick="agregarUsuario()" class="sa-btn-new">+ Agregar usuario</button></div><div id="usuariosGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;"></div>
+      </div>
+
     </div>
   </div>
+</section>
 
-  <div class="mb-3" style="height: 320px;">
-    <canvas id="chartSerieMensual"></canvas>
-  </div>
 
-  <div class="table-responsive">
-    <table class="table table-bordered table-striped mb-0">
-      <thead class="table-light">
-        <tr>
-          <th>Mes</th>
-          <th class="text-end">Ingresos</th>
-          <th class="text-end">Gastos</th>
-          <th class="text-end">Saldo</th>
-        </tr>
-      </thead>
-      <tbody id="tbodySerieMensual"></tbody>
-    </table>
+<div class="modal fade" id="modalNuevoAlumno" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+
+      <form id="formNuevoAlumno">
+
+        <div class="modal-header">
+          <h5 class="modal-title">Agregar nuevo alumno</h5>
+          <button type="button" class="btn-close" onclick="cerrarModalAlumno()"></button>
+        </div>
+
+        <div class="modal-body">
+
+          <div class="mb-3">
+            <label class="form-label">Nombre completo</label>
+            <input type="text" class="form-control" id="nombreAlumnoNuevo" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Documento (DNI)</label>
+            <input type="text" class="form-control" id="documentoAlumnoNuevo" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" id="emailAlumnoNuevo">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Teléfono</label>
+            <input type="text" class="form-control" id="telefonoAlumnoNuevo">
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Guardar</button>
+          <button type="button" class="btn btn-secondary" onclick="cerrarModalAlumno()">Cancelar</button>
+        </div>
+
+      </form>
+
+    </div>
   </div>
 </div>
 
 
 
-
-
-
-      <div class="form-section mb-4">
-        <h5>Consultar historial de pagos por Documento</h5>
-        <div class="input-group mb-2">
-          <input type="text" id="inputDocumentoHistorial" class="form-control" placeholder="Ingresá número de documento">
-          <button id="btnBuscarHistorial" class="btn btn-outline-primary">Buscar</button>
+<!-- MODAL MES HISTORICO -->
+<div class="modal fade" id="modalMesHistorico" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">📅 Resumen por mes</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Seleccioná el mes</label>
+          <input type="month" id="selectorMesHistorico" class="form-control"
+            onchange="cargarResumenMesHistorico()">
+        </div>
+        <div id="resumenMesHistorico" class="d-none">
+          <div class="row g-3 mb-4">
+            <div class="col-4">
+              <div class="card border-0 bg-light text-center p-3">
+                <small class="text-muted">Ingresos</small>
+                <div id="historicoIngresos" class="fw-bold text-success fs-5 mt-1">$0</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="card border-0 bg-light text-center p-3">
+                <small class="text-muted">Gastos</small>
+                <div id="historicoGastos" class="fw-bold text-danger fs-5 mt-1">$0</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="card border-0 bg-light text-center p-3">
+                <small class="text-muted">Saldo</small>
+                <div id="historicoSaldo" class="fw-bold fs-5 mt-1">$0</div>
+              </div>
+            </div>
+          </div>
+          <h6 class="fw-bold mb-2">🧾 Gastos del mes</h6>
+          <div class="table-responsive">
+            <table class="table table-sm table-striped">
+              <thead class="table-dark">
+                <tr>
+                  <th>Fecha</th>
+                  <th>Categoría</th>
+                  <th>Descripción</th>
+                  <th class="text-end">Monto</th>
+                </tr>
+              </thead>
+              <tbody id="historicoGastosDetalle"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="historicoVacio" class="text-center text-muted py-3">
+          Seleccioná un mes para ver el resumen.
         </div>
       </div>
-      <div id="historialPagosAlumno" class="table-responsive" style="display:none;">
-        <h6>Historial de pagos</h6>
-        <table class="table table-bordered table-striped">
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Abono</th>
-              <th class="text-end">Monto</th>
-              <th>Comentarios</th>
-            </tr>
-          </thead>
-          <tbody id="tablaHistorialPagos"></tbody>
-        </table>
-      </div>
-
-<!-- Formulario de Movimiento -->
-<div class="form-section">
-  <h4>📝 Registrar Movimiento</h4>
-  <form id="movimientoForm">
-    <div class="row mb-3">
-      <div class="col-md-3">
-        <label for="tipoMovimiento" class="form-label">Tipo</label>
-        <select id="tipoMovimiento" name="tipoMovimiento" class="form-select" required>
-          <option value="ingreso">Ingreso</option>
-          <option value="gasto">Gasto</option>
-        </select>
-      </div>
-      <div class="col-md-3">
-        <label for="fecha" class="form-label">Fecha</label>
-        <input type="date" id="fecha" name="fecha" class="form-control" required>
-      </div>
-      <div class="col-md-3 mb-3" id="contenedorMonto">
-        <label for="monto" class="form-label">Monto</label>
-        <input type="number" id="monto" name="monto" class="form-control" required>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
       </div>
     </div>
-    <div class="row" id="camposIngreso">
-      <div class="col-md-7 mb-3 d-flex align-items-end">
-        <div class="flex-grow-1">
-          <label for="alumnoDocumento" class="form-label">Alumno</label>
+  </div>
+</div>
+
+<!-- MODAL ASISTENCIAS -->
+<div class="modal fade" id="modalAsistencias" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">📋 Asistencias de hoy</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Registrar asistencia manual -->
+        <div class="card mb-3">
+          <div class="card-body">
+            <h6 class="fw-bold mb-3">➕ Registrar asistencia</h6>
+            <div class="row g-2">
+              <div class="col-md-5">
+                <select id="asistenciaAlumno" class="form-select">
+                  <option value="">Seleccioná un alumno</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <select id="asistenciaHorario" class="form-select">
+                  <option value="">Seleccioná horario</option>
+                  <option value="09:00">09:00</option>
+                  <option value="10:00">10:00</option>
+                  <option value="11:00">11:00</option>
+                  <option value="12:00">12:00</option>
+                  <option value="13:00">13:00</option>
+                  <option value="14:00">14:00</option>
+                  <option value="15:00">15:00</option>
+                  <option value="16:00">16:00</option>
+                  <option value="17:00">17:00</option>
+                  <option value="18:00">18:00</option>
+                  <option value="19:00">19:00</option>
+                  <option value="20:00">20:00</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <button class="btn btn-success w-100" onclick="registrarAsistenciaModal()">
+                  ✅ Registrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lista de hoy -->
+        <h6 class="fw-bold mb-2">👥 Vinieron hoy</h6>
+        <div id="asistenciasHoyLista">
+          <div class="text-center text-muted py-3">Cargando...</div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <span id="totalAsistenciasHoy" class="text-muted small"></span>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FORMULARIO MOVIMIENTO -->
+<div class="modal fade" id="modalMovimientoForm" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">💾 Registrar Movimiento</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="movimientoForm">
+
+  <!-- Selector de tipo -->
+  <div class="d-flex gap-2 mb-3">
+    <button type="button" id="btnTipoIngreso"
+      class="btn btn-success flex-fill fw-semibold"
+      onclick="seleccionarTipo('ingreso')">
+      💰 Ingreso
+    </button>
+    <button type="button" id="btnTipoGasto"
+      class="btn btn-outline-danger flex-fill fw-semibold"
+      onclick="seleccionarTipo('gasto')">
+      📤 Gasto
+    </button>
+  </div>
+
+  <!-- Campo oculto para el tipo -->
+  <select id="tipoMovimiento" class="d-none">
+    <option value="ingreso" selected>Ingreso</option>
+    <option value="gasto">Gasto</option>
+  </select>
+
+  <!-- Campos comunes -->
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-md-4">
+      <label for="fecha" class="form-label fw-semibold">📅 Fecha</label>
+      <input type="date" id="fecha" name="fecha" class="form-control" required>
+    </div>
+    <div class="col-6 col-md-4" id="contenedorMonto">
+      <label for="monto" class="form-label fw-semibold">💲 Monto</label>
+      <input type="number" id="monto" name="monto" class="form-control" required placeholder="0">
+    </div>
+  </div>
+
+  <!-- Campos ingreso -->
+  <div id="camposIngreso">
+    <div class="row g-3 mb-3">
+      <div class="col-md-6">
+        <label for="serviceMonth" class="form-label fw-semibold">📆 Mes del servicio</label>
+        <input type="month" id="serviceMonth" name="serviceMonth" class="form-control">
+        <small class="text-muted">Si el alumno paga anticipado, elegí el mes correspondiente.</small>
+      </div>
+    </div>
+    <div class="row g-3 mb-3">
+      <div class="col-md-8">
+        <label for="alumnoDocumento" class="form-label fw-semibold">👤 Alumno</label>
+        <div class="d-flex gap-2">
           <select id="alumnoDocumento" name="alumnoDocumento" class="form-select" required>
             <option value="">Seleccioná un alumno</option>
-            <!-- Aquí el JS agregará las opciones dinámicamente -->
           </select>
+          <button id="btnNuevoAlumno" type="button" class="btn btn-outline-primary text-nowrap"
+            data-bs-toggle="modal" data-bs-target="#modalNuevoAlumno">
+            + Nuevo
+          </button>
         </div>
-        <button id="btnNuevoAlumno" type="button" class="btn btn-primary ms-2 mb-2">+ Nuevo Alumno</button>
       </div>
-      <div class="col-md-4 mb-3">
-        <label for="subscriptionType" class="form-label">Tipo de Abono</label>
-        <select id="subscriptionType" name="subscriptionType" class="form-select" onchange="updateAmount()">
-          <option value="">Selecciona una opción</option>
-          <option value="45000">Abono 1 - $45.000</option>
-          <option value="51000">Abono 2 - $51.000</option>
-          <option value="57000">Abono 3 - $57.000</option>
-          <option value="15000">Clase Individual - $15.000</option>
+      <div class="col-md-4">
+        <label for="subscriptionType" class="form-label fw-semibold">🎟️ Abono</label>
+        <select id="subscriptionType" class="form-select" required>
+          <option value="">Seleccioná un abono</option>
         </select>
       </div>
     </div>
-    <div class="row d-none" id="camposGasto">
-      <div class="col-md-4 mb-3">
-        <label for="expenseCategory" class="form-label">Categoría</label>
-        <input type="text" id="expenseCategory" name="expenseCategory" class="form-control">
+  </div>
+
+  <!-- Campos gasto -->
+  <div id="camposGasto" class="d-none">
+    <div class="row g-3 mb-3">
+      <div class="col-md-4">
+        <label for="expenseCategory" class="form-label fw-semibold">🏷️ Categoría</label>
+        <input type="text" id="expenseCategory" name="expenseCategory" class="form-control" placeholder="Ej: Alquiler">
       </div>
-      <div class="col-md-4 mb-3">
-        <label for="expenseDescription" class="form-label">Descripción</label>
-        <input type="text" id="expenseDescription" name="expenseDescription" class="form-control">
+      <div class="col-md-8">
+        <label for="expenseDescription" class="form-label fw-semibold">📝 Descripción</label>
+        <input type="text" id="expenseDescription" name="expenseDescription" class="form-control" placeholder="Descripción del gasto">
       </div>
     </div>
-    <button class="btn btn-primary w-100">💾 Guardar Movimiento</button>
-  </form>
+  </div>
+
+  <!-- Método de pago (solo ingreso) -->
+  <div id="camposMetodoPago" class="mb-3">
+    <label class="form-label fw-semibold">💳 Método de pago</label>
+    <div class="d-flex gap-2 flex-wrap" id="metodoPagoChips">
+      <button type="button" class="btn btn-outline-secondary btn-sm metodo-chip" data-metodo="efectivo" onclick="seleccionarMetodo(this)">💵 Efectivo</button>
+      <button type="button" class="btn btn-outline-secondary btn-sm metodo-chip" data-metodo="mercado_pago" onclick="seleccionarMetodo(this)">📱 Mercado Pago</button>
+      <button type="button" class="btn btn-outline-secondary btn-sm metodo-chip" data-metodo="transferencia" onclick="seleccionarMetodo(this)">🏦 Transferencia</button>
+      <button type="button" class="btn btn-outline-secondary btn-sm metodo-chip" data-metodo="debito" onclick="seleccionarMetodo(this)">💳 Débito</button>
+      <button type="button" class="btn btn-outline-secondary btn-sm metodo-chip" data-metodo="credito" onclick="seleccionarMetodo(this)">💎 Crédito</button>
+    </div>
+    <input type="hidden" id="metodoPagoValue" value="">
+  </div>
+
+  <!-- Estado de deuda (solo ingreso) -->
+  <div id="camposEstadoDeuda" class="mb-3">
+    <label class="form-label fw-semibold">📋 Estado</label>
+    <div class="d-flex gap-2 flex-wrap" id="estadoDeudaChips">
+      <button type="button" class="btn btn-outline-success btn-sm estado-chip active" data-estado="al_dia" onclick="seleccionarEstado(this)">✅ Al día</button>
+      <button type="button" class="btn btn-outline-danger btn-sm estado-chip" data-estado="debe" onclick="seleccionarEstado(this)">⚠️ Debe</button>
+      <button type="button" class="btn btn-outline-warning btn-sm estado-chip" data-estado="le_debemos" onclick="seleccionarEstado(this)">↩️ Le debemos</button>
+    </div>
+    <input type="hidden" id="estadoDeudaValue" value="al_dia">
+  </div>
+
+  <!-- Comentario -->
+  <div class="mb-3">
+    <label for="comentarioPago" class="form-label fw-semibold">💬 Comentario (opcional)</label>
+    <input type="text" id="comentarioPago" class="form-control" placeholder="Ej: Pago parcial, trae el resto la semana próxima...">
+  </div>
+
+  <button type="submit" class="btn btn-primary w-100 py-2 fw-bold mt-2">💾 Guardar Movimiento</button>
+  <div id="lastMovementBox" class="alert alert-success mt-3 d-none" role="alert">
+    ✅ Último movimiento: <strong id="lastMovementText"></strong>
+  </div>
+</form>
+      </div>
+    </div>
+  </div>
 </div>
 
+<!-- MODAL ALUMNOS -->
+<div class="modal fade" id="modalAlumnos" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">👥 Gestión de Alumnos</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="d-flex gap-2 mb-3">
+          <input type="text" id="filtroAlumnosModal" class="form-control" placeholder="🔍 Buscar alumno...">
+          <div class="form-check form-switch d-flex align-items-center ms-2 text-nowrap">
+            <input class="form-check-input me-2" type="checkbox" id="mostrarInactivos" onchange="cargarAlumnosModal()">
+            <label class="form-check-label" for="mostrarInactivos">Ver inactivos</label>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-striped table-bordered">
+            <thead class="table-dark">
+              <tr>
+                <th>Nombre</th>
+                <th>Documento</th>
+                <th>Teléfono</th>
+                <th>Estado</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="tablaAlumnosModal"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <span id="totalAlumnosModal" class="text-muted small"></span>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-      <!-- Tabla de gastos mensuales -->
-      <div class="table-section table-responsive">
-
-        <h4 class="mb-3">📊 Gastos Mensuales</h4>
-        <table class="table table-bordered table-hover table-striped">
-          <thead class="table-secondary">
-            <tr>
-              <th>Mes</th>
-              <th class="text-end">Total Gastado</th>
-              <th>Acción</th>
-            </tr>
-          </thead>
-          <tbody id="tablaGastosMensuales"></tbody>
-        </table>
-        <!-- Detalles de los gastos -->
-        <div id="detalleGastosMensuales" class="mt-3" style="display: none;">
-          <h5>🧾 Detalles del Mes</h5>
-          <table class="table table-sm table-striped">
-            <thead class="table-light">
+<!-- MODAL GASTOS DEL MES -->
+<div class="modal fade" id="modalGastosMes" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">🧾 Gastos del mes</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div class="table-responsive">
+          <table class="table table-striped table-bordered mb-0">
+            <thead class="table-dark">
               <tr>
                 <th>Fecha</th>
                 <th>Categoría</th>
@@ -326,73 +1014,656 @@
                 <th>Acciones</th>
               </tr>
             </thead>
-            <tbody id="detalleGastosBody"></tbody>
+            <tbody id="tablaGastosModal"></tbody>
           </table>
         </div>
+        <div id="gastosModalVacio" class="text-center text-muted py-3 d-none">
+          No hay gastos registrados este mes.
+        </div>
       </div>
-
-      <!-- Tabla de pagos -->
-     <div class="table-section table-responsive">
-
-        <h4 class="mb-3">📋 Historial de Movimientos</h4>
-        <table class="table table-bordered table-striped">
-          <thead class="table-dark">
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Fecha</th>
-              <th class="text-end">Monto</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="clientPaymentsTableBody"></tbody>
-        </table>
+      <div class="modal-footer d-flex justify-content-between">
+        <span id="totalGastosModal" class="fw-bold text-danger"></span>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
       </div>
-    </section>
+    </div>
   </div>
+</div>
+</div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-
-
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="script.js"></script>
-
-<!-- Modal para crear nuevo alumno (único, fuera de cualquier div) -->
-<div class="modal" tabindex="-1" id="modalNuevoAlumno">
-  <div class="modal-dialog">
+<!-- MODAL HISTORIAL ALUMNO -->
+<div class="modal fade" id="modalHistorialAlumno" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
-      <form id="formNuevoAlumno">
-        <div class="modal-header">
-          <h5 class="modal-title">Agregar nuevo alumno</h5>
-          <button type="button" class="btn-close" onclick="cerrarModalAlumno()"></button>
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title mb-0">📋 Historial</h5>
+          <small class="text-muted" id="modalHistorialNombre"></small>
         </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label">Nombre completo</label>
-            <input type="text" class="form-control" id="nombreAlumnoNuevo" name="nombreAlumnoNuevo" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Documento (DNI)</label>
-            <input type="text" class="form-control" id="documentoAlumnoNuevo" name="documentoAlumnoNuevo" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Email</label>
-            <input type="email" class="form-control" id="emailAlumnoNuevo" name="emailAlumnoNuevo">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Teléfono</label>
-            <input type="text" class="form-control" id="telefonoAlumnoNuevo" name="telefonoAlumnoNuevo">
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Pestañas -->
+        <ul class="nav nav-tabs mb-3" id="historialTabs">
+          <li class="nav-item">
+            <button class="nav-link active" id="tab-pagos-btn"
+              onclick="switchHistorialTab('pagos')">💰 Pagos del alumno</button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" id="tab-movimientos-btn"
+              onclick="switchHistorialTab('movimientos')">📋 Movimientos generales</button>
+          </li>
+        </ul>
+
+        <!-- Tab pagos -->
+        <div id="tab-pagos">
+          <div class="table-responsive">
+            <table class="table table-striped table-bordered mb-0">
+              <thead class="table-dark">
+                <tr>
+                  <th>Fecha</th>
+                  <th>Abono</th>
+                  <th class="text-end">Monto</th>
+                  <th>Comentarios</th>
+                </tr>
+              </thead>
+              <tbody id="tablaHistorialModal"></tbody>
+            </table>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-success">Guardar</button>
-          <button type="button" class="btn btn-secondary" onclick="cerrarModalAlumno()">Cancelar</button>
+
+        <!-- Tab movimientos -->
+        <div id="tab-movimientos" class="d-none">
+          <div class="row g-2 mb-3">
+            <div class="col-12 col-md-6">
+              <input type="text" id="filtroMovNombreModal" class="form-control" placeholder="🔍 Buscar por nombre...">
+            </div>
+            <div class="col-12 col-md-4">
+              <input type="month" id="filtroMovMesModal" class="form-control">
+            </div>
+            <div class="col-12 col-md-2">
+              <button class="btn btn-outline-secondary w-100" id="btnLimpiarFiltroMovsModal">Limpiar</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+              <thead class="table-dark">
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Fecha</th>
+                  <th class="text-end">Monto</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="clientPaymentsTableModal"></tbody>
+            </table>
+            <div id="filtroMovsSinResultadosModal" class="text-center text-muted py-3 d-none">
+              No hay movimientos que coincidan con el filtro.
+            </div>
+          </div>
         </div>
-      </form>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
     </div>
   </div>
 </div>
 
 
+<!-- MODAL TARJETAS ALUMNOS -->
+<div class="modal fade" id="modalTarjetasAlumnos" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalTarjetasTitulo">Alumnos</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="d-flex gap-2 mb-3">
+          <button class="btn btn-outline-danger btn-sm" onclick="switchTarjetas('pendientes')">Pendientes</button>
+          <button class="btn btn-outline-success btn-sm" onclick="switchTarjetas('pagaron')">Pagaron</button>
+        </div>
+        <div id="panelPendientesModal">
+          <input type="text" id="pendientesSearch" class="form-control mb-3" placeholder="Buscar alumno..."/>
+          <div id="pendientesCards" class="cards-grid"></div>
+          <div class="d-flex align-items-center gap-2 mt-3">
+            <button class="btn btn-sm btn-outline-secondary" onclick="paginaAnterior('pendientes')">&#9664;</button>
+            <span id="pendientesPage">Pagina 1</span>
+            <button class="btn btn-sm btn-outline-secondary" onclick="paginaSiguiente('pendientes')">&#9654;</button>
+          </div>
+          <div id="pendientesMeta" class="text-muted small mt-1"></div>
+        </div>
+        <div id="panelPagaronModal" style="display:none;">
+          <input type="text" id="pagaronSearch" class="form-control mb-3" placeholder="Buscar alumno..."/>
+          <div id="pagaronCards" class="cards-grid"></div>
+          <div class="d-flex align-items-center gap-2 mt-3">
+            <button class="btn btn-sm btn-outline-secondary" onclick="paginaAnterior('pagaron')">&#9664;</button>
+            <span id="pagaronPage">Pagina 1</span>
+            <button class="btn btn-sm btn-outline-secondary" onclick="paginaSiguiente('pagaron')">&#9654;</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL PERFIL ALUMNO -->
+<div class="modal fade" id="modalPerfilAlumno" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title mb-0" id="perfilNombre">Perfil del alumno</h5>
+          <small class="text-muted" id="perfilDoc"></small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="perfilBody">
+        <div class="text-center text-muted py-4">Cargando...</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NUEVO PLAN -->
+<div class="modal fade" id="modalNuevoPlan" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalNuevoPlanTitulo">Nuevo plan</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="planEditCodigo">
+        <div class="mb-3">
+          <label class="form-label">Codigo</label>
+          <input type="text" id="planCodigo" class="form-control" placeholder="ej: plan_10">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Nombre</label>
+          <input type="text" id="planNombre" class="form-control" placeholder="ej: 10 clases / mes">
+        </div>
+        <div class="row g-2">
+          <div class="col-6">
+            <label class="form-label">Clases incluidas</label>
+            <input type="number" id="planClases" class="form-control" value="0" min="0">
+          </div>
+          <div class="col-6">
+            <label class="form-label">Precio (ARS)</label>
+            <input type="number" id="planPrecio" class="form-control" value="0" min="0">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="guardarPlan()">Guardar</button>
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal fade" id="modalEditarPago" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Editar Pago</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Nombre</label>
+          <input type="text" id="ep-fullName" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Documento</label>
+          <input type="text" id="ep-documento" class="form-control" readonly>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Tipo de abono</label>
+          <input type="text" id="ep-subscriptionType" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Monto</label>
+          <input type="number" id="ep-amount" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Fecha</label>
+          <input type="date" id="ep-paymentDate" class="form-control">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarEditarPago()">Actualizar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+<script>
+// ── PERMISOS POR ROL ──
+const ROLE_PAGES = {
+  admin:     ["dashboard","movimientos","asistencias","metricas","alumnos","gastos","diagnostico","usuarios"],
+  recepcion: ["dashboard","movimientos","asistencias","alumnos"],
+  viewer:    ["dashboard"]
+};
+
+function getUserRole() {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) return "viewer";
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.role || payload.rol || "viewer";
+  } catch(e) { return "viewer"; }
+}
+
+function aplicarPermisos() {
+  const role = getUserRole();
+  const allowed = ROLE_PAGES[role] || ROLE_PAGES["viewer"];
+  document.querySelectorAll(".sa-nav-item[data-sa-page]").forEach(el => {
+    const page = el.dataset.saPage;
+    if (allowed.includes(page)) {
+      el.style.display = "";
+    } else {
+      el.style.display = "none";
+    }
+  });
+  // Ocultar labels de sección si todos sus items están ocultos
+  document.querySelectorAll(".sa-nav-lbl").forEach(lbl => {
+    let next = lbl.nextElementSibling;
+    let allHidden = true;
+    while (next && !next.classList.contains("sa-nav-lbl")) {
+      if (next.style.display !== "none") { allHidden = false; break; }
+      next = next.nextElementSibling;
+    }
+    lbl.style.display = allHidden ? "none" : "";
+  });
+}
+
+// ── SIDEBAR NAVIGATION ──
+document.querySelectorAll(".sa-nav-item[data-sa-page]").forEach(el => {
+  el.addEventListener("click", () => {
+    const role = getUserRole();
+    const allowed = ROLE_PAGES[role] || ROLE_PAGES["viewer"];
+    if (!allowed.includes(el.dataset.saPage)) return;
+    saGoPage(el.dataset.saPage);
+  });
+});
+
+const SA_TITLES = {
+  dashboard: "Dashboard",
+  movimientos: "Movimientos",
+  asistencias: "Asistencias",
+  metricas: "Métricas",
+  alumnos: "Alumnos",
+  gastos: "Gastos",
+  diagnostico: "Diagnóstico",
+  usuarios: "Usuarios"
+};
+
+const SA_PAGE_IDS = {
+  dashboard: "paginaDashboard",
+  movimientos: "paginaMovimientos",
+  asistencias: "paginaAsistencias",
+  metricas: "paginaMetricas",
+  alumnos: "paginaAlumnos",
+  gastos: "paginaGastos",
+  diagnostico: "paginaDiagnostico",
+  usuarios: "paginaUsuarios"
+};
+
+function saGoPage(name) {
+  document.querySelectorAll(".sa-page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".sa-nav-item").forEach(n => n.classList.remove("active"));
+  const pageEl = document.getElementById(SA_PAGE_IDS[name]);
+  if (pageEl) pageEl.classList.add("active");
+  document.querySelectorAll(`.sa-nav-item[data-sa-page="${name}"]`).forEach(n => n.classList.add("active"));
+  const titleEl = document.getElementById("saPgTitle");
+  if (titleEl) titleEl.textContent = SA_TITLES[name] || name;
+  if (name === "metricas") cargarMetricas();
+  if (name === "movimientos") cargarMovimientosExt();
+  if (name === "alumnos") cargarAlumnosExt();
+  if (name === "gastos") cargarGastosExt();
+  if (name === "usuarios") cargarUsuarios();
+}
+
+// ── USUARIOS ──
+const AVATAR_COLORS = ["#7C3AED","#1D9E75","#E24B4A","#F59E0B","#3B82F6","#EC4899","#8B5CF6"];
+
+async function cargarUsuarios() {
+  try {
+    const r = await fetch(`${API_URL}/users`, { headers: getAuthHeaders() });
+    const users = await r.json();
+    const grid = document.getElementById("usuariosGrid");
+    if (!grid) return;
+    grid.innerHTML = users.map((u, i) => {
+      const color = AVATAR_COLORS[i % AVATAR_COLORS.length];
+      const inicial = (u.nombre || u.email || "?")[0].toUpperCase();
+      const activo = u.active == 1;
+      return `<div style="background:#fff;border-radius:14px;border:1px solid rgba(109,40,217,.1);padding:24px 20px;text-align:center;box-shadow:0 2px 8px rgba(109,40,217,.06);transition:.2s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(109,40,217,.14)'" onmouseout="this.style.boxShadow='0 2px 8px rgba(109,40,217,.06)'">
+        <div style="width:52px;height:52px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;color:#fff;margin:0 auto 12px;">${inicial}</div>
+        <div style="font-weight:600;font-size:.92rem;color:#1C1A2E;margin-bottom:2px;">${u.nombre || "Sin nombre"}</div>
+        <div style="font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7C3AED;margin-bottom:4px;">${u.rol || u.role || "admin"}</div>
+        <div style="font-size:.75rem;color:#7C7A8E;margin-bottom:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${u.email}</div>
+        <div style="display:flex;gap:8px;justify-content:center;">
+          <button onclick="editarUsuario(${u.id},'${u.nombre||''}','${u.email}','${u.rol||u.role||'admin'}')" style="flex:1;padding:7px;background:rgba(109,40,217,.08);border:none;border-radius:8px;color:#7C3AED;font-size:.75rem;font-weight:600;cursor:pointer;">Editar</button>
+          <button onclick="toggleUsuario(${u.id},${activo?0:1})" style="padding:7px 10px;background:${activo?'rgba(29,158,117,.08)':'rgba(226,75,74,.08)'};border:none;border-radius:8px;color:${activo?'#1D9E75':'#E24B4A'};font-size:.75rem;font-weight:600;cursor:pointer;">${activo?'Activo':'Inactivo'}</button>
+        </div>
+      </div>`;
+    }).join("");
+  } catch(e) { console.error("Error usuarios:", e); }
+}
+
+async function agregarUsuario() {
+  const { value: formValues } = await Swal.fire({
+    title: "Nuevo usuario",
+    html: `
+      <input id="nu-nombre" class="swal2-input" placeholder="Nombre completo">
+      <input id="nu-email" class="swal2-input" placeholder="Email" type="email">
+      <input id="nu-password" class="swal2-input" placeholder="Contraseña" type="password">
+      <select id="nu-rol" class="swal2-input">
+        <option value="admin">Admin</option>
+        <option value="recepcion">Recepción</option>
+        <option value="viewer">Solo lectura</option>
+      </select>`,
+    showCancelButton: true,
+    confirmButtonText: "Crear usuario",
+    cancelButtonText: "Cancelar",
+    didOpen: () => { document.querySelector(".swal2-container").style.zIndex = "99999"; },
+    preConfirm: () => ({
+      nombre: document.getElementById("nu-nombre").value.trim(),
+      email: document.getElementById("nu-email").value.trim(),
+      password: document.getElementById("nu-password").value,
+      rol: document.getElementById("nu-rol").value
+    })
+  });
+  if (!formValues) return;
+  if (!formValues.nombre || !formValues.email || !formValues.password) {
+    return Swal.fire("Error", "Todos los campos son obligatorios.", "warning");
+  }
+  try {
+    const r = await fetch(`${API_URL}/users`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(formValues)
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || "No se pudo crear el usuario");
+    await Swal.fire({ title: "Usuario creado", icon: "success", timer: 1500, showConfirmButton: false });
+    cargarUsuarios();
+  } catch(e) { Swal.fire("Error", e.message, "error"); }
+}
+
+async function editarUsuario(id, nombre, email, rol) {
+  const { value: formValues } = await Swal.fire({
+    title: "Editar usuario",
+    html: `
+      <input id="eu-nombre" class="swal2-input" placeholder="Nombre" value="${nombre}">
+      <input id="eu-email" class="swal2-input" placeholder="Email" value="${email}">
+      <select id="eu-rol" class="swal2-input">
+        <option value="admin" ${rol==="admin"?"selected":""}>Admin</option>
+        <option value="recepcion" ${rol==="recepcion"?"selected":""}>Recepción</option>
+        <option value="viewer" ${rol==="viewer"?"selected":""}>Solo lectura</option>
+      </select>`,
+    showCancelButton: true,
+    confirmButtonText: "Guardar",
+    cancelButtonText: "Cancelar",
+    didOpen: () => { document.querySelector(".swal2-container").style.zIndex = "99999"; },
+    preConfirm: () => ({
+      nombre: document.getElementById("eu-nombre").value.trim(),
+      email: document.getElementById("eu-email").value.trim(),
+      rol: document.getElementById("eu-rol").value
+    })
+  });
+  if (!formValues) return;
+  try {
+    const r = await fetch(`${API_URL}/users/${id}`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(formValues)
+    });
+    if (!r.ok) throw new Error("No se pudo actualizar");
+    await Swal.fire({ title: "Actualizado", icon: "success", timer: 1500, showConfirmButton: false });
+    cargarUsuarios();
+  } catch(e) { Swal.fire("Error", e.message, "error"); }
+}
+
+async function toggleUsuario(id, active) {
+  try {
+    await fetch(`${API_URL}/users/${id}/active`, {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ active })
+    });
+    cargarUsuarios();
+  } catch(e) { console.error("Error toggle usuario:", e); }
+}
+
+// Override legacy nav functions
+window.mostrarDiagnostico = () => saGoPage("diagnostico");
+window.mostrarDashboard   = () => saGoPage("dashboard");
+
+// Show sidebar + hide login wrapper when app loads
+const origAppContainer = document.getElementById("appContainer");
+const obs = new MutationObserver(() => {
+  if (origAppContainer.style.display !== "none") {
+    document.getElementById("loginWrapper").style.display = "none";
+    aplicarPermisos();
+  }
+});
+obs.observe(origAppContainer, { attributes: true, attributeFilter: ["style"] });
+
+// ── MÉTRICAS ──
+function destroyChart(id) {
+  const c = document.getElementById(id);
+  if (c && c._chart) { c._chart.destroy(); c._chart = null; }
+}
+
+async function cargarMetricas() {
+  try {
+    const fmt = v => "$" + Math.round(v).toLocaleString("es-AR");
+
+    // 1. Ingresos por mes
+    const rDash = await fetch(`${API_URL}/dashboard`, { headers: getAuthHeaders() });
+    const dash = await rDash.json();
+    const porMes = (dash.paymentsPerMonth || []).slice().reverse();
+    const labels = porMes.map(m => m.month);
+    const ingresos = porMes.map(m => parseFloat(m.totalIncome) || 0);
+
+    destroyChart("chartIngresosmes");
+    const c1 = document.getElementById("chartIngresosmes");
+    if (c1) c1._chart = new Chart(c1, {
+      type: "bar",
+      data: { labels, datasets: [{ label: "Ingresos", data: ingresos, backgroundColor: "rgba(109,40,217,.7)", borderRadius: 6 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { callback: v => "$" + Math.round(v/1000) + "k" } } } }
+    });
+
+    // KPIs
+    if (ingresos.length) {
+      const maxIdx = ingresos.indexOf(Math.max(...ingresos));
+      const prom = ingresos.reduce((a,b)=>a+b,0) / ingresos.length;
+      const total = ingresos.reduce((a,b)=>a+b,0);
+      document.getElementById("metricaMejorMes").textContent = labels[maxIdx] + " · " + fmt(ingresos[maxIdx]);
+      document.getElementById("metricaPromedio").textContent = fmt(prom);
+      document.getElementById("metricaTotal").textContent = fmt(total);
+    }
+
+    // 2. Alumnos por mes
+    const rAlumnos = await fetch(`${API_URL}/alumnos/mensuales`, { headers: getAuthHeaders() });
+    const alumnos = await rAlumnos.json();
+    const aLabels = alumnos.map(a => a.mes);
+    const aCants  = alumnos.map(a => a.cantidad);
+
+    if (aCants.length) {
+      const maxA = Math.max(...aCants);
+      const maxAMes = aLabels[aCants.indexOf(maxA)];
+      document.getElementById("metricaPicoAlumnos").textContent = maxAMes + " · " + maxA;
+    }
+
+    destroyChart("chartAlumnosMes");
+    const c2 = document.getElementById("chartAlumnosMes");
+    if (c2) c2._chart = new Chart(c2, {
+      type: "line",
+      data: { labels: aLabels, datasets: [{ label: "Alumnos", data: aCants, borderColor: "#1D9E75", backgroundColor: "rgba(29,158,117,.1)", tension: 0.3, fill: true, pointRadius: 4, pointBackgroundColor: "#1D9E75" }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+    });
+
+    // 3. Abonos (dona)
+    const rAbonos = await fetch(`${API_URL}/estadisticas/abonos`, { headers: getAuthHeaders() });
+    const abonos = await rAbonos.json();
+    const aboLabels = abonos.map(a => a.tipo_abono);
+    const aboData   = abonos.map(a => parseFloat(a.total) || 0);
+    const aboTotal  = aboData.reduce((a,b)=>a+b,0);
+    const colors = ["#7C3AED","#1D9E75","#E24B4A","#F59E0B","#3B82F6","#EC4899"];
+
+    destroyChart("chartAbonos");
+    const c3 = document.getElementById("chartAbonos");
+    if (c3) c3._chart = new Chart(c3, {
+      type: "doughnut",
+      data: { labels: aboLabels, datasets: [{ data: aboData, backgroundColor: colors, borderWidth: 2 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom", labels: { font: { size: 11 } } } } }
+    });
+
+    // Tabla abonos
+    const tbody = document.getElementById("tbodyAbonos");
+    if (tbody) tbody.innerHTML = abonos.map((a, i) => {
+      const pct = aboTotal > 0 ? Math.round(parseFloat(a.total)/aboTotal*100) : 0;
+      return `<tr>
+        <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${colors[i]||'#888'};margin-right:8px;"></span>${a.tipo_abono}</td>
+        <td style="text-align:right;font-weight:600">${fmt(parseFloat(a.total))}</td>
+        <td style="text-align:right;color:var(--muted)">${pct}%</td>
+      </tr>`;
+    }).join("");
+
+    // Tabla resumen mensual
+    const tbody2 = document.getElementById("tbodyMetricasResumen");
+    if (tbody2) {
+      const alumnoMap = {};
+      alumnos.forEach(a => alumnoMap[a.mes] = a.cantidad);
+      tbody2.innerHTML = porMes.map(m => `<tr>
+        <td>${m.month}</td>
+        <td style="text-align:right;font-weight:600">${fmt(parseFloat(m.totalIncome))}</td>
+        <td style="text-align:right;color:var(--green)">${alumnoMap[m.month] || "—"}</td>
+      </tr>`).join("");
+    }
+
+  } catch(e) { console.error("Error métricas:", e); }
+}
+
+// ── MOVIMIENTOS EXT ──
+async function cargarMovimientosExt() {
+  try {
+    const r = await fetch(`${API_URL}/payments`, { headers: getAuthHeaders() });
+    const d = await r.json();
+    const pagos = d.payments || [];
+    const tbody = document.getElementById("tablaMovimientosExt");
+    if (!tbody) return;
+    const filtroNombre = (document.getElementById("filtroMovNombreExt")?.value || "").toLowerCase();
+    const filtroMes    = document.getElementById("filtroMovMesExt")?.value || "";
+    const filtrados = pagos.filter(p => {
+      const okN = !filtroNombre || p.fullName?.toLowerCase().includes(filtroNombre);
+      const okM = !filtroMes   || (p.paymentDate || "").startsWith(filtroMes);
+      return okN && okM;
+    });
+    const metodoLabel = { efectivo:"💵 Efectivo", mercado_pago:"📱 MP", transferencia:"🏦 Transfer.", debito:"💳 Débito", credito:"💎 Crédito" };
+    const estadoLabel = { al_dia:"✅ Al día", debe:"⚠️ Debe", le_debemos:"↩️ Le debemos" };
+    const estadoColor = { al_dia:"var(--green)", debe:"var(--danger)", le_debemos:"#854F0B" };
+    tbody.innerHTML = filtrados.map(p => `<tr>
+      <td style="color:var(--muted);font-size:.72rem;">${p.id}</td>
+      <td style="font-weight:600">${p.fullName}</td>
+      <td style="color:var(--muted)">${new Date(p.paymentDate).toLocaleDateString("es-AR")}</td>
+      <td>${p.subscriptionType || "—"}</td>
+      <td style="text-align:right;font-weight:600">$${parseFloat(p.amount).toLocaleString("es-AR")}</td>
+      <td style="font-size:.75rem;">${p.metodoPago ? metodoLabel[p.metodoPago] || p.metodoPago : "—"}</td>
+      <td style="font-size:.75rem;color:${estadoColor[p.estadoDeuda]||'var(--muted)'};">${p.estadoDeuda ? estadoLabel[p.estadoDeuda] || p.estadoDeuda : "—"}</td>
+      <td style="font-size:.75rem;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.comentarios || "—"}</td>
+      <td><div style="display:flex;gap:6px;">
+        <button class="sa-edit-btn" onclick="editPayment(${p.id})">✎</button>
+        <button class="sa-del-btn"  onclick="eliminarPago(${p.id})">✕</button>
+      </div></td>
+    </tr>`).join("") || '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px;">Sin movimientos</td></tr>';
+  } catch(e) { console.error("Error movimientos:", e); }
+}
+
+document.addEventListener("input", e => {
+  if (e.target.id === "filtroMovNombreExt" || e.target.id === "filtroMovMesExt") cargarMovimientosExt();
+});
+
+// ── ALUMNOS EXT ──
+async function cargarAlumnosExt() {
+  try {
+    const r = await fetch(`${API_URL}/students`, { headers: getAuthHeaders() });
+    const d = await r.json();
+    const alumnos = d.students || d || [];
+    const tbody = document.getElementById("tablaAlumnosExt");
+    if (!tbody) return;
+    const filtro   = (document.getElementById("filtroAlumnosExt")?.value || "").toLowerCase();
+    const inactivos = document.getElementById("mostrarInactivosExt")?.checked;
+    const filtrados = alumnos.filter(a => {
+      const okN = !filtro || a.fullName?.toLowerCase().includes(filtro) || a.documento?.includes(filtro);
+      const okA = inactivos || a.activo !== false;
+      return okN && okA;
+    });
+    tbody.innerHTML = filtrados.map(a => `<tr>
+      <td style="font-weight:600">${a.nombre || a.fullName || "—"}</td>
+      <td style="color:var(--muted)">${a.documento || "—"}</td>
+      <td><span class="sa-bdg ${a.activo == 1 ? 'sa-bdg-ok' : 'sa-bdg-pend'}">${a.activo == 1 ? 'Activo' : 'Inactivo'}</span></td>
+      <td style="color:var(--muted)">${a.creado_en ? new Date(a.creado_en).toLocaleDateString("es-AR") : "—"}</td>
+      <td><button class="sa-edit-btn" onclick="verPerfilAlumno('${a.documento}')">Ver</button></td>
+    </tr>`).join("") || '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px;">Sin alumnos</td></tr>';
+    const total = document.getElementById("totalAlumnosExt");
+    if (total) total.textContent = filtrados.length + " alumnos";
+  } catch(e) { console.error("Error alumnos:", e); }
+}
+
+document.addEventListener("input", e => {
+  if (e.target.id === "filtroAlumnosExt") cargarAlumnosExt();
+});
+document.addEventListener("change", e => {
+  if (e.target.id === "mostrarInactivosExt") cargarAlumnosExt();
+});
+
+// ── GASTOS EXT ──
+async function cargarGastosExt() {
+  try {
+    const r = await fetch(`${API_URL}/gastos`, { headers: getAuthHeaders() });
+    const d = await r.json();
+    const gastos = d.gastos || d || [];
+    const tbody = document.getElementById("tablaGastosExt");
+    if (!tbody) return;
+    const total = gastos.reduce((a, g) => a + (parseFloat(g.monto) || 0), 0);
+    const totalEl = document.getElementById("gastosTotalExt");
+    if (totalEl) totalEl.textContent = "$" + Math.round(total).toLocaleString("es-AR");
+    tbody.innerHTML = gastos.map(g => `<tr>
+      <td style="color:var(--muted)">${g.fecha ? g.fecha.split("T")[0] : "—"}</td>
+      <td>${g.descripcion || "—"}<br><small style="color:var(--muted)">${g.categoria || ""}</small></td>
+      <td style="text-align:right;font-weight:600;color:var(--danger)">$${parseFloat(g.monto).toLocaleString("es-AR")}</td>
+      <td><div style="display:flex;gap:6px;">
+        <button class="sa-edit-btn" onclick="editarGasto(${g.id})">✎</button>
+        <button class="sa-del-btn"  onclick="eliminarGasto(${g.id}, '')">✕</button>
+      </div></td>
+    </tr>`).join("") || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px;">Sin gastos</td></tr>';
+  } catch(e) { console.error("Error gastos:", e); }
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/script.js?v=1775482866"></script>
 </body>
 </html>
