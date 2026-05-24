@@ -199,6 +199,87 @@ body {
 .text-danger  { color: var(--danger) !important; }
 h1,h2,h3,h4,h5,h6 { color: var(--text) !important; }
 small { color: var(--muted) !important; }
+
+/* ── HAMBURGER BUTTON ── */
+.sa-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px; height: 36px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 0;
+  transition: background var(--t);
+  flex-shrink: 0;
+}
+.sa-hamburger:hover { background: var(--surface-2); }
+.sa-hamburger span {
+  display: block;
+  width: 18px; height: 2px;
+  background: var(--text);
+  border-radius: 2px;
+  position: relative;
+  transition: var(--t);
+}
+.sa-hamburger span::before,
+.sa-hamburger span::after {
+  content: "";
+  display: block;
+  width: 18px; height: 2px;
+  background: var(--text);
+  border-radius: 2px;
+  position: absolute;
+  left: 0;
+  transition: var(--t);
+}
+.sa-hamburger span::before { top: -6px; }
+.sa-hamburger span::after  { top:  6px; }
+
+/* ── SIDEBAR OVERLAY (mobile) ── */
+.sa-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 199;
+  backdrop-filter: blur(2px);
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 767px) {
+  .sa-hamburger { display: flex; }
+
+  .sa-sidebar {
+    transform: translateX(-100%);
+    transition: transform .25s cubic-bezier(.4,0,.2,1);
+    box-shadow: none;
+  }
+  .sa-sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0,0,0,.25);
+  }
+  .sa-overlay.open { display: block; }
+
+  .sa-main { margin-left: 0; }
+
+  .sa-topbar { padding: 0 14px; }
+  .sa-content { padding: 16px 14px; }
+
+  .sa-kpi-row { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .sa-kpi-val { font-size: 1.2rem; }
+
+  /* Grids de 2 columnas → 1 en mobile */
+  #paginaMetricas > div[style*="grid-template-columns:1fr 1fr"] {
+    display: flex !important;
+    flex-direction: column;
+  }
+
+  /* Botón de registrar movimiento: solo ícono en mobile */
+  .sa-btn-new { padding: 7px 10px; font-size: 0; gap: 0; }
+  .sa-btn-new::before { content: "+"; font-size: .9rem; font-weight: 700; }
+}
   </style>
 </head>
 <body>
@@ -221,6 +302,8 @@ small { color: var(--muted) !important; }
     </div>
   </section>
 </div>
+
+<div class="sa-overlay" id="saOverlay" onclick="closeSidebar()"></div>
 
 <section id="appContainer" style="display:none;width:100%;min-height:100vh;">
 
@@ -260,7 +343,12 @@ small { color: var(--muted) !important; }
 
   <div class="sa-main">
     <div class="sa-topbar">
-      <span class="sa-pg-title" id="saPgTitle">Dashboard</span>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="sa-hamburger" onclick="toggleSidebar()" aria-label="Menú">
+          <span></span>
+        </button>
+        <span class="sa-pg-title" id="saPgTitle">Dashboard</span>
+      </div>
       <div class="sa-topbar-right">
         <button class="sa-btn-new" onclick="abrirModalMovimiento()">+ Registrar movimiento</button>
         <button id="logoutButton" class="btn btn-outline-secondary btn-sm">Cerrar sesión</button>
@@ -1452,6 +1540,36 @@ async function toggleUsuario(id, active) {
     cargarUsuarios();
   } catch(e) { console.error("Error toggle usuario:", e); }
 }
+
+// ── MOBILE SIDEBAR TOGGLE ──
+function toggleSidebar() {
+  const sidebar = document.querySelector(".sa-sidebar");
+  const overlay = document.getElementById("saOverlay");
+  const isOpen  = sidebar.classList.contains("open");
+  isOpen ? closeSidebar() : openSidebar();
+}
+function openSidebar() {
+  document.querySelector(".sa-sidebar").classList.add("open");
+  document.getElementById("saOverlay").classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+function closeSidebar() {
+  document.querySelector(".sa-sidebar").classList.remove("open");
+  document.getElementById("saOverlay").classList.remove("open");
+  document.body.style.overflow = "";
+}
+
+// Cierra sidebar al navegar en mobile
+document.querySelectorAll(".sa-nav-item").forEach(item => {
+  item.addEventListener("click", () => {
+    if (window.innerWidth < 768) closeSidebar();
+  });
+});
+
+// Cierra sidebar al rotar/redimensionar a desktop
+window.addEventListener("resize", () => {
+  if (window.innerWidth >= 768) closeSidebar();
+});
 
 // Override legacy nav functions
 window.mostrarDiagnostico = () => saGoPage("diagnostico");

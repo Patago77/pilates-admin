@@ -532,7 +532,7 @@ let chartSerieMensual = null;
 // - En Contabo (Nginx): /api  (mismo dominio)
 const API_URL = (() => {
   const h = window.location.hostname;
-  if (h === "localhost" || h === "127.0.0.1") return "http://localhost:3000/api";
+  if (h === "localhost" || h === "127.0.0.1") return "http://localhost:3005/api";
   return "/api";
 })();
 
