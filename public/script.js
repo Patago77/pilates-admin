@@ -33,6 +33,7 @@ window.abrirModalMovimiento = async function() {
     }
   }
 
+  if (typeof iniciarBuscadorAlumno === 'function') iniciarBuscadorAlumno();
   bootstrap.Modal.getOrCreateInstance(document.getElementById("modalMovimientoForm")).show();
 };
 
@@ -115,9 +116,10 @@ window.cargarAlumnosModal = async function() {
     : `${API_URL}/students`;
 
   try {
-    const resp = await fetch(url, { headers: getAuthHeaders() });
+    const resp = await fetch(url + (url.includes('?') ? '&' : '?') + 'limit=500', { headers: getAuthHeaders() });
     if (!resp.ok) throw new Error("No se pudieron obtener los alumnos.");
-    alumnosModalData = await resp.json();
+    const data = await resp.json();
+    alumnosModalData = Array.isArray(data) ? data : (data.students || []);
     renderTablaAlumnos();
   } catch(err) {
     handleError(err);
@@ -196,8 +198,9 @@ window.toggleActivoAlumno = async function(documento, nuevoEstado) {
 window.abrirModalAsistencias = async function() {
   // Cargar alumnos en el select del modal
   try {
-    const resp = await fetch(`${API_URL}/students`, { headers: getAuthHeaders() });
-    const alumnos = await resp.json();
+    const resp = await fetch(`${API_URL}/students?limit=500`, { headers: getAuthHeaders() });
+    const data = await resp.json();
+    const alumnos = Array.isArray(data) ? data : (data.students || []);
     const select = document.getElementById("asistenciaAlumno");
     if (select) {
       select.innerHTML = '<option value="">Seleccioná un alumno</option>';
@@ -469,6 +472,7 @@ function aplicarFiltroMovimientosModal() {
       <td>${new Date(p.paymentDate).toLocaleDateString('es-AR')}</td>
       <td class="text-end">$${parseFloat(p.amount).toLocaleString('es-AR')}</td>
       <td>
+        <button class="btn btn-sm btn-outline-secondary" title="Descargar recibo PDF" onclick="descargarRecibo(${p.id})">PDF</button>
         <button class="btn btn-sm btn-warning" onclick="editPayment(${p.id})">✏️</button>
         <button class="btn btn-sm btn-danger" onclick="deletePayment(${p.id})">🗑️</button>
       </td>
@@ -516,6 +520,7 @@ function aplicarFiltroMovimientos() {
       <td>${new Date(p.paymentDate).toLocaleDateString('es-AR')}</td>
       <td class="text-end">$${parseFloat(p.amount).toLocaleString('es-AR')}</td>
       <td>
+        <button class="btn btn-sm btn-outline-secondary" title="Descargar recibo PDF" onclick="descargarRecibo(${p.id})">PDF</button>
         <button class="btn btn-sm btn-warning" onclick="editPayment(${p.id})">✏️</button>
         <button class="btn btn-sm btn-danger" onclick="deletePayment(${p.id})">🗑️</button>
       </td>
@@ -538,9 +543,17 @@ const API_URL = (() => {
 
 
 // ===== FUNCIONES UTILES =====
-function handleError(error) {
+function handleError(error, silent = false) {
   console.error(error.message || error);
-  Swal.fire("Error", error.message || "Ocurrió un error.", "error");
+  if (silent) {
+    Swal.fire({
+      toast: true, position: "bottom-end", icon: "warning",
+      title: error.message || "Error al cargar datos",
+      showConfirmButton: false, timer: 3500, timerProgressBar: true
+    });
+  } else {
+    Swal.fire("Error", error.message || "Ocurrió un error.", "error");
+  }
 }
 
 function getAuthHeaders() {
@@ -559,18 +572,24 @@ function toggleContainers(showApp) {
 // ===== CARGAR ALUMNOS EN SELECT =====
 async function cargarAlumnos() {
   try {
-    const resp = await fetch(`${API_URL}/students`, {
-      headers: getAuthHeaders()
-    });
+    const resp = await fetch(`${API_URL}/students?limit=500`, { headers: getAuthHeaders() });
     if (!resp.ok) throw new Error("No se pudieron obtener los alumnos.");
-    const alumnos = await resp.json();
-    const select = document.getElementById('alumnoDocumento');
-    select.innerHTML = '<option value="">Seleccioná un alumno</option>';
-    alumnos.forEach(alumno => {
-      select.innerHTML += `<option value="${alumno.documento}">${alumno.nombre} (${alumno.documento})</option>`;
-    });
+    const data = await resp.json();
+    const alumnos = Array.isArray(data) ? data : (data.students || []);
+    // Precargar en el buscador del formulario de pago
+    if (typeof _todosAlumnos !== 'undefined') {
+      _todosAlumnos = alumnos.filter(a => a.activo == 1).sort((a,b) => a.nombre.localeCompare(b.nombre, 'es'));
+    }
+    // También llenar el select de asistencias si existe
+    const selectAsist = document.getElementById('alumnoDocumento');
+    if (selectAsist && selectAsist.tagName === 'SELECT') {
+      selectAsist.innerHTML = '<option value="">Seleccioná un alumno</option>';
+      alumnos.forEach(a => {
+        selectAsist.innerHTML += `<option value="${a.documento}">${a.nombre} (${a.documento})</option>`;
+      });
+    }
   } catch (error) {
-    handleError(error);
+    handleError(error, true);
   }
 }
 
@@ -765,14 +784,15 @@ async function cargarTarjetasEstadoMes() {
     const mes = mesActualYYYYMM();
 
     const [stResp, payResp] = await Promise.all([
-      fetch(`${API_URL}/students`, { headers: getAuthHeaders() }),
-      fetch(`${API_URL}/payments`, { headers: getAuthHeaders() })
+      fetch(`${API_URL}/students?limit=500`, { headers: getAuthHeaders() }),
+      fetch(`${API_URL}/payments?limit=500`, { headers: getAuthHeaders() })
     ]);
 
     if (!stResp.ok) throw new Error("No pude obtener students");
     if (!payResp.ok) throw new Error("No pude obtener payments");
 
-    const students = await stResp.json();
+    const stData   = await stResp.json();
+    const students = Array.isArray(stData) ? stData : (stData.students || []);
     const payJson  = await payResp.json();
     const payments = Array.isArray(payJson.payments) ? payJson.payments : [];
 
@@ -944,6 +964,8 @@ async function verDetalleGastos(mes) {
 
 // ===== RESUMEN MENSUAL =====
 async function cargarResumenMensual() {
+  const ids = ["kpiIncome", "kpiGastos", "kpiSaldo"];
+  ids.forEach(id => document.getElementById(id)?.classList.add("loading"));
   try {
     const response = await fetch(`${API_URL}/resumen/mensual`, {
       method: "GET",
@@ -958,11 +980,15 @@ async function cargarResumenMensual() {
     document.getElementById("kpiSaldo").textContent  = saldo.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
   } catch (error) {
     handleError(error);
+  } finally {
+    ids.forEach(id => document.getElementById(id)?.classList.remove("loading"));
   }
 }
 
 // ===== PAGOS =====
 async function cargarPagos() {
+  const tbody = document.getElementById("clientPaymentsTableBody");
+  if (tbody) tbody.innerHTML = Array(4).fill('<tr>' + Array(5).fill('<td><div class="sk sk-line" style="width:80%"></div></td>').join('') + '</tr>').join('');
   try {
     const response = await fetch(`${API_URL}/payments`, {
       method: "GET",
@@ -971,7 +997,6 @@ async function cargarPagos() {
     if (!response.ok) throw new Error("No se pudieron obtener los pagos");
 
     const data = await response.json();
-    const tbody = document.getElementById("clientPaymentsTableBody");
 
     if (tbody && Array.isArray(data.payments)) {
       const payments = [...data.payments];
@@ -984,6 +1009,15 @@ async function cargarPagos() {
     handleError(error);
   }
 }
+
+// ===== RECIBO PDF =====
+window.descargarRecibo = function(id) {
+  const token = localStorage.getItem("token");
+  const a = document.createElement("a");
+  a.href = `${API_URL}/recibo/${id}?token=${encodeURIComponent(token)}`;
+  a.download = `recibo-${id}.pdf`;
+  a.click();
+};
 
 // ===== CRUD PAGOS =====
 async function deletePayment(id) {
@@ -1196,20 +1230,50 @@ async function cargarSerieMensual(months = 12) {
 }
 
 // ===== DASHBOARD KPIs =====
+let _dashPagaron   = [];
+let _dashPendientes = [];
+
 async function cargarDashboard() {
   try {
-    const response = await fetch(`${API_URL}/dashboard`, {
-      headers: getAuthHeaders()
-    });
+    const response = await fetch(`${API_URL}/dashboard`, { headers: getAuthHeaders() });
     if (!response.ok) throw new Error("No se pudo obtener el dashboard");
-
     const data = await response.json();
 
-    const kpiActivos    = document.getElementById("kpiActivos");
-    const kpiPendientes = document.getElementById("kpiPendientes");
+    _dashPagaron    = data.upcomingPayments || [];
+    _dashPendientes = data.overduePayments  || [];
 
-    if (kpiActivos)    kpiActivos.textContent    = data.activeStudents ?? 0;
-    if (kpiPendientes) kpiPendientes.textContent = data.pendingPayments ?? 0;
+    const fmt = n => Number(n).toLocaleString('es-AR', { style:'currency', currency:'ARS', maximumFractionDigits:0 });
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+    // Ingresos/gastos/saldo del mes desde el dashboard
+    if (data.ingresosMes !== undefined) {
+      set('kpiIncome', fmt(data.ingresosMes));
+      set('kpiGastos',  fmt(data.gastosMes));
+      const saldo = data.saldoMes;
+      const elSaldo = document.getElementById('kpiSaldo');
+      if (elSaldo) {
+        elSaldo.textContent = fmt(saldo);
+        elSaldo.style.color = saldo >= 0 ? 'var(--green)' : 'var(--danger)';
+      }
+    }
+
+    set('kpiActivos',    _dashPagaron.length);
+    set('kpiPendientes', _dashPendientes.length);
+    set('kpiReservasHoy', data.reservasHoy ?? 0);
+
+    const subHoy = document.getElementById('kpiReservasHoySub');
+    if (subHoy) subHoy.textContent = data.reservasHoy === 1 ? 'reserva confirmada hoy' : 'reservas confirmadas hoy';
+
+    // Alerta pendientes
+    const alerta = document.getElementById('alertaPendientes');
+    const cant   = document.getElementById('cantidadPendientes');
+    if (alerta && _dashPendientes.length > 0) {
+      alerta.classList.remove('d-none');
+      if (cant) cant.textContent = _dashPendientes.length;
+    } else if (alerta) {
+      alerta.classList.add('d-none');
+    }
   } catch (error) {
     console.error("Error cargando dashboard:", error);
   }
@@ -1365,10 +1429,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (formNuevoAlumno) {
     formNuevoAlumno.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const nombre    = document.getElementById('nombreAlumnoNuevo').value.trim();
-      const documento = document.getElementById('documentoAlumnoNuevo').value.trim();
-      const email     = document.getElementById('emailAlumnoNuevo').value.trim();
-      const telefono  = document.getElementById('telefonoAlumnoNuevo').value.trim();
+      const nombre            = document.getElementById('nombreAlumnoNuevo').value.trim();
+      const documento         = document.getElementById('documentoAlumnoNuevo').value.trim();
+      const email             = document.getElementById('emailAlumnoNuevo').value.trim();
+      const telefono          = document.getElementById('telefonoAlumnoNuevo').value.trim();
+      const fechaNacimiento   = document.getElementById('fechaNacimientoNuevo')?.value || null;
 
       if (!nombre || !documento) {
         return Swal.fire("Error", "Completá nombre y documento", "warning");
@@ -1378,7 +1443,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const resp = await fetch(`${API_URL}/students`, {
           method: "POST",
           headers: getAuthHeaders(),
-          body: JSON.stringify({ nombre, documento, email, telefono })
+          body: JSON.stringify({ nombre, documento, email, telefono, fechaNacimiento })
         });
         if (!resp.ok) {
           const data = await resp.json();
@@ -1451,7 +1516,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         const documento    = alumnoSelect.value;
-        const nombreAlumno = alumnoSelect.options[alumnoSelect.selectedIndex]?.text?.split(" (")[0] || "";
+        const nombreAlumno = document.getElementById('alumnoSearch')?.value?.trim() || alumnoSelect.options[alumnoSelect.selectedIndex]?.text?.split(" (")[0] || "";
         const subscriptionType = subscriptionEl.value;
 
         if (!documento || !subscriptionType) {
@@ -1678,7 +1743,7 @@ async function cargarSaludEstudio() {
     }
 
   } catch (err) {
-    console.error('Error cargando salud del estudio:', err);
+    handleError(err, true);
   }
 }
 
@@ -1850,7 +1915,7 @@ async function cargarReformers() {
     rfBuildGrid();
     rfCalc();
   } catch (err) {
-    console.error('Error cargando reformers:', err);
+    handleError(err, true);
     rfInitSlots(null);
     rfBuildGrid();
     rfCalc();
@@ -1876,6 +1941,15 @@ window.mostrarDashboard = function() {
 // MODAL TARJETAS ALUMNOS
 // ============================================================
 window.abrirModalTarjetas = function(tipo) {
+  const renderLista = (containerId, lista, color) => {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    el.innerHTML = lista.length
+      ? lista.map(n => `<div style="padding:7px 0;border-bottom:1px solid #f0eeff;font-size:13px;font-weight:500;">${n}</div>`).join('')
+      : `<div class="text-muted text-center py-3" style="font-size:13px;">Sin registros</div>`;
+  };
+  renderLista('panelPendientesModal', _dashPendientes, 'var(--danger)');
+  renderLista('panelPagaronModal',    _dashPagaron,    'var(--green)');
   switchTarjetas(tipo);
   const modal = new bootstrap.Modal(document.getElementById('modalTarjetasAlumnos'));
   modal.show();
@@ -1902,6 +1976,7 @@ window.switchTarjetas = function(tipo) {
 window.switchTabImportar = function(tab, btn) {
   document.getElementById('tabImportarAsistencia').style.display = tab === 'asistencia' ? 'block' : 'none';
   document.getElementById('tabImportarClientes').style.display   = tab === 'clientes'   ? 'block' : 'none';
+  document.getElementById('tabImportarReservas').style.display   = tab === 'reservas'   ? 'block' : 'none';
   document.querySelectorAll('#tabsImportar .nav-link').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
 }
@@ -1994,6 +2069,74 @@ window.importarClientes = async function() {
   }
 }
 
+window.previewReservas = async function() {
+  const file = document.getElementById('csvReservas').files[0];
+  if (!file) return alert('Seleccioná un archivo CSV primero');
+  const form = new FormData();
+  form.append('csv', file);
+  const el = document.getElementById('previewReservas');
+  el.innerHTML = '<div class="text-muted small">Procesando...</div>';
+  document.getElementById('btnConfirmarReservas').style.display = 'none';
+  try {
+    const resp = await fetch(`${API_URL}/importar/agenda/preview`, { method: 'POST', headers: getAuthHeadersUpload(), body: form });
+    const d = await resp.json();
+    if (!resp.ok) { el.innerHTML = `<div class="alert alert-danger">${d.error}</div>`; return; }
+
+    const colores = { documento: '#1D9E75', nombre_exacto: '#6D28D9', nombre_parcial: '#854F0B', no_encontrado: '#E24B4A' };
+    const etiquetas = { documento: 'Por DNI', nombre_exacto: 'Nombre exacto', nombre_parcial: 'Nombre parcial', no_encontrado: 'No encontrado' };
+
+    el.innerHTML = `
+      <div class="d-flex gap-2 flex-wrap mb-3">
+        <span class="badge" style="background:#1D9E75">${d.resumen.por_documento} por DNI</span>
+        <span class="badge" style="background:#6D28D9">${d.resumen.por_nombre} por nombre</span>
+        <span class="badge" style="background:#E24B4A">${d.resumen.no_encontrados} no encontrados</span>
+        <span class="badge bg-secondary">${d.resumen.total} futuros en total</span>
+      </div>
+      <div style="max-height:340px;overflow-y:auto;border:1px solid #e9e4ff;border-radius:8px;">
+        <table class="table table-sm mb-0" style="font-size:12px;">
+          <thead style="position:sticky;top:0;background:#f8f7ff;">
+            <tr><th>Fecha</th><th>Hora</th><th>Neocita</th><th>Sistema</th><th>Match</th></tr>
+          </thead>
+          <tbody>
+            ${d.registros.map(r => `
+              <tr>
+                <td>${r.fechaISO}</td>
+                <td>${r.hora}</td>
+                <td>${r.cliente}</td>
+                <td>${r.nombre_sistema || '<span class="text-danger">—</span>'}</td>
+                <td><span style="font-size:11px;font-weight:600;color:${colores[r.metodo]}">${etiquetas[r.metodo]}</span></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+
+    if (d.resumen.por_documento + d.resumen.por_nombre > 0) {
+      document.getElementById('btnConfirmarReservas').style.display = 'inline-block';
+    }
+  } catch(err) {
+    el.innerHTML = '<div class="alert alert-danger">Error al procesar el archivo.</div>';
+  }
+}
+
+window.confirmarReservas = async function() {
+  const file = document.getElementById('csvReservas').files[0];
+  if (!file) return;
+  if (!confirm(`¿Confirmar la importación de reservas futuras? Los duplicados se ignorarán.`)) return;
+  const form = new FormData();
+  form.append('csv', file);
+  const el = document.getElementById('previewReservas');
+  try {
+    const resp = await fetch(`${API_URL}/importar/agenda/confirmar`, { method: 'POST', headers: getAuthHeadersUpload(), body: form });
+    const d = await resp.json();
+    el.innerHTML = resp.ok
+      ? `<div class="alert alert-success">${d.mensaje}</div>`
+      : `<div class="alert alert-danger">${d.error}</div>`;
+    document.getElementById('btnConfirmarReservas').style.display = 'none';
+  } catch(err) {
+    el.innerHTML = '<div class="alert alert-danger">Error al importar.</div>';
+  }
+}
+
 function getAuthHeadersUpload() {
   const token = localStorage.getItem("token");
   return { "Authorization": `Bearer ${token}` };
@@ -2029,9 +2172,53 @@ function renderListaInforme(containerId, lista, tipo) {
         style="background:#E1F5EE;border:0.5px solid #5DCAA5;border-radius:6px;padding:4px 10px;font-size:11px;color:#085041;text-decoration:none;white-space:nowrap">
         WhatsApp
       </a>` : ''}
+      ${tipo === 'sinPagar' ? `
+      <button onclick="cobrarRapido('${a.documento}','${(a.nombre||'').replace(/'/g,"\\'")}');event.stopPropagation();"
+        style="background:#6d28d9;border:none;border-radius:6px;padding:4px 10px;font-size:11px;color:#fff;white-space:nowrap;cursor:pointer;">
+        Cobrar
+      </button>` : ''}
     </div>
   `).join('');
 }
+
+window.cobrarRapido = function(documento, nombre) {
+  document.getElementById('cobrarRapidoDoc').value   = documento;
+  document.getElementById('cobrarRapidoNombre').textContent = nombre;
+  const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+  document.getElementById('cobrarRapidoFecha').value = hoy;
+  // plan_4 por defecto
+  const sel = document.getElementById('cobrarRapidoPlan');
+  sel.value = 'plan_4';
+  document.getElementById('cobrarRapidoMonto').value = '55000';
+  new bootstrap.Modal(document.getElementById('modalCobrarRapido')).show();
+};
+
+// Sincronizar monto cuando cambia el plan
+document.addEventListener('change', e => {
+  if (e.target.id !== 'cobrarRapidoPlan') return;
+  const opt = e.target.selectedOptions[0];
+  if (opt) document.getElementById('cobrarRapidoMonto').value = opt.dataset.precio || '';
+});
+
+window.confirmarCobrarRapido = async function() {
+  const documento = document.getElementById('cobrarRapidoDoc').value;
+  const nombre    = document.getElementById('cobrarRapidoNombre').textContent;
+  const plan      = document.getElementById('cobrarRapidoPlan').value;
+  const monto     = parseFloat(document.getElementById('cobrarRapidoMonto').value);
+  const fecha     = document.getElementById('cobrarRapidoFecha').value;
+  if (!documento || !plan || !fecha || isNaN(monto)) return;
+  try {
+    const r = await fetch(`${API_URL}/payments`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fullName: nombre, subscriptionType: plan, paymentDate: fecha, amount: monto, documento })
+    });
+    const d = await r.json();
+    if (!r.ok) { alert(d.error || 'Error al registrar el pago.'); return; }
+    bootstrap.Modal.getInstance(document.getElementById('modalCobrarRapido'))?.hide();
+    await cargarInformeMes();
+  } catch(e) { alert('Error de conexión.'); }
+};
 
 window.cargarInformeMes = async function() {
   try {
@@ -2061,7 +2248,7 @@ window.cargarInformeMes = async function() {
     renderListaInforme('listaSinPagar', d.sin_pagar, 'sinPagar');
     renderListaInforme('listaSinVenir', d.sin_venir, 'sinVenir');
   } catch (err) {
-    console.error('Error informe mes:', err);
+    handleError(err, true);
   }
 }
 
@@ -2077,7 +2264,7 @@ async function cargarPlanes() {
     planesData = await resp.json();
     renderTablaPlanes();
   } catch (err) {
-    console.error('Error cargando planes:', err);
+    handleError(err, true);
   }
 }
 
@@ -2147,7 +2334,7 @@ window.guardarPlan = async function() {
   const clases  = parseInt(document.getElementById('planClases').value) || 0;
   const precio  = parseFloat(document.getElementById('planPrecio').value) || 0;
 
-  if (!nombre) return alert('El nombre es obligatorio');
+  if (!nombre) return Swal.fire('Campo requerido', 'El nombre es obligatorio.', 'warning');
 
   try {
     let resp;
@@ -2158,7 +2345,7 @@ window.guardarPlan = async function() {
         body: JSON.stringify({ nombre, clases, precio })
       });
     } else {
-      if (!codigo) return alert('El codigo es obligatorio');
+      if (!codigo) return Swal.fire('Campo requerido', 'El código es obligatorio.', 'warning');
       resp = await fetch(`${API_URL}/planes`, {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -2166,11 +2353,12 @@ window.guardarPlan = async function() {
       });
     }
     const d = await resp.json();
-    if (!resp.ok) return alert(d.error || 'Error guardando plan');
+    if (!resp.ok) return Swal.fire('Error', d.error || 'Error guardando plan', 'error');
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalNuevoPlan')).hide();
+    Swal.fire({ toast:true, position:'top-end', icon:'success', title:'Plan guardado', showConfirmButton:false, timer:2000 });
     await cargarPlanes();
   } catch (err) {
-    alert('Error guardando plan');
+    Swal.fire('Error', 'No se pudo guardar el plan.', 'error');
   }
 }
 

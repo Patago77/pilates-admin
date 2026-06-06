@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>Estudio de Pilates - Finanzas</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <style>
@@ -80,6 +83,43 @@ body {
 .sa-page { display: none; }
 .sa-page.active { display: block; animation: fadeUp .18s ease; }
 @keyframes fadeUp { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.65; } }
+
+.ag-vista-btn { background:none; border:none; border-radius:6px; padding:5px 12px; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; transition:var(--t); font-family:"Inter",sans-serif; }
+.ag-vista-btn.active { background:#fff; color:var(--accent); font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.1); }
+.ag-nav-btn { background:none; border:1px solid rgba(109,40,217,.15); border-radius:6px; padding:4px 10px; font-size:15px; color:var(--muted); cursor:pointer; transition:var(--t); line-height:1; }
+.ag-nav-btn:hover { background:var(--surface-2); color:var(--accent); }
+
+/* Semana grid */
+.ag-semana-grid { display:grid; grid-template-columns:52px repeat(5,1fr); gap:3px; }
+.ag-semana-hdr  { text-align:center; padding:6px 4px 8px; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+.ag-semana-hdr.hoy { color:var(--accent); }
+.ag-semana-hora { display:flex; align-items:center; font-size:11px; font-weight:600; color:var(--muted); padding-right:6px; justify-content:flex-end; }
+.ag-cell { border-radius:7px; padding:5px 4px; text-align:center; cursor:pointer; transition:var(--t); min-height:38px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; border:1.5px solid transparent; }
+.ag-cell:hover { filter:brightness(.94); }
+.ag-cell.vacio  { background:#f5f4ff; border-color:#e9e4ff; color:#bbb; }
+.ag-cell.bajo   { background:#e6f7f1; border-color:#9ddec8; color:#0f6e56; }
+.ag-cell.medio  { background:#fef3e2; border-color:#f9c74f; color:#7a4f00; }
+.ag-cell.lleno  { background:#fce8e8; border-color:#f4a4a4; color:#a32d2d; }
+.ag-cell.sobre  { background:#E24B4A; border-color:#c0392b; color:#fff; animation:pulse 1.2s infinite; }
+.ag-cell.hoy-col { box-shadow:inset 0 0 0 1.5px var(--accent); }
+.ag-cell-n    { font-size:14px; font-weight:700; line-height:1; }
+.ag-cell-cap  { font-size:10px; opacity:.7; }
+
+/* Mes grid */
+.ag-mes-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+.ag-mes-hdr  { text-align:center; font-size:11px; font-weight:600; color:var(--muted); padding:4px 0 6px; text-transform:uppercase; letter-spacing:.04em; }
+.ag-dia-cell { border-radius:8px; padding:6px 4px; min-height:52px; cursor:pointer; transition:var(--t); border:1.5px solid transparent; }
+.ag-dia-cell:hover { filter:brightness(.94); }
+.ag-dia-cell.otro-mes  { opacity:.3; pointer-events:none; }
+.ag-dia-cell.hoy-dia   { border-color:var(--accent) !important; }
+.ag-dia-cell.finde     { background:#f9f9f9; cursor:default; pointer-events:none; }
+.ag-dia-cell.sin-clases{ background:#fafafa; border-color:#f0eeff; }
+.ag-dia-cell.poco      { background:#e6f7f1; border-color:#9ddec8; }
+.ag-dia-cell.mitad     { background:#fef3e2; border-color:#f9c74f; }
+.ag-dia-cell.lleno-dia { background:#fce8e8; border-color:#f4a4a4; }
+.ag-dia-num  { font-size:12px; font-weight:700; color:var(--text); margin-bottom:4px; }
+.ag-dia-bar  { height:4px; border-radius:2px; width:100%; }
 
 .sa-kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px; }
 .sa-kpi { background: var(--surface); border-radius: var(--radius); padding: 18px 18px 14px; border: 1px solid rgba(109,40,217,.1); box-shadow: var(--shadow-soft); position: relative; overflow: hidden; }
@@ -150,6 +190,8 @@ body {
 .table-striped > tbody > tr:nth-of-type(even) > * { background: transparent !important; color: var(--text) !important; }
 .table td, .table th { border-color: rgba(0,0,0,.06) !important; color: var(--text) !important; padding: 10px 12px !important; }
 .table-light th { background: var(--surface-2) !important; color: var(--muted) !important; }
+
+
 
 .nav-tabs { border-bottom: var(--border) !important; }
 .nav-tabs .nav-link { color: var(--muted) !important; border-radius: 8px 8px 0 0 !important; border: none !important; font-size: 13px; font-weight: 500; padding: 8px 14px !important; }
@@ -280,7 +322,17 @@ small { color: var(--muted) !important; }
   .sa-btn-new { padding: 7px 10px; font-size: 0; gap: 0; }
   .sa-btn-new::before { content: "+"; font-size: .9rem; font-weight: 700; }
 }
-  </style>
+</style>
+<style>
+/* Skeleton loaders */
+@keyframes sk-pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+.sk { background:#e9e4ff; border-radius:6px; display:inline-block; animation:sk-pulse 1.4s ease-in-out infinite; }
+.sk-kpi  { width:80px; height:28px; }
+.sk-line { height:14px; border-radius:4px; margin:4px 0; }
+.sk-row  { height:38px; border-radius:6px; margin:6px 0; width:100%; }
+.sa-kpi-val.loading { color:transparent !important; position:relative; }
+.sa-kpi-val.loading::after { content:''; position:absolute; left:0; top:50%; transform:translateY(-50%); width:80px; height:22px; border-radius:6px; background:#e9e4ff; animation:sk-pulse 1.4s ease-in-out infinite; }
+</style>
 </head>
 <body>
 
@@ -290,8 +342,8 @@ small { color: var(--muted) !important; }
       <h2 class="mb-1" style="font-size:18px;font-weight:700;">Estudio de Pilates</h2>
       <p class="text-muted mb-3" style="font-size:12px;">Panel de recepción</p>
       <div class="mb-3">
-        <label class="form-label">Usuario</label>
-        <input type="text" id="username" class="form-control" placeholder="Usuario" autocomplete="username">
+        <label class="form-label">Email</label>
+        <input type="email" id="username" class="form-control" placeholder="correo@ejemplo.com" autocomplete="email">
       </div>
       <div class="mb-3">
         <label class="form-label">Contraseña</label>
@@ -325,9 +377,15 @@ small { color: var(--muted) !important; }
     <div class="sa-nav-item" data-sa-page="metricas">
       <div class="sa-nav-dot"></div><span>Métricas</span>
     </div>
+    <div class="sa-nav-item" data-sa-page="agenda">
+      <div class="sa-nav-dot"></div><span>Agenda</span>
+    </div>
     <div class="sa-nav-lbl">Gestión</div>
     <div class="sa-nav-item" data-sa-page="alumnos">
       <div class="sa-nav-dot"></div><span>Alumnos</span>
+    </div>
+    <div class="sa-nav-item" data-sa-page="abonos">
+      <div class="sa-nav-dot"></div><span>Abonos</span>
     </div>
     <div class="sa-nav-item" data-sa-page="gastos">
       <div class="sa-nav-dot"></div><span>Gastos</span>
@@ -386,6 +444,12 @@ small { color: var(--muted) !important; }
             <div id="kpiActivos" class="sa-kpi-val" style="cursor:pointer;color:var(--green);" onclick="abrirModalTarjetas('pagaron')">0</div>
             <div class="sa-kpi-sub">Con pago este mes</div>
             <div class="mt-3"><button class="btn btn-outline-success btn-sm w-100" onclick="abrirModalTarjetas('pagaron')">Ver lista</button></div>
+          </div>
+          <div class="sa-kpi">
+            <div class="sa-kpi-accent" style="background:rgba(109,40,217,.07);"></div>
+            <div class="sa-kpi-lbl">Clases hoy</div>
+            <div id="kpiReservasHoy" class="sa-kpi-val" style="color:var(--accent);">0</div>
+            <div class="sa-kpi-sub" id="kpiReservasHoySub">reservas confirmadas</div>
           </div>
           <div class="sa-kpi">
             <div class="sa-kpi-accent" style="background:rgba(226,75,74,.07);"></div>
@@ -469,7 +533,7 @@ small { color: var(--muted) !important; }
           </div>
           <div class="sa-table-wrap">
             <table class="sa-table">
-              <thead><tr><th>ID</th><th>Alumno</th><th>Fecha</th><th>Abono</th><th style="text-align:right">Monto</th><th>Método</th><th>Estado</th><th>Comentario</th><th>Acciones</th></tr></thead>
+              <thead><tr><th>ID</th><th>Alumno</th><th>Fecha pago</th><th>Mes abono</th><th>Plan</th><th style="text-align:right">Monto</th><th>Método</th><th>Estado</th><th>Comentario</th><th>Acciones</th></tr></thead>
               <tbody id="tablaMovimientosExt"></tbody>
             </table>
           </div>
@@ -478,13 +542,133 @@ small { color: var(--muted) !important; }
 
       <!-- ASISTENCIAS -->
       <div id="paginaAsistencias" class="sa-page">
+
+        <!-- KPIs del mes -->
+        <div class="sa-kpi-row" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:18px;">
+          <div class="sa-kpi">
+            <div class="sa-kpi-accent" style="background:rgba(109,40,217,.07);"></div>
+            <div class="sa-kpi-lbl">Asistencias este mes</div>
+            <div id="kpiAsistMes" class="sa-kpi-val">—</div>
+          </div>
+          <div class="sa-kpi">
+            <div class="sa-kpi-accent" style="background:rgba(29,158,117,.07);"></div>
+            <div class="sa-kpi-lbl">Promedio por día</div>
+            <div id="kpiAsistPromedio" class="sa-kpi-val">—</div>
+          </div>
+          <div class="sa-kpi">
+            <div class="sa-kpi-accent" style="background:rgba(109,40,217,.07);"></div>
+            <div class="sa-kpi-lbl">Alumnas distintas</div>
+            <div id="kpiAsistAlumnas" class="sa-kpi-val">—</div>
+          </div>
+          <div class="sa-kpi">
+            <div class="sa-kpi-accent" style="background:rgba(29,158,117,.07);"></div>
+            <div class="sa-kpi-lbl">Hoy</div>
+            <div id="kpiAsistHoy" class="sa-kpi-val">—</div>
+          </div>
+        </div>
+
+        <!-- Registro rápido -->
         <div class="sa-card">
           <div class="sa-card-hd">
-            <span class="sa-card-ttl">Asistencias</span>
-            <button class="btn btn-primary btn-sm" onclick="abrirModalAsistencias()">Registrar asistencia</button>
+            <span class="sa-card-ttl">Registrar asistencia</span>
+            <span id="asistFechaHoy" style="font-size:12px;color:var(--muted);"></span>
           </div>
           <div class="sa-card-body">
-            <p class="text-muted" style="font-size:13px;">Registrá la asistencia del día o consultá el historial por alumno desde el modal.</p>
+            <div style="max-width:460px;">
+              <div style="position:relative;">
+                <input type="text" id="asistBuscarAlumno" class="form-control" placeholder="Buscar alumno por nombre o documento..." autocomplete="off">
+                <input type="hidden" id="asistDocRapido">
+                <div id="asistDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid #e9e4ff;border-radius:8px;max-height:240px;overflow-y:auto;z-index:9999;box-shadow:0 4px 12px rgba(109,40,217,.1);margin-top:2px;"></div>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap;">
+                <div id="asistAlumnoSeleccionado" style="flex:1;font-size:13px;color:var(--green);font-weight:600;min-height:20px;align-self:center;"></div>
+                <select id="asistHorario" class="form-control form-control-sm" style="width:110px;flex-shrink:0;">
+                  <option value="">Hora clase</option>
+                  <option value="09:00">09:00</option>
+                  <option value="10:00">10:00</option>
+                  <option value="11:00">11:00</option>
+                  <option value="12:00">12:00</option>
+                  <option value="13:00">13:00</option>
+                  <option value="17:00">17:00</option>
+                  <option value="18:00">18:00</option>
+                  <option value="19:00">19:00</option>
+                  <option value="20:00">20:00</option>
+                </select>
+                <button class="btn btn-primary" onclick="registrarAsistenciaRapida()">Registrar asistencia</button>
+              </div>
+            </div>
+            <div id="asistFeedback" style="margin-top:10px;font-size:13px;min-height:20px;"></div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:0;">
+
+          <!-- Lista del día (con selector de fecha) -->
+          <div class="sa-card" style="margin-bottom:0;">
+            <div class="sa-card-hd">
+              <span class="sa-card-ttl">Asistencias del día</span>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <input type="date" id="asistFiltroFecha" class="form-control form-control-sm" style="width:160px;" onchange="cargarAsistHoy()">
+                <span id="asistCountHoy" class="badge" style="background:var(--accent-dim);color:var(--accent);font-size:12px;">0</span>
+              </div>
+            </div>
+            <div class="sa-table-wrap">
+              <table class="sa-table">
+                <thead><tr><th>Alumno</th><th>Documento</th><th>Hora</th><th></th></tr></thead>
+                <tbody id="tablaAsistHoy"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Ranking del mes -->
+          <div class="sa-card" style="margin-bottom:0;">
+            <div class="sa-card-hd">
+              <span class="sa-card-ttl">Más asistentes del mes</span>
+              <span id="asistMesLabel" style="font-size:12px;color:var(--muted);"></span>
+            </div>
+            <div class="sa-table-wrap">
+              <table class="sa-table">
+                <thead><tr><th>Alumna</th><th style="text-align:center;">Clases</th></tr></thead>
+                <tbody id="tablaAsistRanking"></tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- AGENDA -->
+      <div id="paginaAgenda" class="sa-page">
+
+        <!-- Alerta: alumnos con reservas sin pago -->
+        <div id="alertaSinAbono" style="margin-bottom:12px;"></div>
+
+        <div class="sa-card">
+          <!-- Topbar de agenda -->
+          <div class="sa-card-hd" style="flex-wrap:nowrap;gap:8px;">
+            <!-- Selector de vista -->
+            <div style="display:flex;background:#F0EEFF;border-radius:8px;padding:3px;gap:2px;flex-shrink:0;">
+              <button id="agVistaDia"    class="ag-vista-btn" onclick="agSetVista('dia')">Día</button>
+              <button id="agVistaSemana" class="ag-vista-btn active" onclick="agSetVista('semana')">Semana</button>
+              <button id="agVistaMes"    class="ag-vista-btn" onclick="agSetVista('mes')">Mes</button>
+            </div>
+            <!-- Navegación de período -->
+            <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
+              <button class="ag-nav-btn" onclick="agNavegar(-1)">‹</button>
+              <div id="agPeriodoLabel" style="font-size:13px;font-weight:600;flex:1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+              <button class="ag-nav-btn" onclick="agNavegar(1)">›</button>
+              <button class="ag-nav-btn" onclick="agHoy()" style="font-size:11px;padding:4px 8px;">Hoy</button>
+            </div>
+            <a href="/mi-agenda" target="_blank" class="btn btn-outline-secondary btn-sm" style="flex-shrink:0;font-size:12px;">Portal ↗</a>
+          </div>
+
+          <div class="sa-card-body" style="padding:14px 16px 10px;">
+            <!-- Vista semana (por defecto) -->
+            <div id="agVistaSemanaPanel"></div>
+            <!-- Vista día -->
+            <div id="agVistaDiaPanel" style="display:none;"></div>
+            <!-- Vista mes -->
+            <div id="agVistaMesPanel" style="display:none;"></div>
           </div>
         </div>
       </div>
@@ -572,12 +756,42 @@ small { color: var(--muted) !important; }
           </div>
           <div class="sa-table-wrap">
             <table class="sa-table">
-              <thead><tr><th>Nombre</th><th>Documento</th><th>Estado</th><th>Último pago</th><th>Acciones</th></tr></thead>
+              <thead><tr><th>Nombre</th><th>Documento</th><th>Contacto</th><th>Estado</th><th>Último pago</th><th>Acciones</th></tr></thead>
               <tbody id="tablaAlumnosExt"></tbody>
             </table>
           </div>
           <div class="sa-card-body" style="padding-top:8px;">
             <span id="totalAlumnosExt" class="text-muted" style="font-size:12px;"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABONOS -->
+      <div id="paginaAbonos" class="sa-page">
+        <div class="sa-card">
+          <div class="sa-card-hd">
+            <span class="sa-card-ttl">Estado de abonos</span>
+            <input type="month" id="abonosMes" class="form-control form-control-sm" style="width:160px;">
+          </div>
+          <div class="sa-card-body" style="padding-bottom:0;">
+            <div id="abonosResumen" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;"></div>
+          </div>
+          <div class="sa-table-wrap">
+            <table class="sa-table">
+              <thead>
+                <tr>
+                  <th>Alumno</th>
+                  <th class="text-center">Plan</th>
+                  <th class="text-center">Clases</th>
+                  <th class="text-center">Asistió</th>
+                  <th class="text-center">Faltó</th>
+                  <th class="text-center">Cancel.</th>
+                  <th class="text-center">Restantes</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="tablaAbonos"></tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -687,6 +901,7 @@ small { color: var(--muted) !important; }
             <ul class="nav nav-tabs mb-3" id="tabsImportar">
               <li class="nav-item"><button class="nav-link active" onclick="switchTabImportar('asistencia',this)">Asistencias</button></li>
               <li class="nav-item"><button class="nav-link" onclick="switchTabImportar('clientes',this)">Clientes</button></li>
+              <li class="nav-item"><button class="nav-link" onclick="switchTabImportar('reservas',this)">Reservas futuras</button></li>
             </ul>
             <div id="tabImportarAsistencia">
               <div class="mb-3"><label class="form-label small text-muted">Archivo CSV de agenda (NeoCita)</label><input type="file" id="csvAgenda" accept=".csv" class="form-control form-control-sm"></div>
@@ -700,6 +915,15 @@ small { color: var(--muted) !important; }
               <div class="mb-3"><label class="form-label small text-muted">Archivo CSV de clientes (NeoCita)</label><input type="file" id="csvClientes" accept=".csv" class="form-control form-control-sm"></div>
               <button class="btn btn-primary btn-sm" onclick="importarClientes()">Importar clientes</button>
               <div id="resultadoClientes" class="mt-3"></div>
+            </div>
+            <div id="tabImportarReservas" style="display:none">
+              <p class="text-muted small mb-3">Importa los turnos futuros de NeoCita como reservas en la agenda. Primero hacé vista previa para ver qué alumnos se reconocen.</p>
+              <div class="mb-3"><label class="form-label small text-muted">Archivo CSV de agenda (NeoCita)</label><input type="file" id="csvReservas" accept=".csv" class="form-control form-control-sm"></div>
+              <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary btn-sm" onclick="previewReservas()">Vista previa</button>
+                <button class="btn btn-success btn-sm" id="btnConfirmarReservas" style="display:none" onclick="confirmarReservas()">Confirmar importación</button>
+              </div>
+              <div id="previewReservas" class="mt-3"></div>
             </div>
           </div>
         </div>
@@ -778,6 +1002,11 @@ small { color: var(--muted) !important; }
             <input type="text" class="form-control" id="telefonoAlumnoNuevo">
           </div>
 
+          <div class="mb-3">
+            <label class="form-label">Fecha de nacimiento</label>
+            <input type="date" class="form-control" id="fechaNacimientoNuevo">
+          </div>
+
         </div>
 
         <div class="modal-footer">
@@ -792,6 +1021,47 @@ small { color: var(--muted) !important; }
 </div>
 
 
+
+<!-- MODAL COBRO RÁPIDO -->
+<div class="modal fade" id="modalCobrarRapido" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:380px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" style="font-size:15px;">Registrar pago</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold" style="font-size:13px;">Alumna</label>
+          <div id="cobrarRapidoNombre" style="font-size:14px;color:var(--bs-body-color);padding:6px 0;"></div>
+          <input type="hidden" id="cobrarRapidoDoc">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold" style="font-size:13px;">Plan</label>
+          <select id="cobrarRapidoPlan" class="form-control" style="font-size:13px;">
+            <option value="plan_4" data-precio="55000">4 clases / mes — $55.000</option>
+            <option value="plan_6" data-precio="63000">6 clases / mes — $63.000</option>
+            <option value="plan_8" data-precio="71000">8 clases / mes — $71.000</option>
+            <option value="plan_12" data-precio="75000">12 clases / mes — $75.000</option>
+            <option value="clase_suelta" data-precio="22000">Clase suelta — $22.000</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold" style="font-size:13px;">Monto</label>
+          <input type="number" id="cobrarRapidoMonto" class="form-control" style="font-size:13px;" value="55000">
+        </div>
+        <div class="mb-2">
+          <label class="form-label fw-semibold" style="font-size:13px;">Fecha de pago</label>
+          <input type="date" id="cobrarRapidoFecha" class="form-control" style="font-size:13px;">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-success btn-sm" onclick="confirmarCobrarRapido()">Confirmar pago</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL MES HISTORICO -->
 <div class="modal fade" id="modalMesHistorico" tabindex="-1" aria-hidden="true">
@@ -969,11 +1239,13 @@ small { color: var(--muted) !important; }
     </div>
     <div class="row g-3 mb-3">
       <div class="col-md-8">
-        <label for="alumnoDocumento" class="form-label fw-semibold">👤 Alumno</label>
+        <label class="form-label fw-semibold">👤 Alumno</label>
         <div class="d-flex gap-2">
-          <select id="alumnoDocumento" name="alumnoDocumento" class="form-select" required>
-            <option value="">Seleccioná un alumno</option>
-          </select>
+          <div style="flex:1;position:relative;">
+            <input type="text" id="alumnoSearch" class="form-control" placeholder="Buscar alumno por nombre o documento..." autocomplete="off" required>
+            <input type="hidden" id="alumnoDocumento" name="alumnoDocumento">
+            <div id="alumnoDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid #e9e4ff;border-radius:8px;max-height:220px;overflow-y:auto;z-index:9999;box-shadow:0 4px 12px rgba(109,40,217,.1);"></div>
+          </div>
           <button id="btnNuevoAlumno" type="button" class="btn btn-outline-primary text-nowrap"
             data-bs-toggle="modal" data-bs-target="#modalNuevoAlumno">
             + Nuevo
@@ -1345,8 +1617,8 @@ small { color: var(--muted) !important; }
 <script>
 // ── PERMISOS POR ROL ──
 const ROLE_PAGES = {
-  admin:     ["dashboard","movimientos","asistencias","metricas","alumnos","gastos","diagnostico","usuarios"],
-  recepcion: ["dashboard","movimientos","asistencias","alumnos"],
+  admin:     ["dashboard","movimientos","asistencias","agenda","metricas","alumnos","abonos","gastos","diagnostico","usuarios"],
+  recepcion: ["dashboard","movimientos","asistencias","agenda","alumnos","abonos"],
   viewer:    ["dashboard"]
 };
 
@@ -1396,8 +1668,10 @@ const SA_TITLES = {
   dashboard: "Dashboard",
   movimientos: "Movimientos",
   asistencias: "Asistencias",
+  agenda: "Agenda",
   metricas: "Métricas",
   alumnos: "Alumnos",
+  abonos: "Abonos",
   gastos: "Gastos",
   diagnostico: "Diagnóstico",
   usuarios: "Usuarios"
@@ -1407,8 +1681,10 @@ const SA_PAGE_IDS = {
   dashboard: "paginaDashboard",
   movimientos: "paginaMovimientos",
   asistencias: "paginaAsistencias",
+  agenda: "paginaAgenda",
   metricas: "paginaMetricas",
   alumnos: "paginaAlumnos",
+  abonos: "paginaAbonos",
   gastos: "paginaGastos",
   diagnostico: "paginaDiagnostico",
   usuarios: "paginaUsuarios"
@@ -1427,6 +1703,9 @@ function saGoPage(name) {
   if (name === "alumnos") cargarAlumnosExt();
   if (name === "gastos") cargarGastosExt();
   if (name === "usuarios") cargarUsuarios();
+  if (name === "asistencias") cargarAsistHoy();
+  if (name === "agenda") iniciarAgendaAdmin();
+  if (name === "abonos") iniciarAbonos();
 }
 
 // ── USUARIOS ──
@@ -1694,26 +1973,32 @@ async function cargarMovimientosExt() {
     const filtroMes    = document.getElementById("filtroMovMesExt")?.value || "";
     const filtrados = pagos.filter(p => {
       const okN = !filtroNombre || p.fullName?.toLowerCase().includes(filtroNombre);
-      const okM = !filtroMes   || (p.paymentDate || "").startsWith(filtroMes);
+      const mesAbono = p.serviceMonth || (p.paymentDate || "").substring(0, 7);
+      const okM = !filtroMes || mesAbono === filtroMes;
       return okN && okM;
     });
     const metodoLabel = { efectivo:"💵 Efectivo", mercado_pago:"📱 MP", transferencia:"🏦 Transfer.", debito:"💳 Débito", credito:"💎 Crédito" };
     const estadoLabel = { al_dia:"✅ Al día", debe:"⚠️ Debe", le_debemos:"↩️ Le debemos" };
     const estadoColor = { al_dia:"var(--green)", debe:"var(--danger)", le_debemos:"#854F0B" };
-    tbody.innerHTML = filtrados.map(p => `<tr>
+    const fmtMes = m => { if (!m) return "—"; const [y,mo] = m.split("-"); const names=["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"]; return `${names[parseInt(mo)]} ${y}`; };
+    tbody.innerHTML = filtrados.map(p => {
+      const mesAbono = p.serviceMonth || (p.paymentDate || "").substring(0, 7);
+      return `<tr>
       <td style="color:var(--muted);font-size:.72rem;">${p.id}</td>
       <td style="font-weight:600">${p.fullName}</td>
-      <td style="color:var(--muted)">${new Date(p.paymentDate).toLocaleDateString("es-AR")}</td>
-      <td>${p.subscriptionType || "—"}</td>
+      <td style="color:var(--muted)">${new Date(p.paymentDate + 'T12:00:00').toLocaleDateString("es-AR")}</td>
+      <td style="font-size:.75rem;font-weight:600;color:var(--accent);">${fmtMes(mesAbono)}</td>
+      <td style="font-size:.75rem;">${p.subscriptionType || "—"}</td>
       <td style="text-align:right;font-weight:600">$${parseFloat(p.amount).toLocaleString("es-AR")}</td>
       <td style="font-size:.75rem;">${p.metodoPago ? metodoLabel[p.metodoPago] || p.metodoPago : "—"}</td>
       <td style="font-size:.75rem;color:${estadoColor[p.estadoDeuda]||'var(--muted)'};">${p.estadoDeuda ? estadoLabel[p.estadoDeuda] || p.estadoDeuda : "—"}</td>
-      <td style="font-size:.75rem;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.comentarios || "—"}</td>
+      <td style="font-size:.75rem;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.comentarios || "—"}</td>
       <td><div style="display:flex;gap:6px;">
+        <button class="sa-edit-btn" title="Descargar recibo PDF" onclick="descargarRecibo(${p.id})">PDF</button>
         <button class="sa-edit-btn" onclick="editPayment(${p.id})">✎</button>
         <button class="sa-del-btn"  onclick="eliminarPago(${p.id})">✕</button>
       </div></td>
-    </tr>`).join("") || '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px;">Sin movimientos</td></tr>';
+    </tr>`;}).join("") || '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:24px;">Sin movimientos</td></tr>';
   } catch(e) { console.error("Error movimientos:", e); }
 }
 
@@ -1721,10 +2006,191 @@ document.addEventListener("input", e => {
   if (e.target.id === "filtroMovNombreExt" || e.target.id === "filtroMovMesExt") cargarMovimientosExt();
 });
 
+// ── ASISTENCIAS (página) ──
+let _asistBuscadorListo = false;
+let _todosAlumnosAsist  = []; // lista propia sin filtro activo
+
+async function _asistCargarAlumnos() {
+  if (_todosAlumnosAsist.length) return;
+  try {
+    const r = await fetch(`${API_URL}/students?limit=500`, { headers: getAuthHeaders() });
+    const d = await r.json();
+    // Sin filtro de activo: puede que alumnas "inactivas" igual vengan a clase
+    _todosAlumnosAsist = (Array.isArray(d) ? d : (d.students || []))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+    // También actualizar _todosAlumnos (usado en pagos) si está vacío
+    if (!_todosAlumnos.length) {
+      _todosAlumnos = _todosAlumnosAsist.filter(a => a.activo == 1);
+    }
+  } catch(e) { console.error("Error cargando alumnos asist:", e); }
+}
+
+function _asistMostrarDropdown(q) {
+  const input    = document.getElementById("asistBuscarAlumno");
+  const dropdown = document.getElementById("asistDropdown");
+  const hidden   = document.getElementById("asistDocRapido");
+  const selLabel = document.getElementById("asistAlumnoSeleccionado");
+  if (!dropdown) return;
+
+  if (!_todosAlumnosAsist.length) {
+    dropdown.innerHTML = '<div style="padding:10px 14px;color:var(--muted);font-size:13px;">Cargando...</div>';
+    dropdown.style.display = 'block'; return;
+  }
+  const filtro = (q || '').toLowerCase().trim();
+  const res = filtro
+    ? _todosAlumnosAsist.filter(a =>
+        a.nombre.toLowerCase().includes(filtro) || (a.documento || '').includes(filtro)
+      ).slice(0, 30)
+    : _todosAlumnosAsist.slice(0, 30);
+
+  if (!res.length) {
+    dropdown.innerHTML = '<div style="padding:10px 14px;color:var(--muted);font-size:13px;">Sin resultados para "' + filtro + '"</div>';
+  } else {
+    dropdown.innerHTML = res.map(a => `
+      <div data-doc="${a.documento}" data-nombre="${a.nombre}"
+           style="padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid #f5f4ff;display:flex;justify-content:space-between;align-items:center;background:#fff;"
+           onmouseover="this.style.background='#F0EEFF'" onmouseout="this.style.background='#fff'">
+        <span style="font-weight:600;">${a.nombre}</span>
+        <span style="color:var(--muted);font-size:11px;">${a.activo == 0 ? '(inactiva) ' : ''}DNI ${a.documento}</span>
+      </div>`).join('');
+
+    // click en una opción — usar onclick en el div para evitar problemas con blur
+    dropdown.querySelectorAll('[data-doc]').forEach(el => {
+      el.addEventListener('mousedown', e => {
+        e.preventDefault(); // evita que el blur del input cierre el dropdown antes del click
+        if (input)  input.value  = el.dataset.nombre;
+        if (hidden) hidden.value = el.dataset.doc;
+        if (selLabel) selLabel.textContent = `✓ ${el.dataset.nombre} — DNI ${el.dataset.doc}`;
+        dropdown.style.display = 'none';
+      });
+    });
+  }
+  dropdown.style.display = 'block';
+}
+
+function _asistIniciarBuscador() {
+  if (_asistBuscadorListo) return; // solo una vez
+  const input    = document.getElementById("asistBuscarAlumno");
+  const hidden   = document.getElementById("asistDocRapido");
+  const selLabel = document.getElementById("asistAlumnoSeleccionado");
+  const dropdown = document.getElementById("asistDropdown");
+  if (!input || !dropdown) return;
+
+  input.addEventListener('focus', () => _asistMostrarDropdown(input.value));
+  input.addEventListener('input', () => {
+    if (hidden)   hidden.value = '';
+    if (selLabel) selLabel.textContent = '';
+    _asistMostrarDropdown(input.value);
+  });
+  input.addEventListener('blur', () => setTimeout(() => { dropdown.style.display = 'none'; }, 200));
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); registrarAsistenciaRapida(); } });
+
+  _asistBuscadorListo = true;
+}
+
+async function cargarAsistHoy() {
+  await _asistCargarAlumnos();
+  _asistIniciarBuscador();
+
+  const hoyStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+  const mesAR  = hoyStr.substring(0, 7);
+
+  // Sincronizar selector de fecha con hoy si está vacío
+  const filtroEl = document.getElementById("asistFiltroFecha");
+  if (filtroEl && !filtroEl.value) filtroEl.value = hoyStr;
+  const fecha = filtroEl?.value || hoyStr;
+
+  const el = document.getElementById("asistFechaHoy");
+  if (el) el.textContent = new Date(fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
+
+  // Lista del día
+  try {
+    const r = await fetch(`${API_URL}/asistencia/hoy?fecha=${fecha}`, { headers: getAuthHeaders() });
+    const rows = await r.json();
+    const tbody = document.getElementById("tablaAsistHoy");
+    const badge = document.getElementById("asistCountHoy");
+    const kpiHoy = document.getElementById("kpiAsistHoy");
+    if (badge) badge.textContent = Array.isArray(rows) ? rows.length : 0;
+    if (kpiHoy) kpiHoy.textContent = Array.isArray(rows) ? rows.length : 0;
+    if (tbody && Array.isArray(rows)) tbody.innerHTML = rows.map(a => `<tr>
+      <td style="font-weight:600;">${a.nombre || "—"}</td>
+      <td style="color:var(--muted);font-size:12px;">DNI ${a.documento}</td>
+      <td style="color:var(--muted);font-size:12px;">${a.horario || a.created_at?.substring(11,16) || "—"}</td>
+      <td><button class="sa-del-btn" onclick="eliminarAsistHoy(${a.id})" title="Eliminar">✕</button></td>
+    </tr>`).join("") || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">Sin asistencias este día.</td></tr>';
+  } catch(e) { console.error("Error asistencias día:", e); }
+
+  // KPIs y ranking del mes
+  try {
+    const r2 = await fetch(`${API_URL}/asistencia/mes/${mesAR}`, { headers: getAuthHeaders() });
+    const d = await r2.json();
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set("kpiAsistMes", d.total ?? "—");
+    set("kpiAsistAlumnas", d.alumnas ?? "—");
+    set("kpiAsistPromedio", d.diasConClase > 0 ? (d.total / d.diasConClase).toFixed(1) : "—");
+    const lbl = document.getElementById("asistMesLabel");
+    const meses = ["","Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    if (lbl) { const [y,m] = mesAR.split('-'); lbl.textContent = `${meses[parseInt(m)]} ${y}`; }
+    const ranking = document.getElementById("tablaAsistRanking");
+    if (ranking) ranking.innerHTML = (d.ranking || []).map((a, i) => `<tr>
+      <td><span style="color:var(--muted);font-size:11px;margin-right:6px;">${i+1}.</span>${a.nombre || a.documento}</td>
+      <td style="text-align:center;font-weight:700;color:var(--accent);">${a.clases}</td>
+    </tr>`).join("") || '<tr><td colspan="2" style="text-align:center;color:var(--muted);padding:16px;">Sin datos este mes.</td></tr>';
+  } catch(e) { console.error("Error asist mes:", e); }
+}
+
+async function registrarAsistenciaRapida() {
+  const doc    = (document.getElementById("asistDocRapido")?.value || "").trim();
+  const nombre = (document.getElementById("asistBuscarAlumno")?.value || "").trim();
+  const fb     = document.getElementById("asistFeedback");
+  if (!doc) {
+    if (fb) { fb.style.color = "var(--danger)"; fb.textContent = nombre ? "Seleccioná el alumno de la lista desplegable." : "Buscá y seleccioná un alumno primero."; }
+    document.getElementById("asistBuscarAlumno")?.focus();
+    return;
+  }
+  if (fb) { fb.style.color = "var(--muted)"; fb.textContent = "Registrando..."; }
+  try {
+    const hoyStr  = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+    const fecha   = document.getElementById("asistFiltroFecha")?.value || hoyStr;
+    const horario = document.getElementById("asistHorario")?.value || null;
+    const r = await fetch(`${API_URL}/asistencia`, {
+      method: 'POST', headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ documento: doc, fecha, horario })
+    });
+    const d = await r.json();
+    if (!r.ok) { if (fb) { fb.style.color = "var(--danger)"; fb.textContent = d.error || "Error al registrar."; } return; }
+    const esPasado = fecha < hoyStr;
+    if (fb) { fb.style.color = "var(--green)"; fb.textContent = `✅ ${d.nombre}${esPasado ? ` — registrada para ${new Date(fecha+'T12:00:00').toLocaleDateString('es-AR',{day:'numeric',month:'short'})}` : ' — asistencia registrada'}`; }
+    document.getElementById("asistBuscarAlumno").value = "";
+    document.getElementById("asistDocRapido").value    = "";
+    const selHor = document.getElementById("asistHorario");
+    if (selHor) selHor.value = "";
+    const lbl = document.getElementById("asistAlumnoSeleccionado");
+    if (lbl) lbl.textContent = "";
+    document.getElementById("asistBuscarAlumno")?.focus();
+    await cargarAsistHoy();
+    setTimeout(() => { if (fb) fb.textContent = ""; }, 4000);
+  } catch(e) { if (fb) { fb.style.color = "var(--danger)"; fb.textContent = "Error de conexión."; } }
+}
+
+async function eliminarAsistHoy(id) {
+  const conf = confirm("¿Eliminar esta asistencia?");
+  if (!conf) return;
+  try {
+    await fetch(`${API_URL}/asistencia/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+    await cargarAsistHoy();
+  } catch(e) { alert("Error al eliminar."); }
+}
+
+// Enter en campo de documento de asistencia
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" && document.activeElement?.id === "asistDocRapido") registrarAsistenciaRapida();
+});
+
 // ── ALUMNOS EXT ──
 async function cargarAlumnosExt() {
   try {
-    const r = await fetch(`${API_URL}/students`, { headers: getAuthHeaders() });
+    const r = await fetch(`${API_URL}/students?limit=500`, { headers: getAuthHeaders() });
     const d = await r.json();
     const alumnos = d.students || d || [];
     const tbody = document.getElementById("tablaAlumnosExt");
@@ -1732,17 +2198,36 @@ async function cargarAlumnosExt() {
     const filtro   = (document.getElementById("filtroAlumnosExt")?.value || "").toLowerCase();
     const inactivos = document.getElementById("mostrarInactivosExt")?.checked;
     const filtrados = alumnos.filter(a => {
-      const okN = !filtro || a.fullName?.toLowerCase().includes(filtro) || a.documento?.includes(filtro);
-      const okA = inactivos || a.activo !== false;
+      const okN = !filtro || (a.nombre || "").toLowerCase().includes(filtro) || (a.documento || "").includes(filtro);
+      const okA = inactivos || a.activo == 1;
       return okN && okA;
     });
-    tbody.innerHTML = filtrados.map(a => `<tr>
-      <td style="font-weight:600">${a.nombre || a.fullName || "—"}</td>
-      <td style="color:var(--muted)">${a.documento || "—"}</td>
-      <td><span class="sa-bdg ${a.activo == 1 ? 'sa-bdg-ok' : 'sa-bdg-pend'}">${a.activo == 1 ? 'Activo' : 'Inactivo'}</span></td>
-      <td style="color:var(--muted)">${a.creado_en ? new Date(a.creado_en).toLocaleDateString("es-AR") : "—"}</td>
-      <td><button class="sa-edit-btn" onclick="verPerfilAlumno('${a.documento}')">Ver</button></td>
-    </tr>`).join("") || '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px;">Sin alumnos</td></tr>';
+    tbody.innerHTML = filtrados.map(a => {
+      const tel = (a.telefono || '').replace(/\D/g,'');
+      const wa  = tel ? `<a href="https://wa.me/54${tel}" target="_blank" style="color:#25D366;font-size:15px;text-decoration:none;" title="WhatsApp">💬</a>` : '';
+      const mesActual = new Date().toLocaleDateString('en-CA', { timeZone:'America/Argentina/Buenos_Aires' }).substring(0,7);
+      const pagoOk = a.ultimoMesPago === mesActual;
+      const ultimoPagoFmt = a.ultimoPago
+        ? new Date(a.ultimoPago).toLocaleDateString('es-AR', { timeZone:'America/Argentina/Buenos_Aires' })
+        : '—';
+      return `<tr>
+        <td>
+          <div style="font-weight:600;font-size:13px;">${a.nombre || "—"}</div>
+          ${a.email ? `<div style="font-size:11px;color:var(--muted);">${a.email}</div>` : ''}
+        </td>
+        <td style="color:var(--muted);font-size:13px;">${a.documento || "—"}</td>
+        <td style="font-size:15px;">${wa}${a.telefono ? `<span style="font-size:11px;color:var(--muted);margin-left:4px;">${a.telefono}</span>` : '<span style="color:var(--muted);font-size:12px;">Sin tel.</span>'}</td>
+        <td><span class="sa-bdg ${a.activo == 1 ? 'sa-bdg-ok' : 'sa-bdg-pend'}">${a.activo == 1 ? 'Activo' : 'Inactivo'}</span></td>
+        <td style="font-size:12px;">
+          <span style="color:${pagoOk?'var(--green)':'var(--muted)'};">${ultimoPagoFmt}</span>
+          ${pagoOk ? '<span style="font-size:10px;color:var(--green);display:block;">✓ Al día</span>' : ''}
+        </td>
+        <td><div style="display:flex;gap:6px;">
+          <button class="sa-edit-btn" onclick="verCuentaAlumno('${a.documento}')">Ver</button>
+          <button class="sa-edit-btn" onclick="editarAlumno('${a.documento}')">✎</button>
+        </div></td>
+      </tr>`;
+    }).join("") || '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px;">Sin alumnos</td></tr>';
     const total = document.getElementById("totalAlumnosExt");
     if (total) total.textContent = filtrados.length + " alumnos";
   } catch(e) { console.error("Error alumnos:", e); }
@@ -1777,11 +2262,825 @@ async function cargarGastosExt() {
     </tr>`).join("") || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px;">Sin gastos</td></tr>';
   } catch(e) { console.error("Error gastos:", e); }
 }
+
+// ── BUSCADOR DE ALUMNO EN FORMULARIO DE PAGO ──
+let _todosAlumnos = [];
+async function iniciarBuscadorAlumno() {
+  const input = document.getElementById('alumnoSearch');
+  const hidden = document.getElementById('alumnoDocumento');
+  const dropdown = document.getElementById('alumnoDropdown');
+  if (!input) return;
+
+  // Cargar alumnos una sola vez
+  if (!_todosAlumnos.length) {
+    try {
+      const r = await fetch(`${API_URL}/students?limit=500`, { headers: getAuthHeaders() });
+      const d = await r.json();
+      _todosAlumnos = (Array.isArray(d) ? d : (d.students || []))
+        .filter(a => a.activo == 1)
+        .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+    } catch(e) { console.error('Error cargando alumnos para buscador:', e); }
+  }
+
+  const mostrar = (q) => {
+    if (!_todosAlumnos.length) {
+      dropdown.innerHTML = '<div style="padding:10px 14px;color:var(--muted);font-size:13px;">Cargando alumnos...</div>';
+      dropdown.style.display = 'block';
+      return;
+    }
+    const filtro = q.toLowerCase().trim();
+    const res = filtro
+      ? _todosAlumnos.filter(a =>
+          a.nombre.toLowerCase().includes(filtro) ||
+          a.documento.includes(filtro)
+        ).slice(0, 30)
+      : _todosAlumnos.slice(0, 30);
+
+    if (!res.length) {
+      dropdown.innerHTML = '<div style="padding:10px 14px;color:var(--muted);font-size:13px;">Sin resultados</div>';
+    } else {
+      dropdown.innerHTML = res.map(a => `
+        <div data-doc="${a.documento}" data-nombre="${a.nombre}"
+             style="padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid #f5f4ff;display:flex;justify-content:space-between;"
+             onmouseover="this.style.background='#F0EEFF'" onmouseout="this.style.background='#fff'">
+          <span style="font-weight:600">${a.nombre}</span>
+          <span style="color:var(--muted);font-size:11px;">${a.documento}</span>
+        </div>`).join('');
+      dropdown.querySelectorAll('[data-doc]').forEach(el => {
+        el.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          input.value  = el.dataset.nombre;
+          hidden.value = el.dataset.doc;
+          dropdown.style.display = 'none';
+        });
+      });
+    }
+    dropdown.style.display = 'block';
+  };
+
+  input.addEventListener('focus', () => mostrar(input.value));
+  input.addEventListener('input', () => { hidden.value = ''; mostrar(input.value); });
+  input.addEventListener('blur', () => setTimeout(() => { dropdown.style.display = 'none'; }, 150));
+
+  // Limpiar al abrir el modal
+  document.getElementById('modalMovimientoForm')?.addEventListener('shown.bs.modal', () => {
+    if (!hidden.value) { input.value = ''; }
+  });
+}
+
+// (funciones de asistencia consolidadas arriba en cargarAsistHoy / registrarAsistenciaRapida / eliminarAsistHoy)
+
+// ── ABONOS ADMIN ──
+function iniciarAbonos() {
+  const inp = document.getElementById('abonosMes');
+  if (!inp.value) inp.value = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).substring(0,7);
+  cargarAbonos(inp.value);
+  inp.onchange = () => cargarAbonos(inp.value);
+}
+
+async function cargarAbonos(mes) {
+  const tbody = document.getElementById('tablaAbonos');
+  const resumen = document.getElementById('abonosResumen');
+  tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Cargando...</td></tr>';
+  try {
+    const r = await fetch(`${API_URL}/admin/abonos/mes/${mes}`, { headers: getAuthHeaders() });
+    const data = await r.json();
+    if (!data.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Sin datos para este mes</td></tr>';
+      resumen.innerHTML = '';
+      return;
+    }
+
+    // KPIs resumen
+    const totalAlumnos = data.length;
+    const sinPlan      = data.filter(a => !a.plan).length;
+    const agotados     = data.filter(a => a.restantes === 0 && a.clases_plan > 0).length;
+    const conRestantes = data.filter(a => a.restantes > 0).length;
+    resumen.innerHTML = `
+      <div style="background:#F0EEFF;border-radius:8px;padding:10px 16px;font-size:13px;">
+        <div style="font-size:11px;color:var(--muted);">Con abono</div>
+        <div style="font-weight:700;font-size:18px;">${totalAlumnos - sinPlan}</div>
+      </div>
+      <div style="background:#e6f7f1;border-radius:8px;padding:10px 16px;font-size:13px;">
+        <div style="font-size:11px;color:var(--muted);">Con clases restantes</div>
+        <div style="font-weight:700;font-size:18px;color:var(--green);">${conRestantes}</div>
+      </div>
+      <div style="background:#fce8e8;border-radius:8px;padding:10px 16px;font-size:13px;">
+        <div style="font-size:11px;color:var(--muted);">Abono agotado</div>
+        <div style="font-weight:700;font-size:18px;color:var(--danger);">${agotados}</div>
+      </div>
+      <div style="background:#fff8e1;border-radius:8px;padding:10px 16px;font-size:13px;">
+        <div style="font-size:11px;color:var(--muted);">Sin plan registrado</div>
+        <div style="font-weight:700;font-size:18px;color:#854F0B;">${sinPlan}</div>
+      </div>`;
+
+    // Ordenar: agotados → pocos restantes → resto → sin plan
+    const urgencia = a => {
+      if (!a.plan) return 4;
+      if (a.restantes === 0) return 0;
+      if (a.restantes <= 2) return 1;
+      return 2;
+    };
+    data.sort((a, b) => urgencia(a) - urgencia(b));
+
+    tbody.innerHTML = data.map(a => {
+      const pct = a.clases_plan > 0 ? Math.min(100, Math.round(a.consumidas / a.clases_plan * 100)) : 0;
+      const colorRestantes = a.restantes === 0 ? 'var(--danger)' : a.restantes <= 2 ? '#854F0B' : 'var(--green)';
+      const bgRow = a.restantes === 0 && a.clases_plan > 0 ? 'background:#fff8f8;' : '';
+      const barra = a.clases_plan > 0 ? `
+        <div style="width:56px;height:4px;background:#e9e4ff;border-radius:2px;display:inline-block;margin-left:6px;vertical-align:middle;">
+          <div style="width:${pct}%;height:100%;background:${pct>=100?'var(--danger)':pct>=60?'#f9c74f':'var(--accent)'};border-radius:2px;"></div>
+        </div>` : '';
+      const tel = (a.telefono || '').replace(/\D/g,'');
+      const wa  = tel ? `<a href="https://wa.me/54${tel}" target="_blank" title="WhatsApp" style="color:#25D366;font-size:15px;margin-left:6px;">💬</a>` : '';
+      const futuras = a.reservas_activas || 0;
+      const badgeFuturas = futuras > 0 ? `<span title="${futuras} clases reservadas" style="background:#F0EEFF;color:var(--accent);border-radius:4px;padding:1px 5px;font-size:10px;margin-left:4px;">${futuras} reserv.</span>` : '';
+
+      return `<tr style="${bgRow}">
+        <td>
+          <div style="font-weight:600;font-size:13px;">${a.nombre}${wa}</div>
+          <div style="font-size:11px;color:var(--muted);">${a.documento}${badgeFuturas}</div>
+        </td>
+        <td class="text-center" style="font-size:12px;">${a.plan ? a.plan.nombre : '<span style="color:var(--muted)">—</span>'}</td>
+        <td class="text-center">${a.clases_plan > 0 ? a.clases_plan : '—'}${barra}</td>
+        <td class="text-center"><span style="color:var(--green);font-weight:600;">${a.asistidas}</span></td>
+        <td class="text-center"><span style="color:${a.ausencias>0?'var(--danger)':'var(--muted)'};font-weight:600;">${a.ausencias}</span></td>
+        <td class="text-center" style="font-size:12px;">
+          <span title="Devueltas" style="color:var(--green);">↩${a.cancelaciones.devueltas}</span>
+          <span title="Perdidas" style="color:var(--danger);margin-left:4px;">✗${a.cancelaciones.perdidas}</span>
+        </td>
+        <td class="text-center"><span style="font-weight:700;color:${colorRestantes};">${a.clases_plan > 0 ? a.restantes : '—'}</span></td>
+        <td>
+          <button class="sa-edit-btn" onclick="devolverClase('${a.documento}','${a.nombre}','${mes}')">+ Devolver</button>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="8" class="text-danger text-center py-3">Error al cargar abonos</td></tr>';
+  }
+}
+
+window.devolverClase = async function(documento, nombre, mes) {
+  const { value: motivo } = await Swal.fire({
+    title: `Devolver clase a ${nombre.split(' ')[0]}`,
+    input: 'text',
+    inputPlaceholder: 'Motivo (ej: excepción médica)',
+    inputLabel: 'Motivo',
+    showCancelButton: true,
+    confirmButtonText: 'Devolver 1 clase',
+    cancelButtonText: 'Cancelar'
+  });
+  if (motivo === undefined) return;
+  try {
+    const r = await fetch(`${API_URL}/admin/abono/devolver`, {
+      method: 'POST', headers: getAuthHeaders(),
+      body: JSON.stringify({ documento, mes, cantidad: 1, motivo: motivo || 'Devolución manual' })
+    });
+    const d = await r.json();
+    if (!r.ok) return Swal.fire('Error', d.error, 'error');
+    Swal.fire({ toast:true, position:'top-end', icon:'success', title:'Clase devuelta', showConfirmButton:false, timer:2000 });
+    cargarAbonos(mes);
+  } catch(e) { Swal.fire('Error', 'No se pudo devolver la clase', 'error'); }
+};
+
+// ── AGENDA ADMIN ──
+let _sinAbonoData = [];
+
+async function cargarAlertaSinAbono(mes) {
+  const el = document.getElementById('alertaSinAbono');
+  if (!el) return;
+  try {
+    const r = await fetch(`${API_URL}/admin/agenda/sin-abono/${mes}`, { headers: getAuthHeaders() });
+    if (!r.ok) { el.innerHTML = ''; return; }
+    _sinAbonoData = await r.json();
+    if (!_sinAbonoData.length) { el.innerHTML = ''; return; }
+    const n = _sinAbonoData.length;
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;background:#fef3f2;border:1px solid #fca5a5;border-radius:8px;padding:8px 14px;margin-bottom:12px;">
+        <span style="font-size:13px;color:#a32d2d;">⚠️ <b>${n} alumno${n>1?'s':''}</b> con reservas este mes sin pago registrado</span>
+        <button onclick="verSinAbono()" style="margin-left:auto;background:none;border:1px solid #fca5a5;color:#a32d2d;border-radius:6px;padding:3px 12px;font-size:12px;cursor:pointer;white-space:nowrap;">Ver lista</button>
+      </div>`;
+  } catch(e) { el.innerHTML = ''; }
+}
+
+function verSinAbono() {
+  const filas = _sinAbonoData.map(a => {
+    const tel = (a.telefono || '').replace(/\D/g,'');
+    const wa  = tel ? `<a href="https://wa.me/54${tel}" target="_blank" style="color:#25D366;font-size:13px;text-decoration:none;">💬</a>` : '';
+    return `<tr style="border-bottom:1px solid #f0eeff;">
+      <td style="padding:8px 4px;font-weight:600;font-size:13px;">${a.nombre || a.documento}</td>
+      <td style="padding:8px 4px;color:var(--muted);font-size:12px;text-align:center;">${a.reservas}</td>
+      <td style="padding:8px 4px;text-align:center;">${wa}</td>
+    </tr>`;
+  }).join('');
+
+  Swal.fire({
+    title: 'Sin pago este mes',
+    html: `<div style="max-height:380px;overflow-y:auto;text-align:left;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="border-bottom:2px solid #e9e4ff;">
+          <th style="padding:6px 4px;font-size:12px;color:var(--muted);">Alumno</th>
+          <th style="padding:6px 4px;font-size:12px;color:var(--muted);text-align:center;">Reservas</th>
+          <th style="padding:6px 4px;font-size:12px;color:var(--muted);text-align:center;">WA</th>
+        </tr></thead>
+        <tbody>${filas}</tbody>
+      </table></div>`,
+    width: 420,
+    showConfirmButton: false,
+    showCloseButton: true,
+  });
+}
+
+// ── Estado de la agenda ──
+const AG_HORAS   = ['09:00','10:00','11:00','12:00','13:00','17:00','18:00','19:00','20:00'];
+const AG_CAP     = 5;
+let _agVista     = 'semana';
+let _agFecha     = hoyAR();
+let _agLunes     = getLunesAR(new Date());
+let _agMes       = hoyAR().substring(0, 7);
+
+function hoyAR() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+}
+function getLunesAR(d) {
+  const dia = new Date(d);
+  const dow = dia.getDay();
+  const diff = dow === 0 ? -6 : 1 - dow;
+  dia.setDate(dia.getDate() + diff);
+  return dia.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+}
+function addDiasISO(iso, n) {
+  const d = new Date(iso + 'T12:00:00-03:00');
+  d.setDate(d.getDate() + n);
+  return d.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+}
+function fmtDiaMes(iso) {
+  return new Date(iso + 'T12:00:00-03:00').toLocaleDateString('es-AR', { day:'numeric', month:'short' });
+}
+function fmtDiaLargo(iso) {
+  return new Date(iso + 'T12:00:00-03:00').toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
+}
+
+function iniciarAgendaAdmin() {
+  const mesActual = hoyAR().substring(0, 7);
+  cargarAlertaSinAbono(mesActual);
+  agSetVista('semana');
+}
+
+function agSetVista(vista) {
+  _agVista = vista;
+  ['dia','semana','mes'].forEach(v => {
+    document.getElementById(`agVista${v.charAt(0).toUpperCase()+v.slice(1)}`).classList.toggle('active', v === vista);
+    document.getElementById(`agVista${v.charAt(0).toUpperCase()+v.slice(1)}Panel`).style.display = v === vista ? 'block' : 'none';
+  });
+  agRender();
+}
+
+function agNavegar(dir) {
+  if (_agVista === 'dia') {
+    _agFecha = addDiasISO(_agFecha, dir);
+  } else if (_agVista === 'semana') {
+    _agLunes = addDiasISO(_agLunes, dir * 7);
+  } else {
+    const [y, m] = _agMes.split('-').map(Number);
+    const d = new Date(y, m - 1 + dir, 1);
+    _agMes = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+  agRender();
+}
+
+function agHoy() {
+  _agFecha = hoyAR();
+  _agLunes = getLunesAR(new Date());
+  _agMes   = hoyAR().substring(0, 7);
+  agRender();
+}
+
+function agRender() {
+  if (_agVista === 'dia')    agRenderDia(_agFecha);
+  if (_agVista === 'semana') agRenderSemana(_agLunes);
+  if (_agVista === 'mes')    agRenderMes(_agMes);
+}
+
+// ── VISTA SEMANA ──
+async function agRenderSemana(lunes) {
+  const dias = Array.from({length:5}, (_, i) => addDiasISO(lunes, i));
+  const viernes = dias[4];
+  const hoy = hoyAR();
+
+  const label = `${fmtDiaMes(lunes)} — ${fmtDiaMes(viernes)}`;
+  document.getElementById('agPeriodoLabel').textContent = label;
+
+  const cont = document.getElementById('agVistaSemanaPanel');
+  cont.innerHTML = '<div class="text-muted text-center py-3" style="font-size:13px;">Cargando...</div>';
+
+  try {
+    const r = await fetch(`${API_URL}/admin/agenda/semana/${lunes}`, { headers: getAuthHeaders() });
+    const reservas = await r.json();
+
+    // Agrupar por fecha|hora → count
+    const mapa = {};
+    reservas.forEach(rv => {
+      const fISO = rv.fecha instanceof String ? rv.fecha : (rv.fecha?.split ? rv.fecha.split('T')[0] : String(rv.fecha).split('T')[0]);
+      const key = `${fISO}|${rv.hora}`;
+      mapa[key] = (mapa[key] || 0) + 1;
+    });
+
+    const NOMBRES_CORTOS = ['Lun','Mar','Mié','Jue','Vie'];
+
+    let html = '<div class="ag-semana-grid">';
+    // Header
+    html += '<div class="ag-semana-hora"></div>';
+    dias.forEach((iso, i) => {
+      const esHoy = iso === hoy;
+      const d = new Date(iso + 'T12:00:00-03:00');
+      html += `<div class="ag-semana-hdr${esHoy?' hoy':''}" onclick="agVerDia('${iso}')">
+        <div>${NOMBRES_CORTOS[i]}</div>
+        <div style="font-size:15px;font-weight:700;cursor:pointer;">${d.getDate()}</div>
+      </div>`;
+    });
+
+    // Filas de horarios
+    AG_HORAS.forEach(hora => {
+      html += `<div class="ag-semana-hora">${hora}</div>`;
+      dias.forEach((iso, i) => {
+        const key = `${iso}|${hora}`;
+        const n = mapa[key] || 0;
+        const esHoy = iso === hoy;
+        let clase = 'vacio';
+        if (n > AG_CAP) clase = 'sobre';
+        else if (n === AG_CAP) clase = 'lleno';
+        else if (n >= 3) clase = 'medio';
+        else if (n > 0) clase = 'bajo';
+        html += `<div class="ag-cell ${clase}${esHoy?' hoy-col':''}" onclick="agVerSlot('${iso}','${hora}')">
+          <div class="ag-cell-n">${n > 0 ? n : ''}</div>
+          <div class="ag-cell-cap">${n > 0 ? `/${AG_CAP}` : '·'}</div>
+        </div>`;
+      });
+    });
+
+    html += '</div>';
+
+    // Leyenda
+    html += `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:11px;color:var(--muted);">
+      <span><span style="display:inline-block;width:10px;height:10px;background:#e6f7f1;border:1px solid #9ddec8;border-radius:3px;margin-right:3px;"></span>1–2</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:#fef3e2;border:1px solid #f9c74f;border-radius:3px;margin-right:3px;"></span>3–4</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:#fce8e8;border:1px solid #f4a4a4;border-radius:3px;margin-right:3px;"></span>Completo</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:#E24B4A;border-radius:3px;margin-right:3px;"></span>Sobrevendido</span>
+      <span style="margin-left:auto;color:var(--accent);cursor:pointer;" onclick="agSetVista('dia')">↩ Ver día detallado</span>
+    </div>`;
+
+    cont.innerHTML = html;
+  } catch(e) {
+    cont.innerHTML = '<div class="text-danger text-center py-3">Error al cargar.</div>';
+  }
+}
+
+function agVerDia(iso) {
+  _agFecha = iso;
+  agSetVista('dia');
+}
+function agVerSlot(iso, hora) {
+  _agFecha = iso;
+  agSetVista('dia');
+  // Pequeño delay para que el panel se muestre antes del scroll
+  setTimeout(() => {
+    const el = document.querySelector(`[data-ag-hora="${hora}"]`);
+    if (el) el.scrollIntoView({ behavior:'smooth', block:'center' });
+  }, 150);
+}
+
+// ── VISTA MES ──
+async function agRenderMes(mes) {
+  const [y, m] = mes.split('-').map(Number);
+  const nombreMes = new Date(y, m-1, 1).toLocaleDateString('es-AR', { month:'long', year:'numeric' });
+  document.getElementById('agPeriodoLabel').textContent = nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1);
+
+  const cont = document.getElementById('agVistaMesPanel');
+  cont.innerHTML = '<div class="text-muted text-center py-3" style="font-size:13px;">Cargando...</div>';
+
+  try {
+    const r = await fetch(`${API_URL}/admin/agenda/mes/${mes}`, { headers: getAuthHeaders() });
+    const filas = await r.json();
+
+    // Mapa fecha → total reservas del día
+    const mapaDia = {};
+    filas.forEach(f => {
+      mapaDia[f.fecha] = (mapaDia[f.fecha] || 0) + f.total;
+    });
+
+    const hoy      = hoyAR();
+    const primerDia = new Date(y, m-1, 1).getDay(); // 0=Dom
+    const diasEnMes = new Date(y, m, 0).getDate();
+    const offsetLunes = primerDia === 0 ? 6 : primerDia - 1; // cuántos días vacíos al inicio
+
+    const DIAS_MAX_DIA = AG_HORAS.length * AG_CAP; // 9*5 = 45
+
+    let html = '<div class="ag-mes-grid">';
+    ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].forEach(n => {
+      html += `<div class="ag-mes-hdr">${n}</div>`;
+    });
+
+    // Celdas vacías al inicio
+    for (let i = 0; i < offsetLunes; i++) html += '<div></div>';
+
+    for (let dia = 1; dia <= diasEnMes; dia++) {
+      const iso = `${y}-${String(m).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+      const dow = new Date(iso + 'T12:00:00-03:00').getDay(); // 0=Dom, 6=Sáb
+      const esFinde = dow === 0 || dow === 6;
+      const esHoy = iso === hoy;
+      const total = mapaDia[iso] || 0;
+      const pct = Math.min(100, Math.round(total / DIAS_MAX_DIA * 100));
+      let claseDia = 'sin-clases';
+      let barColor = '#e9e4ff';
+      if (!esFinde && total > 0) {
+        if (pct >= 80) { claseDia = 'lleno-dia'; barColor = '#E24B4A'; }
+        else if (pct >= 50) { claseDia = 'mitad'; barColor = '#f9c74f'; }
+        else { claseDia = 'poco'; barColor = '#1D9E75'; }
+      }
+      html += `<div class="ag-dia-cell ${esFinde?'finde':claseDia}${esHoy?' hoy-dia':''}"
+                  onclick="${esFinde?'':'agVerDia(\''+iso+'\')'}">
+        <div class="ag-dia-num">${dia}</div>
+        ${!esFinde && total > 0 ? `
+          <div style="font-size:10px;color:var(--muted);margin-bottom:3px;">${total} reservas</div>
+          <div class="ag-dia-bar" style="background:#e9e4ff;">
+            <div style="height:100%;width:${pct}%;background:${barColor};border-radius:2px;"></div>
+          </div>` : ''}
+      </div>`;
+    }
+    html += '</div>';
+    cont.innerHTML = html;
+  } catch(e) {
+    cont.innerHTML = '<div class="text-danger text-center py-3">Error al cargar.</div>';
+  }
+}
+
+// ── VISTA DÍA ──
+async function agRenderDia(fecha) {
+  _agFecha = fecha;
+  document.getElementById('agPeriodoLabel').textContent = fmtDiaLargo(fecha).charAt(0).toUpperCase() + fmtDiaLargo(fecha).slice(1);
+  const cont = document.getElementById('agVistaDiaPanel');
+  cont.innerHTML = '<div class="text-muted text-center py-3">Cargando...</div>';
+  try {
+    const r = await fetch(`${API_URL}/admin/agenda/${fecha}`, { headers: getAuthHeaders() });
+    const d = await r.json();
+    const slots = d.slots || [];
+
+    const diaSemana = new Date(fecha + 'T12:00:00-03:00').getDay();
+    if (diaSemana === 0 || diaSemana === 6) {
+      cont.innerHTML = '<div class="text-muted text-center py-4">No hay clases los fines de semana.</div>';
+      return;
+    }
+
+    const totalAlumnos = slots.reduce((s, sl) => s + sl.ocupados, 0);
+    const sobrevendidos = slots.filter(s => s.ocupados > s.capacidad).length;
+
+    let resumen = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
+      <span style="font-size:12px;color:var(--muted);">${totalAlumnos} alumnos en total hoy</span>`;
+    if (sobrevendidos > 0) {
+      resumen += `<span style="background:#E24B4A;color:#fff;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:700;animation:pulse 1.2s infinite;">⚠️ ${sobrevendidos} turno${sobrevendidos>1?'s':''} sobrevendido${sobrevendidos>1?'s':''}</span>`;
+    }
+    resumen += '</div>';
+
+    cont.innerHTML = resumen + slots.map(s => {
+      const sobrevendido = s.ocupados > s.capacidad;
+      const completo     = s.ocupados === s.capacidad;
+      const vacio        = s.ocupados === 0;
+      const pct          = Math.min(100, Math.round((s.ocupados / s.capacidad) * 100));
+      const barColor     = sobrevendido ? '#E24B4A' : completo ? '#E24B4A' : s.ocupados >= 3 ? '#854F0B' : '#1D9E75';
+      const borderColor  = sobrevendido ? '#E24B4A' : completo ? '#E24B4A' : s.ocupados > 0 ? '#6D28D9' : '#e9e4ff';
+      const bgHeader     = sobrevendido ? '#fce8e8' : completo ? '#fff5f5' : s.ocupados > 0 ? '#F0EEFF' : '#fafafa';
+
+      const badge = sobrevendido
+        ? `<span style="background:#E24B4A;color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;animation:pulse 1.2s infinite;">⚠️ SOBREVENDIDO</span>`
+        : completo
+          ? `<span style="background:#fce8e8;color:#E24B4A;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;">COMPLETO</span>`
+          : vacio
+            ? `<span style="background:#f0f0f0;color:#aaa;border-radius:6px;padding:2px 8px;font-size:11px;">libre</span>`
+            : '';
+
+      const listaAlumnos = s.alumnos.map(a => {
+        const tel = a.telefono?.replace(/\D/g,'');
+        const waLink = tel ? `<a href="https://wa.me/54${tel}" target="_blank" title="WhatsApp" style="color:#25D366;font-size:16px;text-decoration:none;margin-left:6px;">💬</a>` : '';
+        return `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f0eeff;">
+            <div style="display:flex;align-items:center;gap:4px;">
+              <span style="font-weight:600;font-size:13px;">${a.nombre || a.documento}</span>
+              ${waLink}
+            </div>
+            <button class="sa-del-btn" onclick="quitarDelTurno(${a.id},'${fecha}')" title="Quitar del turno">✕</button>
+          </div>`;
+      }).join('');
+
+      return `
+        <div data-ag-hora="${s.hora}" style="margin-bottom:10px;border:1.5px solid ${borderColor};border-radius:10px;overflow:hidden;${sobrevendido?'box-shadow:0 0 0 2px rgba(226,75,74,.25);':''}">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:${bgHeader};">
+            <div style="font-weight:700;font-size:16px;min-width:52px;">${s.hora}hs</div>
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <span style="font-size:13px;color:var(--muted);">${s.ocupados}/${s.capacidad}</span>
+                ${badge}
+              </div>
+              <div style="height:5px;background:#e9e4ff;border-radius:3px;overflow:hidden;">
+                <div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px;transition:.3s;"></div>
+              </div>
+            </div>
+            <button class="sa-edit-btn" onclick="agregarAlumnoTurno('${fecha}','${s.hora}')">+ Agregar</button>
+          </div>
+          ${s.alumnos.length ? `<div style="padding:4px 14px 6px;">${listaAlumnos}</div>` : ''}
+        </div>`;
+    }).join('');
+
+  } catch(e) { cont.innerHTML = '<div class="text-danger text-center py-3">Error al cargar la agenda.</div>'; }
+}
+
+// Alias para compatibilidad con referencias antiguas
+function cargarAgendaDia(fecha) { agRenderDia(fecha); }
+
+// Caché de alumnos para el buscador de agenda
+let _alumnosCache = null;
+async function getAlumnosCache() {
+  if (_alumnosCache) return _alumnosCache;
+  const r = await fetch(`${API_URL}/students?limit=500`, { headers: getAuthHeaders() });
+  const d = await r.json();
+  _alumnosCache = (Array.isArray(d) ? d : (d.students || [])).filter(a => a.activo == 1).sort((a,b) => a.nombre.localeCompare(b.nombre, 'es'));
+  return _alumnosCache;
+}
+
+window.agregarAlumnoTurno = async function(fecha, hora) {
+  const alumnos = await getAlumnosCache();
+
+  const { value: doc } = await Swal.fire({
+    title: `Agregar alumno — ${hora}hs`,
+    didOpen: () => { document.querySelector('.swal2-container').style.zIndex = '99999'; },
+    html: `
+      <input id="swal-buscar" class="swal2-input" placeholder="Buscar por nombre o documento..." autofocus style="margin-bottom:8px;">
+      <div id="swal-lista" style="max-height:260px;overflow-y:auto;text-align:left;border:1px solid #e9e4ff;border-radius:8px;"></div>
+      <input type="hidden" id="swal-doc-sel">`,
+    showCancelButton: true,
+    confirmButtonText: 'Agregar',
+    cancelButtonText: 'Cancelar',
+    preConfirm: () => {
+      const doc = document.getElementById('swal-doc-sel').value;
+      if (!doc) { Swal.showValidationMessage('Seleccioná un alumno'); return false; }
+      return doc;
+    },
+    didOpen: () => {
+      document.querySelector('.swal2-container').style.zIndex = '99999';
+      const input = document.getElementById('swal-buscar');
+      const lista = document.getElementById('swal-lista');
+
+      const renderLista = (filtro) => {
+        const q = filtro.toLowerCase();
+        const filtrados = alumnos.filter(a =>
+          a.nombre.toLowerCase().includes(q) || a.documento.includes(q)
+        ).slice(0, 30);
+
+        lista.innerHTML = filtrados.map(a => `
+          <div data-doc="${a.documento}" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0eeff;display:flex;justify-content:space-between;align-items:center;"
+               onmouseover="this.style.background='#F0EEFF'" onmouseout="this.style.background=this.classList.contains('sel')?'#e9e4ff':'#fff'">
+            <span style="font-weight:600">${a.nombre}</span>
+            <span style="color:var(--muted);font-size:11px;">${a.documento}</span>
+          </div>`).join('') || '<div style="padding:12px;color:var(--muted);font-size:13px;text-align:center;">Sin resultados</div>';
+
+        lista.querySelectorAll('[data-doc]').forEach(el => {
+          el.addEventListener('click', () => {
+            lista.querySelectorAll('[data-doc]').forEach(e => { e.style.background='#fff'; e.classList.remove('sel'); });
+            el.style.background = '#e9e4ff'; el.classList.add('sel');
+            document.getElementById('swal-doc-sel').value = el.dataset.doc;
+            input.value = el.querySelector('span').textContent;
+          });
+        });
+      };
+
+      renderLista('');
+      input.addEventListener('input', () => {
+        document.getElementById('swal-doc-sel').value = '';
+        renderLista(input.value);
+      });
+      input.focus();
+    }
+  });
+
+  if (!doc) return;
+  try {
+    const r = await fetch(`${API_URL}/admin/agenda/agregar`, {
+      method:'POST', headers: getAuthHeaders(),
+      body: JSON.stringify({ fecha, hora, documento: doc.trim() })
+    });
+    const d = await r.json();
+    if (!r.ok) return Swal.fire('Error', d.error, 'error');
+    _alumnosCache = null; // limpiar caché
+    cargarAgendaDia(fecha);
+  } catch(e) { Swal.fire('Error', 'No se pudo agregar', 'error'); }
+};
+
+window.quitarDelTurno = async function(id, fecha) {
+  const conf = await Swal.fire({ title:'¿Quitar del turno?', icon:'warning', showCancelButton:true, confirmButtonText:'Sí' });
+  if (!conf.isConfirmed) return;
+  try {
+    await fetch(`${API_URL}/admin/agenda/${id}`, { method:'DELETE', headers: getAuthHeaders() });
+    cargarAgendaDia(fecha);
+  } catch(e) { Swal.fire('Error','No se pudo quitar','error'); }
+};
+
+// ── EDITAR ALUMNO ──
+window.editarAlumno = async function(documento) {
+  try {
+    const r = await fetch(`${API_URL}/students?q=${encodeURIComponent(documento)}&limit=1`, { headers: getAuthHeaders() });
+    const d = await r.json();
+    const a = (d.students || d)[0];
+    if (!a) return Swal.fire("Error", "Alumno no encontrado", "error");
+    document.getElementById("editDocumento").value         = a.documento;
+    document.getElementById("editNombre").value             = a.nombre || "";
+    document.getElementById("editEmail").value              = a.email || "";
+    document.getElementById("editTelefono").value           = a.telefono || "";
+    document.getElementById("editFechaNacimiento").value    = a.fechaNacimiento ? a.fechaNacimiento.substring(0,10) : "";
+    document.getElementById("editPlanActual").value         = a.plan_actual || "";
+    document.getElementById("editActivo").checked           = a.activo == 1;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("modalEditarAlumno")).show();
+  } catch(e) { Swal.fire("Error", "No se pudo cargar el alumno", "error"); }
+};
+
+window.guardarEdicionAlumno = async function() {
+  const doc             = document.getElementById("editDocumento").value;
+  const nombre          = document.getElementById("editNombre").value.trim();
+  const email           = document.getElementById("editEmail").value.trim();
+  const telefono        = document.getElementById("editTelefono").value.trim();
+  const fechaNacimiento = document.getElementById("editFechaNacimiento")?.value || null;
+  const planActual      = document.getElementById("editPlanActual")?.value || null;
+  const activo          = document.getElementById("editActivo").checked ? 1 : 0;
+  if (!nombre) return Swal.fire("Error", "El nombre es obligatorio", "warning");
+  try {
+    const r = await fetch(`${API_URL}/students/${encodeURIComponent(doc)}`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ nombre, email, telefono, fechaNacimiento, planActual, activo })
+    });
+    if (!r.ok) { const e = await r.json(); throw new Error(e.error || "Error al guardar"); }
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("modalEditarAlumno")).hide();
+    Swal.fire({ toast:true, position:"top-end", icon:"success", title:"Alumno actualizado", showConfirmButton:false, timer:2000 });
+    cargarAlumnosExt();
+  } catch(e) { Swal.fire("Error", e.message, "error"); }
+};
 </script>
+
+<!-- Modal editar alumno -->
+<div class="modal fade" id="modalEditarAlumno" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Editar alumno</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Documento (DNI)</label>
+          <input type="text" id="editDocumento" class="form-control" readonly style="background:#f5f5f5;color:#888;cursor:default;">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Nombre completo</label>
+          <input type="text" id="editNombre" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          <input type="email" id="editEmail" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Teléfono</label>
+          <input type="text" id="editTelefono" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Fecha de nacimiento</label>
+          <input type="date" id="editFechaNacimiento" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Plan habitual</label>
+          <select id="editPlanActual" class="form-control">
+            <option value="">Sin plan asignado</option>
+            <option value="plan_4">4 clases / mes — $55.000</option>
+            <option value="plan_6">6 clases / mes — $63.000</option>
+            <option value="plan_8">8 clases / mes — $71.000</option>
+            <option value="plan_12">12 clases / mes — $75.000</option>
+            <option value="clase_suelta">Clase suelta</option>
+            <option value="privada">Clase privada</option>
+          </select>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="editActivo">
+          <label class="form-check-label">Alumno activo</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarEdicionAlumno()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal estado de cuenta del alumno -->
+<div class="modal fade" id="modalCuentaAlumno" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Estado de cuenta</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="cuentaAlumnoBody">
+        <div class="text-center py-4"><div class="sk sk-line" style="width:60%;margin:auto;height:18px;"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="/script.js?v=1775482866"></script>
+<script src="/script.js?v=2026060401"></script>
+<script>
+window.verCuentaAlumno = async function(documento) {
+  const body = document.getElementById("cuentaAlumnoBody");
+  body.innerHTML = '<div class="text-center py-4 text-muted">Cargando...</div>';
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("modalCuentaAlumno")).show();
+  try {
+    const r = await fetch(`${API_URL}/students/${encodeURIComponent(documento)}/cuenta`, { headers: getAuthHeaders() });
+    if (!r.ok) throw new Error("No se pudo cargar el estado de cuenta.");
+    const d = await r.json();
+    const a = d.alumno;
+    const fmt = n => "$" + Number(n).toLocaleString("es-AR");
+    const fmtF = f => f ? new Date(f).toLocaleDateString("es-AR") : "—";
+
+    const barraW = d.mesActual.clasesTotal > 0
+      ? Math.min(100, Math.round(d.mesActual.clasesUsadas / d.mesActual.clasesTotal * 100))
+      : 0;
+
+    const filasAsist = d.asistMeses.map(m =>
+      `<tr><td>${m.mes}</td><td class="text-center"><b>${m.clases}</b></td></tr>`
+    ).join("") || '<tr><td colspan="2" class="text-muted text-center">Sin registros</td></tr>';
+
+    const filasPagos = d.pagosRecientes.map(p =>
+      `<tr><td>${p.mes}</td><td>${p.subscriptionType || "—"}</td><td class="text-end"><b>${fmt(p.total)}</b></td></tr>`
+    ).join("") || '<tr><td colspan="3" class="text-muted text-center">Sin pagos</td></tr>';
+
+    body.innerHTML = `
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <div style="background:var(--surface-2);border-radius:10px;padding:16px;">
+            <div style="font-size:17px;font-weight:700;margin-bottom:4px;">${a.nombre}</div>
+            <div style="color:var(--muted);font-size:13px;">Doc: ${a.documento}</div>
+            ${a.telefono ? `<div style="color:var(--muted);font-size:13px;">📞 ${a.telefono}</div>` : ""}
+            ${a.email    ? `<div style="color:var(--muted);font-size:13px;">✉️ ${a.email}</div>` : ""}
+            <span class="sa-bdg ${a.activo==1?'sa-bdg-ok':'sa-bdg-pend'} mt-2 d-inline-block">${a.activo==1?"Activo":"Inactivo"}</span>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div style="background:var(--surface-2);border-radius:10px;padding:16px;">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">ESTE MES</div>
+            ${d.mesActual.plan
+              ? `<div style="font-weight:600;font-size:15px;">${d.mesActual.plan.nombre}</div>
+                 <div style="font-size:13px;margin:4px 0;">
+                   Clases: <b>${d.mesActual.clasesUsadas} / ${d.mesActual.clasesTotal}</b>
+                   &nbsp;·&nbsp; Restantes: <b>${d.mesActual.restantes}</b>
+                 </div>
+                 <div style="height:6px;background:#e9e4ff;border-radius:3px;overflow:hidden;">
+                   <div style="height:100%;width:${barraW}%;background:var(--green);border-radius:3px;"></div>
+                 </div>`
+              : `<div style="color:var(--muted);font-size:13px;">Sin plan registrado este mes</div>
+                 <div style="font-size:13px;margin-top:4px;">Clases asistidas: <b>${d.mesActual.clasesUsadas}</b></div>`
+            }
+            <div style="margin-top:10px;font-size:12px;color:var(--muted);">Total histórico pagado</div>
+            <div style="font-size:18px;font-weight:700;color:var(--green);">${fmt(d.totalPagado)}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px;">Asistencias por mes</div>
+          <table class="table table-sm table-striped mb-0" style="font-size:13px;">
+            <thead><tr><th>Mes</th><th class="text-center">Clases</th></tr></thead>
+            <tbody>${filasAsist}</tbody>
+          </table>
+        </div>
+        <div class="col-md-6">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px;">Últimos pagos</div>
+          <table class="table table-sm table-striped mb-0" style="font-size:13px;">
+            <thead><tr><th>Mes</th><th>Plan</th><th class="text-end">Monto</th></tr></thead>
+            <tbody>${filasPagos}</tbody>
+          </table>
+        </div>
+      </div>
+
+      ${d.ultimoPago ? `
+      <div style="margin-top:16px;padding:10px 14px;background:var(--surface-2);border-radius:8px;font-size:12px;color:var(--muted);">
+        Último pago: <b>${fmtF(d.ultimoPago.paymentDate)}</b> — ${d.ultimoPago.subscriptionType || "—"} — <b>${fmt(d.ultimoPago.amount)}</b>
+      </div>` : ""}
+    `;
+  } catch(e) {
+    body.innerHTML = `<div class="text-center text-danger py-3">${e.message}</div>`;
+  }
+};
+</script>
 </body>
 </html>

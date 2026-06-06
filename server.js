@@ -16,6 +16,11 @@ const paymentsRouter = require('./routes/payments');
 const gastosRouter = require('./routes/gastos');
 const studentsRouter = require('./routes/students');
 const dashboardRouter = require('./routes/dashboard');
+const statsRouter  = require('./routes/stats');
+const reciboRouter = require('./routes/recibo');
+const agendaRouter = require('./routes/agenda');
+const usersRouter   = require('./routes/users');
+const importarRouter = require('./routes/importar');
 
 const { getCorePool } = require('./db');
 
@@ -119,6 +124,28 @@ app.use('/api', paymentsRouter);
 app.use('/api', gastosRouter);
 app.use('/api', studentsRouter);
 app.use('/api', dashboardRouter);
+app.use('/api', statsRouter);
+app.use('/api', reciboRouter);
+app.use('/api', agendaRouter);
+app.use('/api', usersRouter);
+app.use('/api', importarRouter);
+
+const path = require('path');
+
+// Panel admin — sin caché
+app.get('/', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+app.get('/index.html', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Portal del alumno
+app.get(['/mi-agenda', '/alumnos'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'mi-agenda.html'));
+});
 
 // Inicio del servidor
 app.listen(port, () => {

@@ -19,12 +19,13 @@ if (!SECRET_KEY) {
  */
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
+  // Acepta token por header o por query param (solo para descargas directas como PDF)
+  const token = (authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null)
+                || req.query.token || null;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!token) {
     return res.status(401).json({ error: 'Token no proporcionado o formato incorrecto' });
   }
-
-  const token = authHeader.split(' ')[1];
 
   jwt.verify(token, SECRET_KEY, (err, user) => {
     if (err) return res.status(403).json({ error: 'Token inválido o expirado' });

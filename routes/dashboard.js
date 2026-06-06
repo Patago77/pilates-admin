@@ -12,38 +12,81 @@ const router = express.Router();
  * - próximos a vencer
  */
 router.get('/dashboard', authenticateToken, async (req, res) => {
-  const today = new Date().toISOString().split('T')[0];
-  const upcomingDate = new Date();
-  upcomingDate.setDate(upcomingDate.getDate() + 7);
-  const upcomingDateStr = upcomingDate.toISOString().split('T')[0];
+  const today     = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+  const mesActual = today.substring(0, 7);
+  const prevDate  = new Date(today + 'T12:00:00-03:00');
+  prevDate.setMonth(prevDate.getMonth() - 1);
+  const mesAnterior = prevDate.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).substring(0, 7);
 
   try {
     const [[totalIncomeRow]] = await req.db.query('SELECT COALESCE(SUM(amount), 0) AS totalIncome FROM payments');
     const [[totalPaymentsRow]] = await req.db.query('SELECT COUNT(*) AS totalPayments FROM payments');
 
     const [paymentsPerMonth] = await req.db.query(`
-      SELECT DATE_FORMAT(paymentDate, '%Y-%m') AS month, SUM(amount) AS totalIncome
+      SELECT COALESCE(serviceMonth, DATE_FORMAT(paymentDate,'%Y-%m')) AS month,
+             SUM(amount) AS totalIncome
       FROM payments
       GROUP BY month
       ORDER BY month DESC
     `);
 
+    // Ingresos y gastos del mes actual
+    const [[incomeRow]] = await req.db.query(
+      `SELECT COALESCE(SUM(amount),0) AS total FROM payments
+       WHERE COALESCE(serviceMonth, DATE_FORMAT(paymentDate,'%Y-%m')) = ?`,
+      [mesActual]
+    );
+    const [[gastosRow]] = await req.db.query(
+      `SELECT COALESCE(SUM(monto),0) AS total FROM gastos
+       WHERE DATE_FORMAT(fecha,'%Y-%m') = ?`,
+      [mesActual]
+    );
+
+    // Pagaron el mes pasado pero NO este mes → en riesgo de abandono
+    // Usa documento como clave para evitar errores por diferencias en nombres
     const [overduePaymentsRows] = await req.db.query(
-      'SELECT DISTINCT fullName FROM payments WHERE paymentDate < ? ORDER BY paymentDate DESC LIMIT 100',
+      `SELECT DISTINCT s.nombre, p.documento
+       FROM payments p
+       LEFT JOIN students s ON s.documento = p.documento
+       WHERE COALESCE(p.serviceMonth, DATE_FORMAT(p.paymentDate,'%Y-%m')) = ?
+         AND p.documento IS NOT NULL
+         AND p.documento NOT IN (
+           SELECT DISTINCT documento FROM payments
+           WHERE documento IS NOT NULL
+             AND COALESCE(serviceMonth, DATE_FORMAT(paymentDate,'%Y-%m')) = ?
+         )
+       ORDER BY s.nombre ASC LIMIT 100`,
+      [mesAnterior, mesActual]
+    );
+
+    // Pagaron este mes
+    const [upcomingPaymentsRows] = await req.db.query(
+      `SELECT DISTINCT s.nombre, p.documento
+       FROM payments p
+       LEFT JOIN students s ON s.documento = p.documento
+       WHERE COALESCE(p.serviceMonth, DATE_FORMAT(p.paymentDate,'%Y-%m')) = ?
+         AND p.documento IS NOT NULL
+       ORDER BY s.nombre ASC LIMIT 100`,
+      [mesActual]
+    );
+
+    // Reservas de hoy
+    const [[reservasHoy]] = await req.db.query(
+      `SELECT COUNT(*) AS total FROM agenda_reservas
+       WHERE fecha = ? AND estado = 'confirmado'`,
       [today]
     );
 
-    const [upcomingPaymentsRows] = await req.db.query(
-      'SELECT DISTINCT fullName FROM payments WHERE paymentDate BETWEEN ? AND ? ORDER BY paymentDate ASC LIMIT 100',
-      [today, upcomingDateStr]
-    );
-
     res.json({
-      totalIncome: Number(totalIncomeRow.totalIncome) || 0,
-      totalPayments: Number(totalPaymentsRow.totalPayments) || 0,
+      totalIncome:      Number(totalIncomeRow.totalIncome) || 0,
+      totalPayments:    Number(totalPaymentsRow.totalPayments) || 0,
+      ingresosMes:      Number(incomeRow.total) || 0,
+      gastosMes:        Number(gastosRow.total) || 0,
+      saldoMes:         (Number(incomeRow.total) || 0) - (Number(gastosRow.total) || 0),
+      reservasHoy:      Number(reservasHoy.total) || 0,
       paymentsPerMonth,
-      overduePayments: overduePaymentsRows.map(r => r.fullName),
-      upcomingPayments: upcomingPaymentsRows.map(r => r.fullName)
+      overduePayments:  overduePaymentsRows.map(r => r.nombre || r.documento),
+      upcomingPayments: upcomingPaymentsRows.map(r => r.nombre || r.documento),
     });
   } catch (err) {
     console.error("❌ Error en el dashboard:", err.message);

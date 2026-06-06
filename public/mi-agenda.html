@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <title>Mi Agenda — Studio Pilates</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    :root {
+      --accent:#6D28D9; --green:#1D9E75; --danger:#E24B4A;
+      --bg:#F5F4FF; --surface:#fff; --text:#1C1A2E; --muted:#7C7A8E;
+      --radius:12px;
+    }
+    * { box-sizing:border-box; }
+    body { font-family:"Inter",sans-serif; background:var(--bg); color:var(--text); min-height:100vh; margin:0; }
+
+    /* Header */
+    .sa-header { background:#1C1A2E; color:#fff; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; }
+    .sa-header-brand { font-weight:700; font-size:15px; }
+    .sa-header-sub { font-size:11px; color:#9b8fff; }
+    .sa-header-user { font-size:13px; color:#ccc; }
+
+    /* Login card */
+    .login-card { max-width:400px; margin:60px auto; background:var(--surface); border-radius:var(--radius); padding:32px; box-shadow:0 4px 20px rgba(109,40,217,.1); }
+    .login-card h2 { font-size:20px; font-weight:700; margin-bottom:4px; }
+
+    /* Slots */
+    .semana-nav { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+    .semana-nav button { background:none; border:1px solid #ddd; border-radius:8px; padding:6px 14px; cursor:pointer; font-size:13px; }
+    .semana-nav button:hover { background:var(--bg); }
+    .semana-nav .titulo { font-weight:600; font-size:15px; flex:1; text-align:center; }
+
+    .dias-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:20px; }
+    .dia-btn { background:var(--surface); border:1.5px solid #e9e4ff; border-radius:10px; padding:10px 4px; text-align:center; cursor:pointer; transition:.15s; }
+    .dia-btn:hover { border-color:var(--accent); }
+    .dia-btn.selected { border-color:var(--accent); background:#F0EEFF; }
+    .dia-btn.hoy { border-color:var(--green); }
+    .dia-btn .dia-nombre { font-size:11px; color:var(--muted); }
+    .dia-btn .dia-num { font-size:18px; font-weight:700; }
+    .dia-btn.hoy .dia-num { color:var(--green); }
+
+    .slots-lista { display:flex; flex-direction:column; gap:10px; }
+    .slot { background:var(--surface); border-radius:10px; padding:14px 16px; border:1.5px solid #e9e4ff; display:flex; align-items:center; justify-content:space-between; }
+    .slot.mi-reserva { border-color:var(--green); background:#f0fdf8; }
+    .slot.lleno { opacity:.55; }
+    .slot-hora { font-weight:700; font-size:16px; min-width:60px; }
+    .slot-info { font-size:13px; color:var(--muted); }
+    .slot-bar { width:80px; height:6px; background:#e9e4ff; border-radius:3px; overflow:hidden; margin-top:4px; }
+    .slot-bar-fill { height:100%; background:var(--accent); border-radius:3px; }
+    .slot-bar-fill.lleno { background:var(--danger); }
+    .btn-reservar { background:var(--accent); color:#fff; border:none; border-radius:8px; padding:8px 16px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; }
+    .btn-reservar:hover { background:#5B21B6; }
+    .btn-cancelar { background:none; border:1.5px solid var(--danger); color:var(--danger); border-radius:8px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer; }
+    .btn-cancelar:hover { background:#fff0f0; }
+    .badge-lleno { background:#fce8e8; color:var(--danger); border-radius:6px; padding:4px 10px; font-size:12px; font-weight:600; }
+    .badge-mia { background:#e6f7f1; color:var(--green); border-radius:6px; padding:4px 10px; font-size:12px; font-weight:600; }
+
+    /* Mis reservas */
+    .reserva-card { background:var(--surface); border-radius:10px; padding:14px 16px; border:1.5px solid #e9e4ff; display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .reserva-fecha { font-weight:600; font-size:14px; }
+    .reserva-hora { font-size:13px; color:var(--muted); }
+
+    /* Tabs */
+    .tabs { display:flex; gap:4px; margin-bottom:20px; background:#F0EEFF; border-radius:10px; padding:4px; }
+    .tab { flex:1; text-align:center; padding:8px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:500; color:var(--muted); transition:.15s; }
+    .tab.active { background:#fff; color:var(--accent); font-weight:600; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+
+    .feedback { font-size:13px; min-height:20px; padding:6px 0; }
+    .feedback.ok { color:var(--green); }
+    .feedback.err { color:var(--danger); }
+
+    @media(max-width:500px) {
+      .dias-grid { grid-template-columns:repeat(5,1fr); gap:4px; }
+      .dia-btn { padding:8px 2px; }
+      .dia-btn .dia-num { font-size:15px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="sa-header">
+  <div>
+    <div class="sa-header-brand">Studio Pilates</div>
+    <div class="sa-header-sub">Portal del alumno</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div id="headerUser" class="sa-header-user"></div>
+    <button id="btnCerrarSesion" onclick="cerrarSesion()" style="display:none;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#ccc;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;">Salir</button>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="panelLogin" class="login-card">
+  <h2>Ingresá a tu agenda</h2>
+  <p class="text-muted" style="font-size:13px;margin-bottom:20px;">Usamos tu número de documento para enviarte un código a tu email.</p>
+
+  <div id="stepDocumento">
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Número de documento</label>
+      <input type="text" id="inputDocumento" class="form-control" placeholder="Ej: 30123456" inputmode="numeric">
+    </div>
+    <button class="btn btn-primary w-100 fw-semibold" onclick="solicitarOTP()">Enviar código</button>
+    <div id="fbDocumento" class="feedback mt-2"></div>
+  </div>
+
+  <div id="stepOTP" style="display:none;">
+    <p id="msgEmail" class="text-muted" style="font-size:13px;"></p>
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Código de 6 dígitos</label>
+      <input type="text" id="inputOTP" class="form-control text-center" placeholder="● ● ● ● ● ●" maxlength="6" inputmode="numeric" style="font-size:22px;letter-spacing:8px;">
+    </div>
+    <button class="btn btn-primary w-100 fw-semibold" onclick="verificarOTP()">Ingresar</button>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <button class="btn btn-link mt-1" style="font-size:13px;flex:1;" onclick="volverDocumento()">← Cambiar documento</button>
+      <button class="btn btn-link mt-1" style="font-size:13px;flex:1;" onclick="reenviarOTP()">Reenviar código</button>
+    </div>
+    <div id="fbOTP" class="feedback mt-2"></div>
+  </div>
+</div>
+
+<!-- APP ALUMNO -->
+<div id="panelApp" style="display:none; max-width:540px; margin:0 auto; padding:20px 16px;">
+
+  <!-- Estado del abono -->
+  <div id="abonoStatus" style="margin-bottom:14px;"></div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('agenda')">Reservar clase</div>
+    <div class="tab" onclick="switchTab('misclases')">Mis clases</div>
+    <div class="tab" onclick="switchTab('info')">ℹ️ Info</div>
+  </div>
+
+  <!-- TAB AGENDA -->
+  <div id="tabAgenda">
+    <div class="semana-nav">
+      <button onclick="cambiarSemana(-1)">◀</button>
+      <div class="titulo" id="tituloSemana"></div>
+      <button onclick="cambiarSemana(1)">▶</button>
+    </div>
+    <div class="dias-grid" id="diasGrid"></div>
+    <div id="feedbackSlot" class="feedback mb-2"></div>
+    <div class="slots-lista" id="slotsLista">
+      <div class="text-muted text-center py-3" style="font-size:13px;">Seleccioná un día para ver los turnos</div>
+    </div>
+  </div>
+
+  <!-- TAB INFO / MANUAL -->
+  <div id="tabInfo" style="display:none;">
+    <div style="background:#fff;border-radius:12px;border:1.5px solid #e9e4ff;padding:20px 18px;margin-bottom:12px;">
+      <div style="font-weight:700;font-size:15px;color:#1C1A2E;margin-bottom:14px;">Manual de uso del portal</div>
+
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6D28D9;margin-bottom:8px;">✅ Podés</div>
+        <ul style="margin:0;padding-left:18px;font-size:13px;color:#374151;line-height:1.9;">
+          <li>Reservar clases disponibles de lunes a viernes</li>
+          <li>Cancelar una clase con <strong>más de 12 horas de anticipación</strong> — la clase vuelve a tu abono</li>
+          <li>Cancelar hasta <strong>2 veces por mes</strong> con devolución al abono</li>
+          <li>Ver todas tus próximas clases en "Mis clases"</li>
+        </ul>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#E24B4A;margin-bottom:8px;">❌ Tené en cuenta</div>
+        <ul style="margin:0;padding-left:18px;font-size:13px;color:#374151;line-height:1.9;">
+          <li>Si cancelás con <strong>menos de 12 horas</strong>, la clase <strong>se descuenta del abono igual</strong></li>
+          <li>Solo podés reservar <strong>una clase por día</strong></li>
+          <li>El abono <strong>no se traslada al mes siguiente</strong> — vence el último día del mes</li>
+          <li>Si agotás tu abono, contactá con la recepción para renovarlo</li>
+          <li>No hay clases los sábados ni domingos</li>
+        </ul>
+      </div>
+
+      <div style="background:#F0EEFF;border-radius:8px;padding:12px 14px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6D28D9;margin-bottom:6px;">📋 Tu abono mensual</div>
+        <div style="font-size:13px;color:#374151;line-height:1.8;">
+          Cada mes debés renovar tu abono. El plan incluye una cantidad fija de clases que podés distribuir en el mes como quieras. Una vez agotadas, contactá a tu instructora para ampliar o renovar.
+        </div>
+      </div>
+
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid #f0eeff;text-align:center;">
+        <div style="font-size:12px;color:#7C7A8E;">¿Tenés alguna consulta?</div>
+        <div style="font-size:13px;font-weight:600;color:#6D28D9;margin-top:2px;">Contactá a la recepción del estudio</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB MIS CLASES -->
+  <div id="tabMisClases" style="display:none;">
+    <h6 class="fw-semibold mb-3">Mis próximas clases</h6>
+    <div id="misReservasList"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+const API = '/api';
+let TOKEN_ALUMNO = localStorage.getItem('token_alumno');
+let DOCUMENTO_TMP = '';
+let fechaSeleccionada = '';
+let lunesActual = getLunes(new Date());
+let _abonoLibres = null; // clases realmente disponibles para reservar
+
+// ── Helpers de fecha ──
+function getLunes(d) {
+  const dia = new Date(d);
+  const dow = dia.getDay();
+  const diff = dow === 0 ? -6 : 1 - dow;
+  dia.setDate(dia.getDate() + diff);
+  return dia;
+}
+function addDias(d, n) {
+  const r = new Date(d); r.setDate(r.getDate() + n); return r;
+}
+function fmtISO(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function fmtCorta(d) {
+  return new Date(d + 'T12:00:00-03:00').toLocaleDateString('es-AR', { weekday:'short', day:'numeric', month:'short' });
+}
+function fmtLarga(d) {
+  return new Date(d + 'T12:00:00-03:00').toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
+}
+
+// ── Auth ──
+async function solicitarOTP() {
+  const doc = document.getElementById('inputDocumento').value.trim();
+  const fb = document.getElementById('fbDocumento');
+  if (!doc) { fb.className='feedback err'; fb.textContent='Ingresá tu documento.'; return; }
+  fb.textContent='Enviando...'; fb.className='feedback';
+  try {
+    const r = await fetch(`${API}/alumno/solicitar-otp`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ documento: doc })
+    });
+    const d = await r.json();
+    if (!r.ok) { fb.className='feedback err'; fb.textContent=d.error; return; }
+    DOCUMENTO_TMP = doc;
+    document.getElementById('msgEmail').textContent = `Enviamos un código a ${d.emailMask}. Hola ${d.nombre}!`;
+    document.getElementById('stepDocumento').style.display = 'none';
+    document.getElementById('stepOTP').style.display = 'block';
+    document.getElementById('inputOTP').focus();
+    fb.textContent = '';
+  } catch(e) { fb.className='feedback err'; fb.textContent='Error de conexión.'; }
+}
+
+async function verificarOTP() {
+  const otp = document.getElementById('inputOTP').value.trim();
+  const fb = document.getElementById('fbOTP');
+  if (otp.length !== 6) { fb.className='feedback err'; fb.textContent='El código tiene 6 dígitos.'; return; }
+  fb.textContent='Verificando...'; fb.className='feedback';
+  try {
+    const r = await fetch(`${API}/alumno/verificar-otp`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ documento: DOCUMENTO_TMP, otp })
+    });
+    const d = await r.json();
+    if (!r.ok) { fb.className='feedback err'; fb.textContent=d.error; return; }
+    TOKEN_ALUMNO = d.token;
+    localStorage.setItem('token_alumno', d.token);
+    mostrarApp(d.nombre);
+  } catch(e) { fb.className='feedback err'; fb.textContent='Error de conexión.'; }
+}
+
+async function reenviarOTP() {
+  const fb = document.getElementById('fbOTP');
+  fb.textContent = 'Reenviando...'; fb.className = 'feedback';
+  try {
+    const r = await fetch(`${API}/alumno/solicitar-otp`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ documento: DOCUMENTO_TMP })
+    });
+    const d = await r.json();
+    if (!r.ok) { fb.className = 'feedback err'; fb.textContent = d.error; return; }
+    fb.className = 'feedback ok'; fb.textContent = '✅ Código reenviado. Revisá tu email.';
+  } catch(e) { fb.className = 'feedback err'; fb.textContent = 'Error de conexión.'; }
+}
+
+function volverDocumento() {
+  document.getElementById('stepDocumento').style.display = 'block';
+  document.getElementById('stepOTP').style.display = 'none';
+  document.getElementById('inputOTP').value = '';
+  document.getElementById('fbOTP').textContent = '';
+}
+
+function hdrs() { return { 'Content-Type':'application/json', 'Authorization': 'Bearer ' + TOKEN_ALUMNO }; }
+
+function mostrarApp(nombre) {
+  document.getElementById('panelLogin').style.display = 'none';
+  document.getElementById('panelApp').style.display = 'block';
+  document.getElementById('headerUser').textContent = nombre || '';
+  document.getElementById('btnCerrarSesion').style.display = 'block';
+  cargarEstadoAbono();
+  renderSemana();
+  cargarMisReservas();
+}
+
+async function cargarEstadoAbono() {
+  const mesActual = fmtISO(new Date()).substring(0, 7);
+  const el = document.getElementById('abonoStatus');
+  try {
+    const r2 = await fetch(`${API}/alumno/estado-abono/${mesActual}`, { headers: hdrs() });
+    if (!r2.ok) { el.innerHTML = ''; return; }
+    const d = await r2.json();
+
+    if (!d.abono_activo) {
+      el.innerHTML = `
+        <div style="background:#fce8e8;border:1.5px solid #E24B4A;border-radius:10px;padding:14px 16px;text-align:center;">
+          <div style="font-weight:700;color:#E24B4A;margin-bottom:4px;">Sin abono activo</div>
+          <div style="font-size:13px;color:#666;">No tenés abono para este mes. Contactá con la recepción para renovarlo.</div>
+        </div>`;
+    } else if (d.abono_agotado) {
+      el.innerHTML = `
+        <div style="background:#fce8e8;border:1.5px solid #E24B4A;border-radius:10px;padding:14px 16px;text-align:center;">
+          <div style="font-weight:700;color:#E24B4A;margin-bottom:4px;">Abono agotado</div>
+          <div style="font-size:13px;color:#666;">Usaste todas tus clases del mes (${d.consumidas}/${d.clases_plan}). Contactá con la recepción.</div>
+        </div>`;
+    } else {
+      const restantes = d.restantes;
+      const color = restantes <= 1 ? '#E24B4A' : restantes <= 2 ? '#854F0B' : '#1D9E75';
+      // Clases realmente libres para reservar = restantes - reservas futuras activas
+      const futuras = d.reservas_activas || 0;
+      const libresReales = Math.max(0, restantes - futuras);
+      _abonoLibres = libresReales;
+
+      const colorLibres = libresReales === 0 ? '#E24B4A' : libresReales <= 1 ? '#854F0B' : '#1D9E75';
+      const detalle = futuras > 0
+        ? `${d.asistidas} asistidas · ${futuras} reservada${futuras !== 1 ? 's' : ''}`
+        : `${d.asistidas} asistidas de ${d.clases_plan}`;
+      el.innerHTML = `
+        <div style="background:${libresReales===0?'#fef2f2':'#f0fdf8'};border:1.5px solid ${libresReales===0?'#E24B4A':'#1D9E75'};border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:12px;color:var(--muted);">Abono activo — ${d.plan?.nombre || 'Plan'}</div>
+            <div style="font-size:13px;margin-top:2px;">${detalle}</div>
+          </div>
+          <div style="font-size:22px;font-weight:700;color:${colorLibres};">${libresReales} <span style="font-size:12px;font-weight:400;">para reservar</span></div>
+        </div>`;
+    }
+  } catch(e) { el.innerHTML = ''; }
+}
+
+function cerrarSesion() {
+  localStorage.removeItem('token_alumno');
+  location.reload();
+}
+
+// ── Tabs ──
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach((el,i) => el.classList.toggle('active', (i===0&&t==='agenda')||(i===1&&t==='misclases')||(i===2&&t==='info')));
+  document.getElementById('tabAgenda').style.display    = t==='agenda'    ? 'block' : 'none';
+  document.getElementById('tabMisClases').style.display = t==='misclases' ? 'block' : 'none';
+  document.getElementById('tabInfo').style.display      = t==='info'      ? 'block' : 'none';
+  if (t==='misclases') cargarMisReservas();
+}
+
+// ── Semana ──
+function cambiarSemana(dir) { lunesActual = addDias(lunesActual, dir*7); renderSemana(); }
+
+function renderSemana() {
+  const hoy = fmtISO(new Date());
+  const nombres = ['Lu','Ma','Mi','Ju','Vi'];
+  const grid = document.getElementById('diasGrid');
+  grid.innerHTML = '';
+  let primerDiaHabil = null;
+
+  for (let i=0; i<5; i++) {
+    const d = addDias(lunesActual, i);
+    const iso = fmtISO(d);
+    const btn = document.createElement('div');
+    btn.className = 'dia-btn' + (iso===hoy?' hoy':'') + (iso===fechaSeleccionada?' selected':'');
+    if (iso < hoy) btn.style.opacity = '0.4';
+    btn.innerHTML = `<div class="dia-nombre">${nombres[i]}</div><div class="dia-num">${d.getDate()}</div>`;
+    if (iso >= hoy) {
+      btn.onclick = () => seleccionarDia(iso);
+      if (!primerDiaHabil) primerDiaHabil = iso;
+    }
+    grid.appendChild(btn);
+  }
+
+  const tit = document.getElementById('tituloSemana');
+  const v = addDias(lunesActual, 4);
+  tit.textContent = lunesActual.toLocaleDateString('es-AR',{day:'numeric',month:'short'}) + ' — ' + v.toLocaleDateString('es-AR',{day:'numeric',month:'short'});
+
+  // Seleccionar día hábil más cercano automáticamente
+  if (!fechaSeleccionada || fechaSeleccionada < hoy) {
+    if (primerDiaHabil) seleccionarDia(primerDiaHabil);
+  } else {
+    cargarSlots(fechaSeleccionada);
+  }
+}
+
+async function seleccionarDia(fecha) {
+  fechaSeleccionada = fecha;
+  document.querySelectorAll('.dia-btn').forEach(b => b.classList.remove('selected'));
+  event?.currentTarget?.classList.add('selected');
+  // Re-render para marcar selected
+  renderDiasSeleccion();
+  await cargarSlots(fecha);
+}
+
+function renderDiasSeleccion() {
+  document.querySelectorAll('.dia-btn').forEach((b, i) => {
+    const d = fmtISO(addDias(lunesActual, i));
+    b.classList.toggle('selected', d === fechaSeleccionada);
+  });
+}
+
+async function cargarSlots(fecha) {
+  const lista = document.getElementById('slotsLista');
+  lista.innerHTML = '<div class="text-muted text-center py-3" style="font-size:13px;">Cargando...</div>';
+  document.getElementById('feedbackSlot').textContent = '';
+  try {
+    const r = await fetch(`${API}/agenda/disponibilidad/${fecha}`, { headers: hdrs() });
+    if (r.status === 401) { cerrarSesion(); return; }
+    const slots = await r.json();
+    if (!slots.length) { lista.innerHTML = '<div class="text-muted text-center py-3">No hay clases este día.</div>'; return; }
+
+    lista.innerHTML = slots.map(s => {
+      const pct   = Math.round((s.ocupados / s.capacidad) * 100);
+      const lleno  = s.disponibles === 0 && !s.miReserva;
+      const pasado = s.pasado && !s.miReserva;
+      return `<div class="slot ${s.miReserva?'mi-reserva':''} ${lleno?'lleno':''}" style="${pasado?'opacity:.45;':''}">
+        <div>
+          <div class="slot-hora">${s.hora}hs</div>
+          <div class="slot-info">${pasado ? 'Turno pasado' : `${s.ocupados}/${s.capacidad} alumnos`}</div>
+          <div class="slot-bar"><div class="slot-bar-fill ${lleno?'lleno':''}" style="width:${pct}%"></div></div>
+        </div>
+        <div>
+          ${s.miReserva
+            ? `<span class="badge-mia">✓ Mi clase</span>
+               <br><button class="btn-cancelar mt-2" onclick="cancelarPorId(${s.reservaId},'${fecha}','${s.hora}')">Cancelar</button>`
+            : pasado
+              ? `<span style="font-size:11px;color:var(--muted);">—</span>`
+              : lleno
+                ? `<span class="badge-lleno">Completo</span>`
+                : _abonoLibres === 0
+                  ? `<span style="font-size:11px;color:var(--muted);text-align:right;">Sin cupo<br>en abono</span>`
+                  : `<button class="btn-reservar" onclick="reservar('${fecha}','${s.hora}')">Reservar</button>`
+          }
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    lista.innerHTML = '<div class="text-danger text-center py-3">Error al cargar turnos.</div>';
+  }
+}
+
+async function reservar(fecha, hora) {
+  const fb = document.getElementById('feedbackSlot');
+  fb.textContent = 'Reservando...'; fb.className = 'feedback';
+  try {
+    const r = await fetch(`${API}/agenda/reservar`, {
+      method:'POST', headers: hdrs(),
+      body: JSON.stringify({ fecha, hora })
+    });
+    const d = await r.json();
+    if (r.status === 403) {
+      // Abono agotado o sin abono
+      fb.className = 'feedback err';
+      fb.textContent = d.error;
+      // Refrescar el banner de estado
+      cargarEstadoAbono();
+      return;
+    }
+    if (!r.ok) { fb.className='feedback err'; fb.textContent=d.error; return; }
+    fb.className='feedback ok'; fb.textContent='✅ ¡Clase reservada! Te enviamos un email de confirmación.';
+    cargarEstadoAbono();
+    await cargarSlots(fecha);
+    await cargarMisReservas();
+  } catch(e) { fb.className='feedback err'; fb.textContent='Error al reservar.'; }
+}
+
+async function cancelarPorId(id, fecha, hora) {
+  const ahora = new Date();
+  const claseTs = new Date(`${fecha}T${hora}:00`);
+  const horasRestantes = (claseTs - ahora) / 36e5;
+  const advertencia = horasRestantes < 12
+    ? '⚠️ Cancelás con menos de 12hs de anticipación — la clase se descontará del abono.'
+    : 'Si cancelás con +12hs de anticipación, la clase vuelve a tu abono (hasta 2 veces por mes).';
+
+  const conf = await Swal.fire({
+    title: '¿Cancelar clase?',
+    html: `<b>${fmtLarga(fecha)} a las ${hora}hs</b><br><small style="color:#666;margin-top:8px;display:block;">${advertencia}</small>`,
+    icon: horasRestantes < 12 ? 'warning' : 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, cancelar',
+    cancelButtonText: 'No'
+  });
+  if (!conf.isConfirmed) return;
+
+  const fb = document.getElementById('feedbackSlot');
+  fb.textContent = 'Cancelando...'; fb.className = 'feedback';
+  try {
+    const r = await fetch(`${API}/agenda/cancelar/${id}`, { method: 'DELETE', headers: hdrs() });
+    const d = await r.json();
+    if (!r.ok) { fb.className = 'feedback err'; fb.textContent = d.error; return; }
+    fb.className = 'feedback ok';
+    fb.textContent = d.clase_devuelta
+      ? `✅ ${d.mensaje}`
+      : `ℹ️ ${d.mensaje}`;
+    cargarEstadoAbono();
+    await cargarSlots(fecha || fechaSeleccionada);
+    await cargarMisReservas();
+  } catch(e) { fb.className = 'feedback err'; fb.textContent = 'Error al cancelar.'; }
+}
+
+async function cargarMisReservas() {
+  const lista = document.getElementById('misReservasList');
+  if (!lista) return;
+  try {
+    const r = await fetch(`${API}/alumno/mis-reservas`, { headers: hdrs() });
+    if (r.status === 401) { cerrarSesion(); return; }
+    const reservas = await r.json();
+    if (!reservas.length) {
+      lista.innerHTML = '<div class="text-muted text-center py-4" style="font-size:13px;">No tenés clases reservadas próximamente.</div>';
+      return;
+    }
+    lista.innerHTML = reservas.map(rv => `
+      <div class="reserva-card">
+        <div>
+          <div class="reserva-fecha">${fmtCorta(rv.fecha.split('T')[0])}</div>
+          <div class="reserva-hora">${rv.hora}hs</div>
+        </div>
+        <button class="btn-cancelar" onclick="cancelarPorId(${rv.id}, '${rv.fecha.split('T')[0]}', '${rv.hora}')">Cancelar</button>
+      </div>`).join('');
+  } catch(e) { lista.innerHTML = '<div class="text-danger">Error al cargar.</div>'; }
+}
+
+// ── Enter en inputs ──
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    if (document.getElementById('stepDocumento').style.display !== 'none') solicitarOTP();
+    else if (document.getElementById('stepOTP').style.display !== 'none') verificarOTP();
+  }
+});
+
+// ── Auto-login si hay token guardado ──
+if (TOKEN_ALUMNO) {
+  try {
+    const payload = JSON.parse(atob(TOKEN_ALUMNO.split('.')[1]));
+    if (payload.exp * 1000 > Date.now()) {
+      mostrarApp(payload.nombre?.split(' ')[0] || '');
+    } else {
+      localStorage.removeItem('token_alumno');
+      TOKEN_ALUMNO = null;
+    }
+  } catch { localStorage.removeItem('token_alumno'); }
+}
+</script>
+</body>
+</html>
