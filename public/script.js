@@ -5,14 +5,32 @@ window.abrirModalMovimiento = async function() {
   const fechaEl = document.getElementById("fecha");
   if (fechaEl && !fechaEl.value) fechaEl.valueAsDate = new Date();
 
-  // Si dia >= 24 pre-completar serviceMonth con el mes siguiente
+  // Si dia >= 20 pre-completar serviceMonth con el mes siguiente
   const serviceMonthEl = document.getElementById("serviceMonth");
   if (serviceMonthEl && !serviceMonthEl.value) {
     const hoy = new Date();
-    const mesServicio = hoy.getDate() >= 24
+    const mesServicio = hoy.getDate() >= 20
       ? new Date(hoy.getFullYear(), hoy.getMonth() + 1, 1)
       : hoy;
     serviceMonthEl.value = mesServicio.getFullYear() + "-" + String(mesServicio.getMonth() + 1).padStart(2, "0");
+  }
+
+  // Cuando el admin cambia la fecha de pago, actualizar serviceMonth automáticamente
+  const fechaInputModal = document.getElementById("fecha");
+  if (fechaInputModal && serviceMonthEl && !fechaInputModal._smListenerAdded) {
+    fechaInputModal._smListenerAdded = true;
+    fechaInputModal.addEventListener("change", () => {
+      const parts = fechaInputModal.value.split("-");
+      if (parts.length === 3) {
+        const d = parseInt(parts[2], 10);
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        const sugerido = d >= 20
+          ? new Date(y, m + 1, 1)
+          : new Date(y, m, 1);
+        serviceMonthEl.value = sugerido.getFullYear() + "-" + String(sugerido.getMonth() + 1).padStart(2, "0");
+      }
+    });
   }
 
   // Cargar planes dinamicamente desde la DB
@@ -1274,9 +1292,93 @@ async function cargarDashboard() {
     } else if (alerta) {
       alerta.classList.add('d-none');
     }
+
+    // Transferencias pendientes de confirmar (Opción C)
+    if (typeof cargarTransferenciasPendientes === 'function') cargarTransferenciasPendientes();
+
+    // Panel cobranza 1-10
+    cargarPanelCobroMes(data.upcomingPayments?.length ?? 0, data.totalActivos ?? 0, data.ingresosMes ?? 0);
   } catch (error) {
     console.error("Error cargando dashboard:", error);
   }
+}
+
+async function cargarPanelCobroMes(pagaron, totalActivos, ingresosMes) {
+  const panel    = document.getElementById('panelCobroMes');
+  const contenido = document.getElementById('contenidoPanelCobro');
+  if (!panel || !contenido) return;
+
+  // Si no recibimos datos frescos, volvemos a buscar
+  if (pagaron === undefined) {
+    try {
+      const resp = await fetch(`${API_URL}/dashboard`, { headers: getAuthHeaders() });
+      const d = await resp.json();
+      pagaron     = d.upcomingPayments?.length ?? 0;
+      totalActivos = d.totalActivos ?? 0;
+      ingresosMes  = d.ingresosMes  ?? 0;
+    } catch { return; }
+  }
+
+  const hoyAR   = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+  const diaHoy  = parseInt(hoyAR.split('-')[2], 10);
+  const pct     = totalActivos > 0 ? Math.min(100, Math.round((pagaron / totalActivos) * 100)) : 0;
+  const sinPago = Math.max(0, totalActivos - pagaron);
+  const fmt     = n => Number(n).toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
+
+  const enPeriodo = diaHoy >= 1 && diaHoy <= 10;
+  const diasRestantes = enPeriodo ? (10 - diaHoy) : 0;
+
+  let alertaPeriodo = '';
+  if (enPeriodo) {
+    alertaPeriodo = `<div class="alert alert-success py-2 mb-3" style="font-size:.85rem;">
+      ✅ Estás en el período de cobro — quedan <strong>${diasRestantes} día${diasRestantes !== 1 ? 's' : ''}</strong> hasta el día 10.
+    </div>`;
+  } else if (diaHoy > 10) {
+    const diasParaProx = 31 - diaHoy; // aprox
+    alertaPeriodo = `<div class="alert alert-secondary py-2 mb-3" style="font-size:.85rem;">
+      📅 Período de cobro: 1 al 10 de cada mes — el próximo comienza en ~${diasParaProx} días.
+    </div>`;
+  }
+
+  const barColor = pct >= 80 ? '#16a34a' : pct >= 50 ? '#d97706' : '#dc2626';
+
+  contenido.innerHTML = `
+    ${alertaPeriodo}
+    <div class="row g-3 mb-3 text-center">
+      <div class="col-4">
+        <div style="font-size:1.6rem;font-weight:700;color:#16a34a;">${pagaron}</div>
+        <div style="font-size:.78rem;color:#6b7280;">Pagaron</div>
+      </div>
+      <div class="col-4">
+        <div style="font-size:1.6rem;font-weight:700;color:#dc2626;">${sinPago}</div>
+        <div style="font-size:.78rem;color:#6b7280;">Sin pago</div>
+      </div>
+      <div class="col-4">
+        <div style="font-size:1.6rem;font-weight:700;color:#1d4ed8;">${totalActivos}</div>
+        <div style="font-size:.78rem;color:#6b7280;">Activos</div>
+      </div>
+    </div>
+    <div class="mb-2" style="font-size:.8rem;color:#6b7280;">Cobranza: <strong>${pct}%</strong></div>
+    <div style="background:#e5e7eb;border-radius:8px;height:14px;overflow:hidden;margin-bottom:12px;">
+      <div style="width:${pct}%;background:${barColor};height:100%;border-radius:8px;transition:width .4s;"></div>
+    </div>
+    <div class="d-flex align-items-center justify-content-between">
+      <span style="font-size:.85rem;color:#6b7280;">Recaudado este mes: <strong>${fmt(ingresosMes)}</strong></span>
+      ${sinPago > 0 ? `<button class="btn btn-sm btn-success" onclick="irAvisarSinPago()">💳 Avisar a ${sinPago} alumna${sinPago !== 1 ? 's' : ''}</button>` : '<span class="badge bg-success">¡Todas pagaron! 🎉</span>'}
+    </div>`;
+
+  panel.style.display = '';
+}
+
+function irAvisarSinPago() {
+  // Va a la página de Avisos y pre-selecciona "Sin pago este mes"
+  if (typeof saGoPage === 'function') saGoPage('avisos');
+  setTimeout(() => {
+    const radio = document.getElementById('avisoSinPago');
+    if (radio) { radio.checked = true; radio.dispatchEvent(new Event('change')); }
+    const templateBtn = document.querySelector('[onclick="avisarTemplate(\'pago1al10\')"]');
+    if (templateBtn) templateBtn.click();
+  }, 400);
 }
 
 // ===== WHATSAPP =====

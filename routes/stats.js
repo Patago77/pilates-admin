@@ -239,4 +239,47 @@ router.get('/stats/informe-mes', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /stats/alumnos-aviso?filtro=todos|conAbono|sinPago
+// Devuelve alumnos activos con nombre, teléfono y documento para enviar avisos
+router.get('/stats/alumnos-aviso', authenticateToken, async (req, res) => {
+  const filtro = req.query.filtro || 'todos';
+  try {
+    let rows;
+    const mes = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).substring(0, 7);
+
+    if (filtro === 'conAbono') {
+      [rows] = await req.db.query(
+        `SELECT DISTINCT s.documento, s.nombre, s.telefono
+         FROM students s
+         INNER JOIN payments p ON p.documento = s.documento
+           AND COALESCE(p.serviceMonth, DATE_FORMAT(p.paymentDate,'%Y-%m')) = ?
+         WHERE s.activo = 1
+         ORDER BY s.nombre ASC`,
+        [mes]
+      );
+    } else if (filtro === 'sinPago') {
+      [rows] = await req.db.query(
+        `SELECT s.documento, s.nombre, s.telefono
+         FROM students s
+         WHERE s.activo = 1
+           AND s.documento NOT IN (
+             SELECT DISTINCT documento FROM payments
+             WHERE documento IS NOT NULL
+               AND COALESCE(serviceMonth, DATE_FORMAT(paymentDate,'%Y-%m')) = ?
+           )
+         ORDER BY s.nombre ASC`,
+        [mes]
+      );
+    } else {
+      [rows] = await req.db.query(
+        `SELECT documento, nombre, telefono FROM students WHERE activo = 1 ORDER BY nombre ASC`
+      );
+    }
+    res.json(rows);
+  } catch (err) {
+    console.error('❌ Error alumnos-aviso:', err.message);
+    res.status(500).json({ error: 'Error al obtener alumnos.' });
+  }
+});
+
 module.exports = router;

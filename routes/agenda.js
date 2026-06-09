@@ -488,7 +488,20 @@ async function calcularEstadoAbono(db, documento, mes) {
      ORDER BY p.paymentDate DESC LIMIT 1`,
     [documento, mes]
   );
-  const pago = pagos[0] || null;
+  let pago = pagos[0] || null;
+
+  // Si no hay pago este mes, intentar con plan_actual del perfil del alumno
+  if (!pago) {
+    const [[st]] = await db.query(`SELECT plan_actual FROM students WHERE documento=?`, [documento]);
+    if (st?.plan_actual) {
+      const [[pc]] = await db.query(`SELECT codigo, nombre, clases FROM planes_config WHERE codigo=?`, [st.plan_actual]);
+      if (pc) {
+        // Tratamos plan_actual como abono activo sin pago registrado todavía
+        pago = { subscriptionType: pc.codigo, plan_nombre: pc.nombre, clases_plan: pc.clases, amount: null, _sinPago: true };
+      }
+    }
+  }
+
   const clasesPlan = pago ? (parseInt(pago.clases_plan) || 0) : 0;
 
   // Período del abono: todo el mes calendario del serviceMonth
@@ -550,6 +563,7 @@ async function calcularEstadoAbono(db, documento, mes) {
     mes,
     abono_activo: abonoActivo,
     abono_agotado: abonoAgotado,
+    sin_pago_registrado: !!(pago?._sinPago),  // activo por plan_actual pero sin pago este mes
     plan: pago ? { codigo: pago.subscriptionType, nombre: pago.plan_nombre, clases: clasesPlan, monto: pago.amount } : null,
     clases_plan: clasesPlan,
     asistidas,
@@ -635,6 +649,140 @@ router.post('/admin/abono/devolver', authenticateToken, async (req, res) => {
     console.error('❌ Error devolver clases:', err.message);
     res.status(500).json({ error: 'Error al devolver clases.' });
   }
+});
+
+// ================================================================
+// PAGOS PENDIENTES — lado alumno
+// ================================================================
+
+// GET /api/alumno/config-pago — devuelve CBU/alias al alumno logueado
+router.get('/alumno/config-pago', authAlumno, async (req, res) => {
+  const { getStudioPool } = require('../db');
+  const db = getStudioPool(req.alumno.studio_db);
+  try {
+    await db.query(`CREATE TABLE IF NOT EXISTS studio_config (
+      clave VARCHAR(80) PRIMARY KEY, valor TEXT NOT NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)`);
+    const [rows] = await db.query(`SELECT clave, valor FROM studio_config WHERE clave LIKE 'pago_%'`);
+    const cfg = {};
+    rows.forEach(r => { cfg[r.clave.replace('pago_', '')] = r.valor; });
+    res.json(cfg);
+  } catch (err) { res.status(500).json({ error: 'Error al obtener config.' }); }
+});
+
+// POST /api/alumno/pago-pendiente — alumno declara que transfirió
+router.post('/alumno/pago-pendiente', authAlumno, async (req, res) => {
+  const { plan, monto } = req.body;
+  if (!plan || !monto) return res.status(400).json({ error: 'Datos incompletos.' });
+  const { getStudioPool } = require('../db');
+  const db = getStudioPool(req.alumno.studio_db);
+  try {
+    // Verificar que no haya uno pendiente ya
+    const [dup] = await db.query(
+      `SELECT id FROM pagos_pendientes WHERE documento=? AND estado='pendiente'`,
+      [req.alumno.documento]
+    );
+    if (dup.length) return res.status(409).json({ error: 'Ya tenés un pago pendiente de confirmación.' });
+
+    const [alumno] = await db.query('SELECT nombre FROM students WHERE documento=?', [req.alumno.documento]);
+    await db.query(
+      `INSERT INTO pagos_pendientes (documento, nombre, plan, monto) VALUES (?,?,?,?)`,
+      [req.alumno.documento, alumno[0]?.nombre || req.alumno.documento, plan, monto]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('❌ Error pago pendiente:', err.message);
+    res.status(500).json({ error: 'Error al registrar.' });
+  }
+});
+
+// ================================================================
+// NOTIFICACIONES INTERNAS
+// ================================================================
+
+// GET /api/alumno/notificaciones — alumna ve sus notificaciones no leídas
+router.get('/alumno/notificaciones', authAlumno, async (req, res) => {
+  const { getStudioPool } = require('../db');
+  const db = getStudioPool(req.alumno.studio_db);
+  const doc = req.alumno.documento;
+  try {
+    const [rows] = await db.query(
+      `SELECT n.id, n.titulo, n.mensaje, n.tipo, n.created_at
+       FROM notificaciones n
+       WHERE (n.para = 'todos'
+           OR (n.para = 'individual' AND n.documento_destino = ?)
+           OR (n.para = 'conAbono' AND EXISTS (
+                SELECT 1 FROM payments p
+                WHERE p.documento = ?
+                  AND COALESCE(p.serviceMonth, DATE_FORMAT(p.paymentDate,'%Y-%m'))
+                    = DATE_FORMAT(NOW(),'%Y-%m')
+              ))
+         )
+         AND (
+           n.tipo = 'fija'
+           OR n.id NOT IN (
+             SELECT notificacion_id FROM notificaciones_leidas WHERE documento = ?
+           )
+         )
+       ORDER BY n.tipo = 'fija' DESC, n.created_at DESC`,
+      [doc, doc, doc]
+    );
+    res.json(rows);
+  } catch(err) {
+    console.error('❌ notificaciones alumno:', err.message);
+    res.status(500).json({ error: 'Error.' });
+  }
+});
+
+// POST /api/alumno/notificaciones/:id/leer
+router.post('/alumno/notificaciones/:id/leer', authAlumno, async (req, res) => {
+  const { getStudioPool } = require('../db');
+  const db = getStudioPool(req.alumno.studio_db);
+  try {
+    await db.query(
+      `INSERT IGNORE INTO notificaciones_leidas (notificacion_id, documento) VALUES (?,?)`,
+      [req.params.id, req.alumno.documento]
+    );
+    res.json({ ok: true });
+  } catch(err) { res.status(500).json({ error: 'Error.' }); }
+});
+
+// POST /api/admin/notificacion — admin crea notificación
+router.post('/admin/notificacion', authenticateToken, async (req, res) => {
+  const { titulo, mensaje, tipo, para, documento_destino } = req.body;
+  if (!titulo || !mensaje) return res.status(400).json({ error: 'Título y mensaje son obligatorios.' });
+  try {
+    const [r] = await req.db.query(
+      `INSERT INTO notificaciones (titulo, mensaje, tipo, para, documento_destino) VALUES (?,?,?,?,?)`,
+      [titulo, mensaje, tipo || 'info', para || 'todos', documento_destino || null]
+    );
+    res.json({ ok: true, id: r.insertId });
+  } catch(err) {
+    console.error('❌ crear notificación:', err.message);
+    res.status(500).json({ error: 'Error al crear notificación.' });
+  }
+});
+
+// GET /api/admin/notificaciones — lista de notificaciones enviadas
+router.get('/admin/notificaciones', authenticateToken, async (req, res) => {
+  try {
+    const [rows] = await req.db.query(
+      `SELECT n.*, COUNT(nl.id) AS leidas
+       FROM notificaciones n
+       LEFT JOIN notificaciones_leidas nl ON nl.notificacion_id = n.id
+       GROUP BY n.id ORDER BY n.created_at DESC LIMIT 50`
+    );
+    res.json(rows);
+  } catch(err) { res.status(500).json({ error: 'Error.' }); }
+});
+
+// DELETE /api/admin/notificacion/:id — eliminar notificación
+router.delete('/admin/notificacion/:id', authenticateToken, async (req, res) => {
+  try {
+    await req.db.query(`DELETE FROM notificaciones_leidas WHERE notificacion_id=?`, [req.params.id]);
+    await req.db.query(`DELETE FROM notificaciones WHERE id=?`, [req.params.id]);
+    res.json({ ok: true });
+  } catch(err) { res.status(500).json({ error: 'Error.' }); }
 });
 
 module.exports = router;

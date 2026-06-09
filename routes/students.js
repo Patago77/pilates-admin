@@ -155,6 +155,16 @@ router.get('/students/:documento/cuenta', authenticateToken, async (req, res) =>
       [documento, mesActual]
     );
 
+    // Clases extra devueltas por admin este mes
+    const [[{ clasesExtra }]] = await req.db.query(
+      `SELECT COALESCE(SUM(cantidad),0) AS clasesExtra FROM clases_extra
+       WHERE documento = ? AND mes = ?`,
+      [documento, mesActual]
+    );
+
+    const clasesTotal = planInfo?.clases || 0;
+    const restantes   = Math.max(0, clasesTotal + parseInt(clasesExtra) - clasesUsadas);
+
     res.json({
       alumno: st[0],
       totalPagado: Number(totalPagado),
@@ -164,8 +174,9 @@ router.get('/students/:documento/cuenta', authenticateToken, async (req, res) =>
       mesActual: {
         plan: planInfo,
         clasesUsadas,
-        clasesTotal: planInfo?.clases || 0,
-        restantes: Math.max(0, (planInfo?.clases || 0) - clasesUsadas)
+        clasesTotal,
+        clasesExtra: parseInt(clasesExtra),
+        restantes
       }
     });
   } catch (err) {

@@ -77,6 +77,11 @@ router.get('/dashboard', authenticateToken, async (req, res) => {
       [today]
     );
 
+    // Total alumnos activos (para panel de cobro)
+    const [[{ totalActivos }]] = await req.db.query(
+      `SELECT COUNT(*) AS totalActivos FROM students WHERE activo = 1`
+    );
+
     res.json({
       totalIncome:      Number(totalIncomeRow.totalIncome) || 0,
       totalPayments:    Number(totalPaymentsRow.totalPayments) || 0,
@@ -84,6 +89,7 @@ router.get('/dashboard', authenticateToken, async (req, res) => {
       gastosMes:        Number(gastosRow.total) || 0,
       saldoMes:         (Number(incomeRow.total) || 0) - (Number(gastosRow.total) || 0),
       reservasHoy:      Number(reservasHoy.total) || 0,
+      totalActivos:     Number(totalActivos) || 0,
       paymentsPerMonth,
       overduePayments:  overduePaymentsRows.map(r => r.nombre || r.documento),
       upcomingPayments: upcomingPaymentsRows.map(r => r.nombre || r.documento),

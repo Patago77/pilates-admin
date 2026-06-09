@@ -3,6 +3,16 @@ const authenticateToken = require('../authMiddleware');
 
 const router = express.Router();
 
+// Mantiene plan_actual del alumno sincronizado con su último plan de pago
+async function syncPlanActual(db, documento, plan) {
+  if (!documento || !plan) return;
+  try {
+    await db.query(`UPDATE students SET plan_actual=? WHERE documento=?`, [plan, documento]);
+  } catch(e) {
+    console.warn('⚠️ syncPlanActual falló:', e.message);
+  }
+}
+
 // 📥 Registrar un pago con validación y monto incluido
 router.post('/payments', authenticateToken, async (req, res) => {
   const { fullName, subscriptionType, paymentDate, amount, documento } = req.body;
@@ -17,6 +27,8 @@ router.post('/payments', authenticateToken, async (req, res) => {
        VALUES (?, ?, ?, ?, ?)`,
       [fullName, subscriptionType, paymentDate, amount, documento || null]
     );
+    // Sincronizar plan_actual del alumno
+    await syncPlanActual(req.db, documento, subscriptionType);
     res.json({ id: result.insertId, fullName, subscriptionType, paymentDate, amount, documento: documento || null });
   } catch (err) {
     console.error("❌ Error al guardar pago:", err.message);
@@ -42,8 +54,10 @@ router.put('/payments/:id', authenticateToken, async (req, res) => {
          WHERE id = ?`,
         [fullName, subscriptionType, paymentDate, amount, paymentId]
       );
-
       if (result.affectedRows === 0) return res.status(404).json({ error: "Pago no encontrado." });
+      // Sincronizar plan_actual si podemos recuperar el documento del pago
+      const [[pago]] = await req.db.query(`SELECT documento FROM payments WHERE id=?`, [paymentId]);
+      await syncPlanActual(req.db, pago?.documento, subscriptionType);
       return res.json({ message: "Pago actualizado correctamente" });
     }
 
@@ -57,8 +71,9 @@ router.put('/payments/:id', authenticateToken, async (req, res) => {
        WHERE id = ?`,
       [fullName, subscriptionType, paymentDate, amount, doc, paymentId]
     );
-
     if (result.affectedRows === 0) return res.status(404).json({ error: "Pago no encontrado." });
+    // Sincronizar plan_actual del alumno
+    await syncPlanActual(req.db, doc, subscriptionType);
 
     res.json({ message: "Pago actualizado correctamente" });
   } catch (err) {
@@ -137,8 +152,21 @@ router.delete('/payments/:id', authenticateToken, async (req, res) => {
   const paymentId = req.params.id;
 
   try {
+    // Guardar documento y plan antes de borrar para re-sincronizar
+    const [[pago]] = await req.db.query(`SELECT documento, subscriptionType FROM payments WHERE id=?`, [paymentId]);
     const [result] = await req.db.query('DELETE FROM payments WHERE id = ?', [paymentId]);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Pago no encontrado' });
+
+    // Recalcular plan_actual desde el pago más reciente del alumno
+    if (pago?.documento) {
+      const [[ultimo]] = await req.db.query(
+        `SELECT subscriptionType FROM payments WHERE documento=? ORDER BY paymentDate DESC LIMIT 1`,
+        [pago.documento]
+      );
+      // Si queda otro pago, usamos ese plan; si no, no tocamos plan_actual (queda como estaba)
+      if (ultimo) await syncPlanActual(req.db, pago.documento, ultimo.subscriptionType);
+    }
+
     res.json({ message: 'Pago eliminado correctamente' });
   } catch (err) {
     console.error("❌ Error al eliminar pago:", err.message);
@@ -289,6 +317,89 @@ router.delete('/planes/:codigo', authenticateToken, async (req, res) => {
     console.error('❌ Error DELETE planes:', err.message);
     res.status(500).json({ error: 'Error al eliminar plan.' });
   }
+});
+
+// ============================================================
+// PAGOS PENDIENTES — lado admin
+// ============================================================
+
+// GET /admin/pagos-pendientes
+router.get('/admin/pagos-pendientes', authenticateToken, async (req, res) => {
+  try {
+    const [rows] = await req.db.query(
+      `SELECT * FROM pagos_pendientes WHERE estado='pendiente' ORDER BY created_at ASC`
+    );
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: 'Error al obtener pagos pendientes.' }); }
+});
+
+// POST /admin/pagos-pendientes/:id/confirmar — convierte en pago real
+router.post('/admin/pagos-pendientes/:id/confirmar', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [rows] = await req.db.query(`SELECT * FROM pagos_pendientes WHERE id=?`, [id]);
+    if (!rows.length) return res.status(404).json({ error: 'Pago no encontrado.' });
+    const p = rows[0];
+    const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+    const mes = hoy.substring(0, 7);
+    // Registrar como pago real
+    await req.db.query(
+      `INSERT INTO payments (fullName, subscriptionType, paymentDate, amount, documento, serviceMonth)
+       VALUES (?,?,?,?,?,?)`,
+      [p.nombre, p.plan, hoy, p.monto, p.documento, mes]
+    );
+    // Mantener plan_actual del alumno sincronizado
+    await syncPlanActual(req.db, p.documento, p.plan);
+    // Marcar como confirmado
+    await req.db.query(`UPDATE pagos_pendientes SET estado='confirmado' WHERE id=?`, [id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('❌ Error confirmar pago:', err.message);
+    res.status(500).json({ error: 'Error al confirmar.' });
+  }
+});
+
+// DELETE /admin/pagos-pendientes/:id — rechazar
+router.delete('/admin/pagos-pendientes/:id', authenticateToken, async (req, res) => {
+  try {
+    await req.db.query(`UPDATE pagos_pendientes SET estado='rechazado' WHERE id=?`, [req.params.id]);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'Error al rechazar.' }); }
+});
+
+// ============================================================
+// CONFIG PAGO (CBU / alias) — admin
+// ============================================================
+async function ensureConfigTable(db) {
+  await db.query(`CREATE TABLE IF NOT EXISTS studio_config (
+    clave VARCHAR(80) PRIMARY KEY, valor TEXT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)`);
+}
+
+router.get('/admin/config-pago', authenticateToken, async (req, res) => {
+  try {
+    await ensureConfigTable(req.db);
+    const [rows] = await req.db.query(`SELECT clave, valor FROM studio_config WHERE clave LIKE 'pago_%'`);
+    const cfg = {};
+    rows.forEach(r => { cfg[r.clave.replace('pago_', '')] = r.valor; });
+    res.json(cfg);
+  } catch (err) { res.status(500).json({ error: 'Error al obtener config.' }); }
+});
+
+router.post('/admin/config-pago', authenticateToken, async (req, res) => {
+  try {
+    await ensureConfigTable(req.db);
+    const campos = ['cbu', 'alias', 'titular', 'alias_mp', 'titular_mp'];
+    for (const campo of campos) {
+      if (req.body[campo] !== undefined) {
+        await req.db.query(
+          `INSERT INTO studio_config (clave, valor) VALUES (?,?) ON DUPLICATE KEY UPDATE valor=VALUES(valor)`,
+          [`pago_${campo}`, req.body[campo]]
+        );
+      }
+    }
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'Error al guardar config.' }); }
 });
 
 module.exports = router;

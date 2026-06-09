@@ -61,7 +61,7 @@
     .reserva-fecha { font-weight:600; font-size:14px; }
     .reserva-hora { font-size:13px; color:var(--muted); }
 
-    /* Tabs */
+    /* Tabs — solo mobile */
     .tabs { display:flex; gap:4px; margin-bottom:20px; background:#F0EEFF; border-radius:10px; padding:4px; }
     .tab { flex:1; text-align:center; padding:8px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:500; color:var(--muted); transition:.15s; }
     .tab.active { background:#fff; color:var(--accent); font-weight:600; box-shadow:0 1px 4px rgba(0,0,0,.08); }
@@ -70,6 +70,33 @@
     .feedback.ok { color:var(--green); }
     .feedback.err { color:var(--danger); }
 
+    /* Layout desktop con sidebar */
+    .portal-layout { display:block; max-width:540px; margin:0 auto; padding:20px 16px; }
+
+    /* Sidebar portal */
+    .portal-sidebar { background:var(--surface); border-radius:var(--radius); border:1.5px solid #e9e4ff; overflow:hidden; }
+    .portal-nav-item { display:flex; align-items:center; gap:10px; padding:10px 16px; font-size:13px; font-weight:500; color:var(--text); cursor:pointer; transition:.15s; border-left:3px solid transparent; }
+    .portal-nav-item:hover { background:#f5f4ff; color:var(--accent); }
+    .portal-nav-item.active { background:#f0eeff; color:var(--accent); font-weight:600; border-left-color:var(--accent); }
+    .portal-nav-icon { font-size:16px; width:20px; text-align:center; }
+    .portal-nav-badge { margin-left:auto; font-size:11px; font-weight:700; background:#f0eeff; color:var(--accent); border-radius:10px; padding:1px 7px; }
+
+    /* Mini cal portal */
+    .mini-cal-dia { font-size:11px; padding:3px 2px; border-radius:5px; cursor:pointer; line-height:1.4; text-align:center; }
+    .mini-cal-dia:hover { background:#f0eeff; color:var(--accent); }
+    .mini-cal-dia.hoy { background:var(--accent); color:#fff; font-weight:700; border-radius:50%; }
+    .mini-cal-dia.reservado { font-weight:700; color:var(--green); }
+    .mini-cal-dia.reservado::after { content:''; display:block; width:4px; height:4px; background:var(--green); border-radius:50%; margin:1px auto 0; }
+    .mini-cal-dia.finde { color:#ddd; cursor:default; }
+
+    @media(min-width:768px) {
+      .portal-layout { display:grid; grid-template-columns:210px 1fr; gap:16px; max-width:820px; align-items:start; padding:24px 20px; }
+      .tabs { display:none; } /* en desktop la nav va al sidebar */
+      .portal-sidebar { display:block !important; }
+    }
+    @media(max-width:767px) {
+      .portal-sidebar { display:none; }
+    }
     @media(max-width:500px) {
       .dias-grid { grid-template-columns:repeat(5,1fr); gap:4px; }
       .dia-btn { padding:8px 2px; }
@@ -86,6 +113,11 @@
   </div>
   <div style="display:flex;align-items:center;gap:12px;">
     <div id="headerUser" class="sa-header-user"></div>
+    <!-- Campana de notificaciones -->
+    <button id="btnNotifCampana" onclick="abrirPanelNotif()" style="display:none;position:relative;background:none;border:none;cursor:pointer;padding:4px 6px;color:#fff;font-size:18px;line-height:1;">
+      🔔
+      <span id="notifBadge" style="display:none;position:absolute;top:0;right:0;background:#E24B4A;color:#fff;border-radius:50%;font-size:9px;font-weight:700;width:16px;height:16px;line-height:16px;text-align:center;"></span>
+    </button>
     <button id="btnCerrarSesion" onclick="cerrarSesion()" style="display:none;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#ccc;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;">Salir</button>
   </div>
 </div>
@@ -120,16 +152,64 @@
 </div>
 
 <!-- APP ALUMNO -->
-<div id="panelApp" style="display:none; max-width:540px; margin:0 auto; padding:20px 16px;">
+<div id="panelApp" style="display:none;" class="portal-layout">
 
-  <!-- Estado del abono -->
-  <div id="abonoStatus" style="margin-bottom:14px;"></div>
+  <!-- ── SIDEBAR (solo desktop) ── -->
+  <div class="portal-sidebar">
 
-  <div class="tabs">
-    <div class="tab active" onclick="switchTab('agenda')">Reservar clase</div>
-    <div class="tab" onclick="switchTab('misclases')">Mis clases</div>
-    <div class="tab" onclick="switchTab('info')">ℹ️ Info</div>
+    <!-- Estado abono compacto -->
+    <div id="abonoStatusSidebar" style="padding:14px 16px;border-bottom:1px solid #f0eeff;"></div>
+
+    <!-- Mini calendario -->
+    <div style="padding:12px 14px;border-bottom:1px solid #f0eeff;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <button onclick="portalMiniCalNav(-1)" style="background:none;border:none;cursor:pointer;font-size:15px;color:var(--accent);padding:2px 4px;">‹</button>
+        <span id="portalMiniCalLabel" style="font-size:12px;font-weight:600;color:var(--text);"></span>
+        <button onclick="portalMiniCalNav(1)"  style="background:none;border:none;cursor:pointer;font-size:15px;color:var(--accent);padding:2px 4px;">›</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;text-align:center;margin-bottom:4px;">
+        <div style="font-size:9px;font-weight:600;color:var(--muted);">Lu</div><div style="font-size:9px;font-weight:600;color:var(--muted);">Ma</div>
+        <div style="font-size:9px;font-weight:600;color:var(--muted);">Mi</div><div style="font-size:9px;font-weight:600;color:var(--muted);">Ju</div>
+        <div style="font-size:9px;font-weight:600;color:var(--muted);">Vi</div><div style="font-size:9px;color:#ddd;">Sa</div><div style="font-size:9px;color:#ddd;">Do</div>
+      </div>
+      <div id="portalMiniCalGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;text-align:center;"></div>
+    </div>
+
+    <!-- Navegación -->
+    <div style="padding:6px 0;">
+      <div class="portal-nav-item active" onclick="switchTab('agenda')" id="navAgenda">
+        <span class="portal-nav-icon">📅</span><span>Reservar clase</span>
+      </div>
+      <div class="portal-nav-item" onclick="switchTab('misclases')" id="navMisclases">
+        <span class="portal-nav-icon">🗓️</span><span>Mis clases</span>
+        <span id="navMisclasesBadge" class="portal-nav-badge" style="display:none;"></span>
+      </div>
+      <div class="portal-nav-item" onclick="switchTab('info')" id="navInfo">
+        <span class="portal-nav-icon">ℹ️</span><span>Info y reglas</span>
+      </div>
+      <div style="padding:10px 14px;margin-top:4px;">
+        <button onclick="abrirRenovarAbono()" style="width:100%;background:#6D28D9;color:#fff;border:none;border-radius:9px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.01em;">
+          💳 Renovar / pagar abono
+        </button>
+      </div>
+    </div>
   </div>
+
+  <!-- ── CONTENIDO PRINCIPAL ── -->
+  <div>
+    <!-- Notificaciones fijas (siempre visibles) -->
+    <div id="notifFijasPortal" style="margin-bottom:10px;"></div>
+
+    <!-- Estado del abono (mobile) -->
+    <div id="abonoStatus" style="margin-bottom:14px;"></div>
+
+    <!-- Tabs mobile -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('agenda')">Reservar clase</div>
+      <div class="tab" onclick="switchTab('misclases')">Mis clases</div>
+      <div class="tab" onclick="switchTab('info')">ℹ️ Info</div>
+      <div class="tab" onclick="abrirRenovarAbono()" style="color:#6D28D9;font-weight:700;">💳 Pagar</div>
+    </div>
 
   <!-- TAB AGENDA -->
   <div id="tabAgenda">
@@ -190,7 +270,9 @@
     <h6 class="fw-semibold mb-3">Mis próximas clases</h6>
     <div id="misReservasList"></div>
   </div>
-</div>
+
+  </div><!-- fin contenido principal -->
+</div><!-- fin panelApp -->
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
@@ -290,9 +372,12 @@ function mostrarApp(nombre) {
   document.getElementById('panelApp').style.display = 'block';
   document.getElementById('headerUser').textContent = nombre || '';
   document.getElementById('btnCerrarSesion').style.display = 'block';
+  _portalMiniMes = fmtISO(new Date()).substring(0,7);
   cargarEstadoAbono();
   renderSemana();
   cargarMisReservas();
+  portalMiniCalRender();
+  cargarNotificaciones();
 }
 
 async function cargarEstadoAbono() {
@@ -307,13 +392,15 @@ async function cargarEstadoAbono() {
       el.innerHTML = `
         <div style="background:#fce8e8;border:1.5px solid #E24B4A;border-radius:10px;padding:14px 16px;text-align:center;">
           <div style="font-weight:700;color:#E24B4A;margin-bottom:4px;">Sin abono activo</div>
-          <div style="font-size:13px;color:#666;">No tenés abono para este mes. Contactá con la recepción para renovarlo.</div>
+          <div style="font-size:13px;color:#666;margin-bottom:10px;">No tenés abono para este mes.</div>
+          <button onclick="abrirRenovarAbono()" style="background:#6D28D9;color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;">Renovar mi abono</button>
         </div>`;
     } else if (d.abono_agotado) {
       el.innerHTML = `
         <div style="background:#fce8e8;border:1.5px solid #E24B4A;border-radius:10px;padding:14px 16px;text-align:center;">
           <div style="font-weight:700;color:#E24B4A;margin-bottom:4px;">Abono agotado</div>
-          <div style="font-size:13px;color:#666;">Usaste todas tus clases del mes (${d.consumidas}/${d.clases_plan}). Contactá con la recepción.</div>
+          <div style="font-size:13px;color:#666;margin-bottom:10px;">Usaste todas tus clases del mes (${d.consumidas}/${d.clases_plan}).</div>
+          <button onclick="abrirRenovarAbono()" style="background:#6D28D9;color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;">Renovar mi abono</button>
         </div>`;
     } else {
       const restantes = d.restantes;
@@ -327,13 +414,23 @@ async function cargarEstadoAbono() {
       const detalle = futuras > 0
         ? `${d.asistidas} asistidas · ${futuras} reservada${futuras !== 1 ? 's' : ''}`
         : `${d.asistidas} asistidas de ${d.clases_plan}`;
+      const sinPagoTag = d.sin_pago_registrado
+        ? `<span style="font-size:10px;background:#FEF3C7;color:#92400E;border-radius:4px;padding:2px 6px;margin-left:6px;">pago pendiente</span>`
+        : '';
       el.innerHTML = `
-        <div style="background:${libresReales===0?'#fef2f2':'#f0fdf8'};border:1.5px solid ${libresReales===0?'#E24B4A':'#1D9E75'};border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
-          <div>
-            <div style="font-size:12px;color:var(--muted);">Abono activo — ${d.plan?.nombre || 'Plan'}</div>
-            <div style="font-size:13px;margin-top:2px;">${detalle}</div>
+        <div style="background:${libresReales===0?'#fef2f2':'#f0fdf8'};border:1.5px solid ${libresReales===0?'#E24B4A':'#1D9E75'};border-radius:10px;padding:12px 16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <div style="font-size:12px;color:var(--muted);">Abono activo — ${d.plan?.nombre || 'Plan'}${sinPagoTag}</div>
+              <div style="font-size:13px;margin-top:2px;">${detalle}</div>
+            </div>
+            <div style="font-size:22px;font-weight:700;color:${colorLibres};">${libresReales} <span style="font-size:12px;font-weight:400;">para reservar</span></div>
           </div>
-          <div style="font-size:22px;font-weight:700;color:${colorLibres};">${libresReales} <span style="font-size:12px;font-weight:400;">para reservar</span></div>
+          ${libresReales === 0 ? `
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid ${libresReales===0?'#fecaca':'#bbf7d0'};text-align:center;">
+            <span style="font-size:12px;color:#E24B4A;margin-right:8px;">Usaste todas tus clases disponibles</span>
+            <button onclick="abrirRenovarAbono()" style="background:#6D28D9;color:#fff;border:none;border-radius:7px;padding:6px 16px;font-size:12px;font-weight:600;cursor:pointer;">Agregar más clases</button>
+          </div>` : ''}
         </div>`;
     }
   } catch(e) { el.innerHTML = ''; }
@@ -346,11 +443,71 @@ function cerrarSesion() {
 
 // ── Tabs ──
 function switchTab(t) {
+  // tabs mobile
   document.querySelectorAll('.tab').forEach((el,i) => el.classList.toggle('active', (i===0&&t==='agenda')||(i===1&&t==='misclases')||(i===2&&t==='info')));
+  // nav sidebar desktop
+  ['navAgenda','navMisclases','navInfo'].forEach(id => document.getElementById(id)?.classList.remove('active'));
+  if (t==='agenda')    document.getElementById('navAgenda')?.classList.add('active');
+  if (t==='misclases') document.getElementById('navMisclases')?.classList.add('active');
+  if (t==='info')      document.getElementById('navInfo')?.classList.add('active');
+  // paneles
   document.getElementById('tabAgenda').style.display    = t==='agenda'    ? 'block' : 'none';
   document.getElementById('tabMisClases').style.display = t==='misclases' ? 'block' : 'none';
   document.getElementById('tabInfo').style.display      = t==='info'      ? 'block' : 'none';
   if (t==='misclases') cargarMisReservas();
+}
+
+// ── Mini calendario portal ──
+let _portalMiniMes = fmtISO(new Date()).substring(0,7);
+let _portalReservas = []; // fechas reservadas del alumno
+
+function portalMiniCalNav(dir) {
+  const [y, m] = _portalMiniMes.split('-').map(Number);
+  const d = new Date(y, m - 1 + dir, 1);
+  _portalMiniMes = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+  portalMiniCalRender();
+}
+
+function portalMiniCalRender() {
+  const [y, m] = _portalMiniMes.split('-').map(Number);
+  const label = new Date(y, m-1, 1).toLocaleDateString('es-AR', { month:'long', year:'numeric' });
+  const el = document.getElementById('portalMiniCalLabel');
+  if (el) el.textContent = label.charAt(0).toUpperCase() + label.slice(1);
+
+  const hoy     = fmtISO(new Date());
+  const primer  = new Date(y, m-1, 1);
+  const ultimo  = new Date(y, m, 0).getDate();
+  const offset  = primer.getDay() === 0 ? 6 : primer.getDay() - 1;
+  const reservaSet = new Set(_portalReservas.map(r => r.fecha?.split('T')[0] || r.fecha));
+
+  const grid = document.getElementById('portalMiniCalGrid');
+  if (!grid) return;
+  let html = '';
+  for (let i = 0; i < offset; i++) html += '<div></div>';
+  for (let d = 1; d <= ultimo; d++) {
+    const iso  = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dow  = new Date(y, m-1, d).getDay();
+    const esFinde  = dow === 0 || dow === 6;
+    const esHoy    = iso === hoy;
+    const esReserv = reservaSet.has(iso);
+    let cls = 'mini-cal-dia';
+    if (esFinde) cls += ' finde';
+    else if (esHoy) cls += ' hoy';
+    else if (esReserv) cls += ' reservado';
+    const click = esFinde ? '' : `onclick="portalIrDia('${iso}')"`;
+    html += `<div class="${cls}" ${click}>${d}</div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function portalIrDia(fecha) {
+  // Buscar la semana que contiene esa fecha y seleccionar el día
+  const d = new Date(fecha + 'T12:00:00');
+  lunesActual = getLunes(d);
+  fechaSeleccionada = fecha;
+  switchTab('agenda');
+  renderSemana();
+  setTimeout(() => cargarSlots(fecha), 300);
 }
 
 // ── Semana ──
@@ -511,6 +668,16 @@ async function cargarMisReservas() {
     const r = await fetch(`${API}/alumno/mis-reservas`, { headers: hdrs() });
     if (r.status === 401) { cerrarSesion(); return; }
     const reservas = await r.json();
+
+    // Actualizar mini calendario y badge sidebar
+    _portalReservas = reservas;
+    portalMiniCalRender();
+    const badge = document.getElementById('navMisclasesBadge');
+    if (badge) {
+      badge.textContent = reservas.length || '';
+      badge.style.display = reservas.length ? 'inline' : 'none';
+    }
+
     if (!reservas.length) {
       lista.innerHTML = '<div class="text-muted text-center py-4" style="font-size:13px;">No tenés clases reservadas próximamente.</div>';
       return;
@@ -534,6 +701,194 @@ document.addEventListener('keydown', e => {
   }
 });
 
+// ──────────────────────────────────────────────────────
+// NOTIFICACIONES INTERNAS
+// ──────────────────────────────────────────────────────
+let _notifData = [];
+
+async function cargarNotificaciones() {
+  try {
+    const r = await fetch(`${API}/alumno/notificaciones`, { headers: hdrs() });
+    if (!r.ok) return;
+    _notifData = await r.json();
+
+    const fijas    = _notifData.filter(n => n.tipo === 'fija');
+    const normales = _notifData.filter(n => n.tipo !== 'fija');
+
+    // Banners fijos visibles directamente en el portal
+    const bannerDiv = document.getElementById('notifFijasPortal');
+    if (bannerDiv) {
+      bannerDiv.innerHTML = fijas.map(n => `
+        <div style="background:#F5F3FF;border:1.5px solid #6D28D9;border-radius:10px;padding:12px 16px;margin-bottom:8px;">
+          <div style="font-size:10px;font-weight:700;color:#6D28D9;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;">📌 Mensaje del estudio</div>
+          <div style="font-size:13px;font-weight:700;color:#1C1A2E;margin-bottom:2px;">${n.titulo}</div>
+          <div style="font-size:13px;color:#444;line-height:1.5;">${n.mensaje}</div>
+        </div>`).join('');
+    }
+
+    // Campana solo para las normales sin leer
+    const badge   = document.getElementById('notifBadge');
+    const campana = document.getElementById('btnNotifCampana');
+    if (normales.length) {
+      if (campana) campana.style.display = 'inline-block';
+      if (badge)   { badge.textContent = normales.length > 9 ? '9+' : normales.length; badge.style.display = 'block'; }
+    } else if (fijas.length) {
+      if (campana) campana.style.display = 'inline-block';
+      if (badge)   badge.style.display = 'none';
+    }
+  } catch(e) {}
+}
+
+function abrirPanelNotif() {
+  const m = document.getElementById('modalNotificaciones');
+  if (m) m.style.display = 'flex';
+  renderNotifPortal();
+}
+
+function cerrarPanelNotif() {
+  const m = document.getElementById('modalNotificaciones');
+  if (m) m.style.display = 'none';
+}
+
+function renderNotifPortal() {
+  const div = document.getElementById('notifListaPortal');
+  const colores = { info:'#EFF6FF', aviso:'#FFFBEB', urgente:'#FEF2F2', fija:'#F5F3FF' };
+  const bordes  = { info:'#BFDBFE', aviso:'#FDE68A', urgente:'#FECACA', fija:'#6D28D9' };
+  const iconos  = { info:'ℹ️', aviso:'⚠️', urgente:'🚨', fija:'📌' };
+  if (!_notifData.length) {
+    div.innerHTML = '<div style="text-align:center;padding:24px;color:#7C7A8E;font-size:13px;">No tenés notificaciones nuevas 🎉</div>';
+    return;
+  }
+  div.innerHTML = _notifData.map(n => {
+    const esFija = n.tipo === 'fija';
+    return `
+    <div id="notifItem_${n.id}" style="margin:8px 12px;border-radius:10px;padding:14px 16px;background:${colores[n.tipo]||'#f5f4ff'};border:1.5px solid ${bordes[n.tipo]||'#e9e4ff'};">
+      ${esFija ? `<div style="font-size:10px;font-weight:700;color:#6D28D9;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">📌 Mensaje del estudio</div>` : ''}
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:4px;">${esFija ? '' : iconos[n.tipo]+' '}${n.titulo}</div>
+          <div style="font-size:13px;color:#444;line-height:1.5;">${n.mensaje}</div>
+          <div style="font-size:11px;color:#9CA3AF;margin-top:6px;">${new Date(n.created_at).toLocaleDateString('es-AR')}</div>
+        </div>
+        ${esFija
+          ? '' // Las fijas no se pueden cerrar — solo el admin las elimina
+          : `<button onclick="marcarLeida(${n.id})" style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;flex-shrink:0;line-height:1;padding:0;" title="Marcar como leída">×</button>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function marcarLeida(id) {
+  try {
+    await fetch(`${API}/alumno/notificaciones/${id}/leer`, { method: 'POST', headers: hdrs() });
+    _notifData = _notifData.filter(n => n.id !== id);
+    const badge = document.getElementById('notifBadge');
+    if (_notifData.length) {
+      badge.textContent = _notifData.length > 9 ? '9+' : _notifData.length;
+    } else {
+      badge.style.display = 'none';
+      document.getElementById('btnNotifCampana').style.display = 'none';
+    }
+    const item = document.getElementById(`notifItem_${id}`);
+    if (item) item.style.transition = 'opacity .3s', item.style.opacity = '0', setTimeout(()=>item.remove(), 300);
+    if (!_notifData.length) setTimeout(() => renderNotifPortal(), 350);
+  } catch(e) {}
+}
+
+// ──────────────────────────────────────────────────────
+// RENOVAR ABONO — pago por transferencia (Opción C)
+// ──────────────────────────────────────────────────────
+let _configPago = {};
+let _planesPortal = [];
+
+async function abrirRenovarAbono() {
+  const m = document.getElementById('modalRenovarAbono');
+  if (!m) return;
+  // Reset estado
+  document.getElementById('renovarFeedback').innerHTML = '';
+  document.getElementById('renovarStep1').style.display = 'block';
+  document.getElementById('renovarStep2').style.display = 'none';
+
+  // Cargar planes y config pago en paralelo
+  try {
+    const [rPlanes, rCfg] = await Promise.all([
+      fetch(`${API}/planes`, { headers: hdrs() }),
+      fetch(`${API}/alumno/config-pago`, { headers: hdrs() })
+    ]);
+    _planesPortal = rPlanes.ok ? await rPlanes.json() : [];
+    _configPago = rCfg.ok ? await rCfg.json() : {};
+  } catch(e) { _planesPortal = []; _configPago = {}; }
+
+  // Poblar datos de transferencia bancaria
+  document.getElementById('cfgCBU').textContent     = _configPago.cbu     || 'Sin configurar';
+  document.getElementById('cfgAlias').textContent   = _configPago.alias   || 'Sin configurar';
+  document.getElementById('cfgTitular').textContent = _configPago.titular || 'Sin configurar';
+
+  // Poblar datos de MercadoPago (solo mostrar si existe)
+  const mpBlock = document.getElementById('cfgMPBlock');
+  if (_configPago.alias_mp) {
+    document.getElementById('cfgAliasMP').textContent   = _configPago.alias_mp;
+    document.getElementById('cfgTitularMP').textContent = _configPago.titular_mp || '—';
+    mpBlock.style.display = 'block';
+  } else {
+    mpBlock.style.display = 'none';
+  }
+
+  // Renderizar selector de planes
+  const sel = document.getElementById('renovarPlanSel');
+  sel.innerHTML = '<option value="">Seleccioná tu plan…</option>' +
+    _planesPortal.map(p => `<option value="${p.codigo}" data-precio="${p.precio}">${p.nombre} — $${Number(p.precio).toLocaleString('es-AR')}</option>`).join('');
+  actualizarMonto();
+
+  m.style.display = 'flex';
+}
+
+function cerrarRenovarAbono() {
+  const m = document.getElementById('modalRenovarAbono');
+  if (m) m.style.display = 'none';
+}
+
+function actualizarMonto() {
+  const sel = document.getElementById('renovarPlanSel');
+  const opt = sel.options[sel.selectedIndex];
+  const precio = opt?.dataset?.precio ? Number(opt.dataset.precio) : null;
+  document.getElementById('renovarMonto').textContent =
+    precio ? `$${Number(precio).toLocaleString('es-AR')}` : '—';
+}
+
+async function confirmarTransferencia() {
+  const planCodigo = document.getElementById('renovarPlanSel').value;
+  if (!planCodigo) { document.getElementById('renovarFeedback').innerHTML = '<span style="color:#E24B4A;">Seleccioná un plan.</span>'; return; }
+
+  const opt = document.getElementById('renovarPlanSel').options[document.getElementById('renovarPlanSel').selectedIndex];
+  const monto = Number(opt.dataset.precio);
+  const planNombre = opt.textContent.split('—')[0].trim();
+
+  document.getElementById('renovarFeedback').innerHTML = '<span style="color:#7C7A8E;">Registrando…</span>';
+
+  try {
+    const r = await fetch(`${API}/alumno/pago-pendiente`, {
+      method: 'POST',
+      headers: { ...hdrs(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan: planCodigo, monto })
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      document.getElementById('renovarFeedback').innerHTML = `<span style="color:#E24B4A;">${data.error || 'Error al registrar.'}</span>`;
+      return;
+    }
+    // Mostrar paso 2 (confirmación)
+    document.getElementById('renovarStep1').style.display = 'none';
+    document.getElementById('renovarStep2').style.display = 'block';
+    document.getElementById('renovarConfirmaTexto').innerHTML =
+      `✅ Tu solicitud de renovación de <strong>${planNombre}</strong> por <strong>$${monto.toLocaleString('es-AR')}</strong> fue registrada.<br><br>
+      La profe confirmará el pago cuando acredite la transferencia y tu abono quedará activo.`;
+  } catch(e) {
+    document.getElementById('renovarFeedback').innerHTML = '<span style="color:#E24B4A;">Error de conexión.</span>';
+  }
+}
+
 // ── Auto-login si hay token guardado ──
 if (TOKEN_ALUMNO) {
   try {
@@ -547,5 +902,71 @@ if (TOKEN_ALUMNO) {
   } catch { localStorage.removeItem('token_alumno'); }
 }
 </script>
+
+<!-- ── Modal Notificaciones ── -->
+<div id="modalNotificaciones" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:flex-start;justify-content:center;padding:16px;padding-top:70px;">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.2);">
+    <div style="background:#1C1A2E;color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-weight:700;font-size:15px;">🔔 Notificaciones</div>
+      <button onclick="cerrarPanelNotif()" style="background:none;border:none;color:#aaa;font-size:20px;cursor:pointer;line-height:1;">×</button>
+    </div>
+    <div id="notifListaPortal" style="max-height:400px;overflow-y:auto;padding:12px 0;">
+      <div class="text-center text-muted py-3 small">Cargando…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal Renovar Abono ── -->
+<div id="modalRenovarAbono" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.2);">
+    <!-- Header -->
+    <div style="background:#1C1A2E;color:#fff;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-weight:700;font-size:16px;">💳 Renovar abono</div>
+      <button onclick="cerrarRenovarAbono()" style="background:none;border:none;color:#aaa;font-size:20px;cursor:pointer;line-height:1;">×</button>
+    </div>
+
+    <!-- Paso 1: elegir plan + datos de transferencia -->
+    <div id="renovarStep1" style="padding:20px;">
+      <p style="font-size:13px;color:#555;margin-bottom:16px;">Elegí tu plan, transferí el monto indicado y presioná <strong>"Ya transferí"</strong>. La profe confirmará cuando acredite.</p>
+
+      <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Plan</label>
+      <select id="renovarPlanSel" onchange="actualizarMonto()" class="form-control" style="margin-bottom:12px;">
+        <option value="">Seleccioná tu plan…</option>
+      </select>
+
+      <div style="background:#f5f4ff;border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+        <div style="font-size:12px;color:#7C7A8E;margin-bottom:4px;">Monto a transferir</div>
+        <div id="renovarMonto" style="font-size:24px;font-weight:700;color:#6D28D9;">—</div>
+      </div>
+
+      <div style="background:#f9f9fb;border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:13px;">
+        <div style="font-weight:700;margin-bottom:10px;">📬 Datos para el pago</div>
+
+        <div style="margin-bottom:10px;">
+          <div style="font-size:11px;font-weight:700;color:#7C7A8E;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">🏦 Transferencia bancaria</div>
+          <div><span style="color:#7C7A8E;">CBU:</span> <strong id="cfgCBU">—</strong></div>
+          <div><span style="color:#7C7A8E;">Alias:</span> <strong id="cfgAlias">—</strong></div>
+          <div><span style="color:#7C7A8E;">Titular:</span> <strong id="cfgTitular">—</strong></div>
+        </div>
+
+        <div id="cfgMPBlock" style="display:none;border-top:1px solid #e9e4ff;padding-top:10px;">
+          <div style="font-size:11px;font-weight:700;color:#009EE3;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">💙 MercadoPago</div>
+          <div><span style="color:#7C7A8E;">Alias MP:</span> <strong id="cfgAliasMP">—</strong></div>
+          <div><span style="color:#7C7A8E;">Titular:</span> <strong id="cfgTitularMP">—</strong></div>
+        </div>
+      </div>
+
+      <div id="renovarFeedback" style="min-height:20px;margin-bottom:12px;font-size:13px;"></div>
+
+      <button onclick="confirmarTransferencia()" style="width:100%;background:#6D28D9;color:#fff;border:none;border-radius:10px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;">Ya transferí →</button>
+    </div>
+
+    <!-- Paso 2: confirmación -->
+    <div id="renovarStep2" style="padding:24px;text-align:center;display:none;">
+      <div id="renovarConfirmaTexto" style="font-size:14px;color:#333;line-height:1.6;"></div>
+      <button onclick="cerrarRenovarAbono()" style="margin-top:20px;background:#1D9E75;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-size:14px;font-weight:700;cursor:pointer;">Entendido ✓</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

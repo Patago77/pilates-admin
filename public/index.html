@@ -90,6 +90,22 @@ body {
 .ag-nav-btn { background:none; border:1px solid rgba(109,40,217,.15); border-radius:6px; padding:4px 10px; font-size:15px; color:var(--muted); cursor:pointer; transition:var(--t); line-height:1; }
 .ag-nav-btn:hover { background:var(--surface-2); color:var(--accent); }
 
+/* Mini calendario sidebar */
+.ag-mini-dia { font-size:11px; padding:3px 2px; border-radius:5px; cursor:pointer; color:var(--text); line-height:1.4; }
+.ag-mini-dia:hover { background:#f0eeff; color:var(--accent); }
+.ag-mini-dia.hoy { background:var(--accent); color:#fff; font-weight:700; border-radius:50%; }
+.ag-mini-dia.con-clase { font-weight:700; color:var(--accent); position:relative; }
+.ag-mini-dia.con-clase::after { content:''; position:absolute; bottom:1px; left:50%; transform:translateX(-50%); width:4px; height:4px; background:var(--accent); border-radius:50%; }
+.ag-mini-dia.finde { color:#ccc; cursor:default; }
+.ag-mini-dia.otro-mes { color:#ddd; }
+.ag-mini-dia.seleccionado { background:#f0eeff; color:var(--accent); font-weight:700; }
+
+/* Filtros rápidos sidebar */
+.ag-filtro { display:flex; align-items:center; justify-content:space-between; padding:9px 16px; font-size:13px; font-weight:500; color:var(--text); cursor:pointer; transition:var(--t); }
+.ag-filtro:hover { background:#f5f4ff; color:var(--accent); }
+.ag-filtro.active { background:#f0eeff; color:var(--accent); font-weight:600; border-left:3px solid var(--accent); }
+.ag-filtro-badge { font-size:11px; font-weight:700; background:#f0eeff; color:var(--accent); border-radius:10px; padding:1px 7px; min-width:20px; text-align:center; }
+
 /* Semana grid */
 .ag-semana-grid { display:grid; grid-template-columns:52px repeat(5,1fr); gap:3px; }
 .ag-semana-hdr  { text-align:center; padding:6px 4px 8px; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
@@ -367,6 +383,7 @@ small { color: var(--muted) !important; }
     <div class="sa-nav-lbl">Principal</div>
     <div class="sa-nav-item active" data-sa-page="dashboard">
       <div class="sa-nav-dot"></div><span>Dashboard</span>
+      <span id="badgeTransferencias" style="display:none;background:#E24B4A;color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:auto;"></span>
     </div>
     <div class="sa-nav-item" data-sa-page="movimientos">
       <div class="sa-nav-dot"></div><span>Movimientos</span>
@@ -394,6 +411,10 @@ small { color: var(--muted) !important; }
       <div class="sa-nav-dot"></div><span>Diagnóstico</span>
     </div>
     <div class="sa-nav-lbl">Sistema</div>
+    <div class="sa-nav-item" data-sa-page="avisos">
+      <div class="sa-nav-dot"></div><span>Avisos</span>
+      <span id="badgeAvisos" style="display:none;background:#F59E0B;color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:auto;">✉</span>
+    </div>
     <div class="sa-nav-item" data-sa-page="usuarios">
       <div class="sa-nav-dot"></div><span>Usuarios</span>
     </div>
@@ -463,6 +484,28 @@ small { color: var(--muted) !important; }
         <div id="alertaPendientes" class="alert alert-warning d-none mb-3">
           <b id="cantidadPendientes">0</b> alumnos con pago pendiente
           <button id="btnRecordarTodos" class="btn btn-sm btn-dark ms-2">Enviar recordatorio</button>
+        </div>
+
+        <!-- ── Panel: Cobro del mes (progreso 1 al 10) ── -->
+        <div id="panelCobroMes" class="sa-card mb-3" style="display:none;">
+          <div class="sa-card-hd" style="background:#f0fdf4;border-bottom:1px solid #bbf7d0;">
+            <span class="sa-card-ttl" style="color:#166534;">📊 Cobranza del mes</span>
+            <button onclick="cargarPanelCobroMes()" class="btn btn-sm btn-outline-success">Actualizar</button>
+          </div>
+          <div class="sa-card-body" id="contenidoPanelCobro">
+            <div class="text-center text-muted py-3">Cargando…</div>
+          </div>
+        </div>
+
+        <!-- ── Panel: Transferencias pendientes de confirmar ── -->
+        <div id="panelTransferenciasPendientes" class="sa-card mb-3" style="display:none;">
+          <div class="sa-card-hd" style="background:#fffbeb;border-bottom:1px solid #fde68a;">
+            <span class="sa-card-ttl" style="color:#92400e;">💸 Transferencias pendientes de confirmar</span>
+            <button onclick="cargarTransferenciasPendientes()" class="btn btn-sm btn-outline-warning">Actualizar</button>
+          </div>
+          <div class="sa-card-body" id="listaTransferenciasPendientes">
+            <div class="text-center text-muted py-3">Cargando…</div>
+          </div>
         </div>
 
         <div class="sa-card">
@@ -643,33 +686,77 @@ small { color: var(--muted) !important; }
         <!-- Alerta: alumnos con reservas sin pago -->
         <div id="alertaSinAbono" style="margin-bottom:12px;"></div>
 
-        <div class="sa-card">
-          <!-- Topbar de agenda -->
-          <div class="sa-card-hd" style="flex-wrap:nowrap;gap:8px;">
-            <!-- Selector de vista -->
-            <div style="display:flex;background:#F0EEFF;border-radius:8px;padding:3px;gap:2px;flex-shrink:0;">
-              <button id="agVistaDia"    class="ag-vista-btn" onclick="agSetVista('dia')">Día</button>
-              <button id="agVistaSemana" class="ag-vista-btn active" onclick="agSetVista('semana')">Semana</button>
-              <button id="agVistaMes"    class="ag-vista-btn" onclick="agSetVista('mes')">Mes</button>
+        <div style="display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:start;">
+
+          <!-- ── SIDEBAR IZQUIERDO ── -->
+          <div>
+            <!-- Mini calendario -->
+            <div class="sa-card" style="margin-bottom:12px;padding:0;">
+              <div style="padding:12px 14px 0;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                  <button onclick="agMiniCalNav(-1)" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--accent);padding:2px 6px;">‹</button>
+                  <span id="agMiniCalLabel" style="font-size:13px;font-weight:600;color:var(--text);"></span>
+                  <button onclick="agMiniCalNav(1)"  style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--accent);padding:2px 6px;">›</button>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;margin-bottom:6px;">
+                  <div style="font-size:10px;font-weight:600;color:var(--muted);">Lu</div>
+                  <div style="font-size:10px;font-weight:600;color:var(--muted);">Ma</div>
+                  <div style="font-size:10px;font-weight:600;color:var(--muted);">Mi</div>
+                  <div style="font-size:10px;font-weight:600;color:var(--muted);">Ju</div>
+                  <div style="font-size:10px;font-weight:600;color:var(--muted);">Vi</div>
+                  <div style="font-size:10px;font-weight:600;color:#ddd;">Sa</div>
+                  <div style="font-size:10px;font-weight:600;color:#ddd;">Do</div>
+                </div>
+                <div id="agMiniCalGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;padding-bottom:12px;"></div>
+              </div>
             </div>
-            <!-- Navegación de período -->
-            <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
-              <button class="ag-nav-btn" onclick="agNavegar(-1)">‹</button>
-              <div id="agPeriodoLabel" style="font-size:13px;font-weight:600;flex:1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
-              <button class="ag-nav-btn" onclick="agNavegar(1)">›</button>
-              <button class="ag-nav-btn" onclick="agHoy()" style="font-size:11px;padding:4px 8px;">Hoy</button>
+
+            <!-- Filtros rápidos -->
+            <div class="sa-card" style="padding:8px 0;">
+              <div class="ag-filtro active" onclick="agFiltroHoy()">
+                <span>Turnos hoy</span>
+                <span id="agFiltroHoyCount" class="ag-filtro-badge"></span>
+              </div>
+              <div class="ag-filtro" onclick="agFiltroSemana()">
+                <span>Esta semana</span>
+              </div>
+              <div class="ag-filtro" onclick="agFiltroCancelados()">
+                <span>Cancelados hoy</span>
+                <span id="agFiltroCanceladosCount" class="ag-filtro-badge" style="background:#fce8e8;color:#a32d2d;"></span>
+              </div>
+              <div style="border-top:1px solid #f0eeff;margin:6px 0;"></div>
+              <a href="/mi-agenda" target="_blank" class="ag-filtro" style="text-decoration:none;color:var(--accent);">
+                <span>Portal del alumno ↗</span>
+              </a>
             </div>
-            <a href="/mi-agenda" target="_blank" class="btn btn-outline-secondary btn-sm" style="flex-shrink:0;font-size:12px;">Portal ↗</a>
           </div>
 
-          <div class="sa-card-body" style="padding:14px 16px 10px;">
-            <!-- Vista semana (por defecto) -->
-            <div id="agVistaSemanaPanel"></div>
-            <!-- Vista día -->
-            <div id="agVistaDiaPanel" style="display:none;"></div>
-            <!-- Vista mes -->
-            <div id="agVistaMesPanel" style="display:none;"></div>
+          <!-- ── PANEL PRINCIPAL ── -->
+          <div class="sa-card" style="margin-bottom:0;">
+            <!-- Topbar -->
+            <div class="sa-card-hd" style="flex-wrap:nowrap;gap:8px;border-bottom:1px solid #f0eeff;">
+              <div style="flex:1;min-width:0;">
+                <div id="agPeriodoLabel" style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                <button class="ag-nav-btn" onclick="agNavegar(-1)">‹</button>
+                <button class="ag-nav-btn" onclick="agHoy()" style="font-size:11px;padding:4px 10px;font-weight:600;">Hoy</button>
+                <button class="ag-nav-btn" onclick="agNavegar(1)">›</button>
+              </div>
+              <div style="display:flex;background:#F0EEFF;border-radius:8px;padding:3px;gap:2px;flex-shrink:0;">
+                <button id="agVistaDia"    class="ag-vista-btn" onclick="agSetVista('dia')">Día</button>
+                <button id="agVistaSemana" class="ag-vista-btn active" onclick="agSetVista('semana')">Semana</button>
+                <button id="agVistaMes"    class="ag-vista-btn" onclick="agSetVista('mes')">Mes</button>
+              </div>
+            </div>
+
+            <div class="sa-card-body" style="padding:14px 16px 10px;">
+              <div id="agVistaSemanaPanel"></div>
+              <div id="agVistaDiaPanel"    style="display:none;"></div>
+              <div id="agVistaMesPanel"    style="display:none;"></div>
+            </div>
           </div>
+
         </div>
       </div>
 
@@ -956,6 +1043,169 @@ small { color: var(--muted) !important; }
               <button class="btn btn-primary btn-sm" onclick="abrirNuevoPlan()">+ Nuevo plan</button>
             </div>
             <div id="tablaPlanes"></div>
+          </div>
+        </div>
+
+        <!-- ── Datos para transferencia (Opción C) ── -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h5 class="mb-0">💳 Datos para pagos</h5>
+              <span class="badge bg-secondary">Opción C</span>
+            </div>
+            <p class="text-muted small mb-3">Estos datos se muestran en el portal del alumno cuando quiere renovar su abono.</p>
+
+            <p class="small fw-semibold mb-2" style="color:#1C1A2E;">🏦 Transferencia bancaria</p>
+            <div class="row g-3 mb-3">
+              <div class="col-12 col-md-4">
+                <label class="form-label small fw-semibold">CBU</label>
+                <input type="text" id="cfgAdminCBU" class="form-control" placeholder="0000003100123456789012">
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label small fw-semibold">Alias</label>
+                <input type="text" id="cfgAdminAlias" class="form-control" placeholder="mi.alias.banco">
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label small fw-semibold">Titular</label>
+                <input type="text" id="cfgAdminTitular" class="form-control" placeholder="Nombre Apellido">
+              </div>
+            </div>
+
+            <p class="small fw-semibold mb-2" style="color:#009EE3;">💙 MercadoPago</p>
+            <div class="row g-3">
+              <div class="col-12 col-md-6">
+                <label class="form-label small fw-semibold">Alias MercadoPago</label>
+                <input type="text" id="cfgAdminAliasMP" class="form-control" placeholder="nombre.apellido.mp">
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label small fw-semibold">Titular MP</label>
+                <input type="text" id="cfgAdminTitularMP" class="form-control" placeholder="Nombre Apellido">
+              </div>
+            </div>
+
+            <div id="cfgPagoFeedback" class="mt-2 small"></div>
+            <button class="btn btn-primary btn-sm mt-3" onclick="guardarConfigPago()">Guardar datos de pago</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════ -->
+      <!-- PÁGINA AVISOS                                          -->
+      <!-- ══════════════════════════════════════════════════════ -->
+      <div id="paginaAvisos" class="sa-page">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <span style="font-size:1.1rem;font-weight:600;color:var(--text);">📢 Centro de avisos</span>
+        </div>
+
+        <!-- Composición del mensaje -->
+        <div class="sa-card mb-3">
+          <div class="sa-card-hd"><span class="sa-card-ttl">Redactar aviso</span></div>
+          <div class="sa-card-body">
+
+            <!-- Templates rápidos -->
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Templates rápidos</label>
+              <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-outline-secondary btn-sm" onclick="avisarTemplate('feriado')">🎉 Feriado — cerramos</button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="avisarTemplate('imprevisto')">⚠️ No abrimos hoy</button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="avisarTemplate('reprogramar')">🔄 Reprogramá tu clase</button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="avisarTemplate('recordatorio')">🕐 Recordatorio de clase</button>
+                <button class="btn btn-success btn-sm" onclick="avisarTemplate('pago1al10')">💳 Pagá del 1 al 10</button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="avisarTemplate('personalizado')">✏️ Personalizado</button>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Mensaje</label>
+              <textarea id="avisoMensaje" class="form-control" rows="4" placeholder="Escribí el mensaje que recibirán los alumnos…"></textarea>
+            </div>
+
+            <!-- Destinatarios -->
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Enviar a</label>
+              <div class="d-flex gap-3 flex-wrap">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="avisoDestino" id="avisoTodos" value="todos" checked onchange="cargarDestinatarios()">
+                  <label class="form-check-label small" for="avisoTodos">Todos los alumnos activos</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="avisoDestino" id="avisoConAbono" value="conAbono" onchange="cargarDestinatarios()">
+                  <label class="form-check-label small" for="avisoConAbono">Solo con abono este mes</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="avisoDestino" id="avisoSinPago" value="sinPago" onchange="cargarDestinatarios()">
+                  <label class="form-check-label small" for="avisoSinPago">Sin pago este mes</label>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Lista de destinatarios -->
+        <div class="sa-card mb-3">
+          <div class="sa-card-hd" style="display:flex;align-items:center;justify-content:space-between;">
+            <span class="sa-card-ttl">Destinatarios <span id="avisoCount" class="badge bg-secondary ms-2">0</span></span>
+            <button class="btn btn-success btn-sm" onclick="enviarAvisoTodos()" id="btnEnviarTodos">
+              📤 Abrir WhatsApp para todos
+            </button>
+          </div>
+          <div class="sa-card-body p-0">
+            <div id="avisoListaAlumnos" style="max-height:420px;overflow-y:auto;"></div>
+          </div>
+        </div>
+
+        <!-- Notificaciones internas en plataforma -->
+        <div class="sa-card mb-3">
+          <div class="sa-card-hd"><span class="sa-card-ttl">🔔 Notificación en la plataforma</span></div>
+          <div class="sa-card-body">
+            <p class="text-muted small mb-3">La alumna la verá al entrar a su portal. Puede ser un aviso puntual, un recordatorio o un mensaje importante.</p>
+            <div class="row g-3 mb-3">
+              <div class="col-12 col-md-6">
+                <label class="form-label small fw-semibold">Título</label>
+                <input type="text" id="notifTitulo" class="form-control" placeholder="Ej: Estudio cerrado el lunes">
+              </div>
+              <div class="col-12 col-md-3">
+                <label class="form-label small fw-semibold">Tipo</label>
+                <select id="notifTipo" class="form-control">
+                  <option value="info">ℹ️ Información</option>
+                  <option value="aviso">⚠️ Aviso</option>
+                  <option value="urgente">🚨 Urgente</option>
+                  <option value="fija">📌 Fija (siempre visible)</option>
+                </select>
+              </div>
+              <div class="col-12 col-md-3">
+                <label class="form-label small fw-semibold">Enviar a</label>
+                <select id="notifPara" class="form-control">
+                  <option value="todos">Todas las alumnas activas</option>
+                  <option value="conAbono">Con abono este mes</option>
+                  <option value="individual">Alumna individual</option>
+                </select>
+              </div>
+            </div>
+            <div id="notifDocRow" class="mb-3" style="display:none;">
+              <label class="form-label small fw-semibold">Documento de la alumna</label>
+              <input type="text" id="notifDocumento" class="form-control" placeholder="Número de documento">
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Mensaje</label>
+              <textarea id="notifMensaje" class="form-control" rows="3" placeholder="Escribí el mensaje que verá la alumna en su portal…"></textarea>
+            </div>
+            <div id="notifFeedback" class="small mb-2"></div>
+            <button class="btn btn-primary btn-sm" onclick="enviarNotifInterna()">🔔 Enviar notificación</button>
+          </div>
+        </div>
+
+        <!-- Historial de notificaciones enviadas -->
+        <div class="sa-card">
+          <div class="sa-card-hd" style="display:flex;align-items:center;justify-content:space-between;">
+            <span class="sa-card-ttl">Notificaciones enviadas</span>
+            <button class="btn btn-sm btn-outline-secondary" onclick="cargarNotifHistorial()">↺ Actualizar</button>
+          </div>
+          <div class="sa-card-body p-0">
+            <div id="notifHistorial" style="max-height:300px;overflow-y:auto;">
+              <div class="text-center text-muted py-3 small">Cargando…</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1617,7 +1867,7 @@ small { color: var(--muted) !important; }
 <script>
 // ── PERMISOS POR ROL ──
 const ROLE_PAGES = {
-  admin:     ["dashboard","movimientos","asistencias","agenda","metricas","alumnos","abonos","gastos","diagnostico","usuarios"],
+  admin:     ["dashboard","movimientos","asistencias","agenda","metricas","alumnos","abonos","gastos","diagnostico","avisos","usuarios"],
   recepcion: ["dashboard","movimientos","asistencias","agenda","alumnos","abonos"],
   viewer:    ["dashboard"]
 };
@@ -1687,6 +1937,7 @@ const SA_PAGE_IDS = {
   abonos: "paginaAbonos",
   gastos: "paginaGastos",
   diagnostico: "paginaDiagnostico",
+  avisos: "paginaAvisos",
   usuarios: "paginaUsuarios"
 };
 
@@ -1706,6 +1957,9 @@ function saGoPage(name) {
   if (name === "asistencias") cargarAsistHoy();
   if (name === "agenda") iniciarAgendaAdmin();
   if (name === "abonos") iniciarAbonos();
+  if (name === "diagnostico" && typeof cargarConfigPago === 'function') cargarConfigPago();
+  if (name === "dashboard") cargarTransferenciasPendientes();
+  if (name === "avisos") iniciarAvisos();
 }
 
 // ── USUARIOS ──
@@ -2525,6 +2779,111 @@ function iniciarAgendaAdmin() {
   const mesActual = hoyAR().substring(0, 7);
   cargarAlertaSinAbono(mesActual);
   agSetVista('semana');
+  agMiniCalRender();
+  agFiltroHoy();
+}
+
+// ── MINI CALENDARIO SIDEBAR ──
+let _agMiniCalMes  = hoyAR().substring(0, 7);
+let _agMiniClases  = {}; // { 'YYYY-MM-DD': count }
+
+function agMiniCalNav(dir) {
+  const [y, m] = _agMiniCalMes.split('-').map(Number);
+  const d = new Date(y, m - 1 + dir, 1);
+  _agMiniCalMes = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  agMiniCalRender();
+}
+
+async function agMiniCalRender() {
+  const [y, m] = _agMiniCalMes.split('-').map(Number);
+  const label = new Date(y, m - 1, 1).toLocaleDateString('es-AR', { month:'long', year:'numeric' });
+  const el = document.getElementById('agMiniCalLabel');
+  if (el) el.textContent = label.charAt(0).toUpperCase() + label.slice(1);
+
+  // Cargar días con clases del mes
+  try {
+    const r = await fetch(`${API_URL}/admin/agenda/mes/${_agMiniCalMes}`, { headers: getAuthHeaders() });
+    const rows = await r.json();
+    _agMiniClases = {};
+    (Array.isArray(rows) ? rows : []).forEach(rv => { _agMiniClases[rv.fecha] = (_agMiniClases[rv.fecha] || 0) + rv.total; });
+  } catch(e) { _agMiniClases = {}; }
+
+  const hoy      = hoyAR();
+  const primer   = new Date(y, m - 1, 1);
+  const ultimo   = new Date(y, m, 0).getDate();
+  let dow        = primer.getDay(); // 0=dom
+  const offset   = dow === 0 ? 6 : dow - 1; // ajuste lunes=0
+
+  const grid = document.getElementById('agMiniCalGrid');
+  if (!grid) return;
+  let html = '';
+
+  // Celdas vacías antes del día 1
+  for (let i = 0; i < offset; i++) html += '<div></div>';
+
+  for (let d = 1; d <= ultimo; d++) {
+    const iso  = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const fecha = new Date(y, m - 1, d);
+    const dow2  = fecha.getDay(); // 0=dom, 6=sab
+    const esFinde = dow2 === 0 || dow2 === 6;
+    const esHoy   = iso === hoy;
+    const conClase = _agMiniClases[iso];
+    const esSel    = iso === _agFecha;
+
+    let cls = 'ag-mini-dia';
+    if (esFinde)  cls += ' finde';
+    if (esHoy)    cls += ' hoy';
+    else if (esSel) cls += ' seleccionado';
+    else if (conClase) cls += ' con-clase';
+
+    const click = esFinde ? '' : `onclick="agVerDia('${iso}')"`;
+    html += `<div class="${cls}" ${click} title="${conClase ? conClase + ' turno(s)' : ''}">${d}</div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function agVerDia(fecha) {
+  _agFecha = fecha;
+  agSetVista('dia');
+  agMiniCalRender();
+  // marcar filtro activo
+  document.querySelectorAll('.ag-filtro').forEach(f => f.classList.remove('active'));
+}
+
+// ── FILTROS RÁPIDOS ──
+async function agFiltroHoy() {
+  document.querySelectorAll('.ag-filtro').forEach(f => f.classList.remove('active'));
+  document.querySelectorAll('.ag-filtro')[0]?.classList.add('active');
+  _agFecha = hoyAR();
+  agSetVista('dia');
+
+  // badge count turnos hoy
+  try {
+    const r = await fetch(`${API_URL}/admin/agenda/${hoyAR()}`, { headers: getAuthHeaders() });
+    const d = await r.json();
+    const badge = document.getElementById('agFiltroHoyCount');
+    if (badge) badge.textContent = Array.isArray(d) ? d.length : '';
+  } catch(e) {}
+}
+
+function agFiltroSemana() {
+  document.querySelectorAll('.ag-filtro').forEach(f => f.classList.remove('active'));
+  document.querySelectorAll('.ag-filtro')[1]?.classList.add('active');
+  _agLunes = getLunesAR(new Date(_agFecha + 'T12:00:00'));
+  agSetVista('semana');
+}
+
+async function agFiltroCancelados() {
+  document.querySelectorAll('.ag-filtro').forEach(f => f.classList.remove('active'));
+  document.querySelectorAll('.ag-filtro')[2]?.classList.add('active');
+  try {
+    const r = await fetch(`${API_URL}/admin/agenda/${hoyAR()}?estado=cancelado`, { headers: getAuthHeaders() });
+    const d = await r.json();
+    const badge = document.getElementById('agFiltroCanceladosCount');
+    if (badge) badge.textContent = Array.isArray(d) ? d.length : '0';
+  } catch(e) {}
+  _agFecha = hoyAR();
+  agSetVista('dia');
 }
 
 function agSetVista(vista) {
@@ -3042,6 +3401,7 @@ window.verCuentaAlumno = async function(documento) {
                  <div style="font-size:13px;margin:4px 0;">
                    Clases: <b>${d.mesActual.clasesUsadas} / ${d.mesActual.clasesTotal}</b>
                    &nbsp;·&nbsp; Restantes: <b>${d.mesActual.restantes}</b>
+                   ${d.mesActual.clasesExtra > 0 ? `&nbsp;<span style="font-size:11px;background:#D1FAE5;color:#065F46;border-radius:4px;padding:1px 6px;">+${d.mesActual.clasesExtra} devuelta${d.mesActual.clasesExtra>1?'s':''}</span>` : ''}
                  </div>
                  <div style="height:6px;background:#e9e4ff;border-radius:3px;overflow:hidden;">
                    <div style="height:100%;width:${barraW}%;background:var(--green);border-radius:3px;"></div>
@@ -3081,6 +3441,306 @@ window.verCuentaAlumno = async function(documento) {
     body.innerHTML = `<div class="text-center text-danger py-3">${e.message}</div>`;
   }
 };
+
+// ─────────────────────────────────────────────────────────────────
+// TRANSFERENCIAS PENDIENTES — panel admin (Opción C)
+// ─────────────────────────────────────────────────────────────────
+async function cargarTransferenciasPendientes() {
+  const panel  = document.getElementById('panelTransferenciasPendientes');
+  const lista  = document.getElementById('listaTransferenciasPendientes');
+  const badge  = document.getElementById('badgeTransferencias');
+  const tk     = localStorage.getItem('token');
+  try {
+    const r = await fetch(`${API_URL}/admin/pagos-pendientes`, { headers: { Authorization: `Bearer ${tk}` } });
+    if (!r.ok) { lista.innerHTML = '<div class="text-danger small p-2">Error al cargar.</div>'; return; }
+    const rows = await r.json();
+
+    // Badge en el nav lateral
+    if (badge) {
+      if (rows.length) { badge.textContent = rows.length; badge.style.display = 'inline'; }
+      else             { badge.style.display = 'none'; }
+    }
+
+    if (!rows.length) {
+      panel.style.display = 'none';
+      return;
+    }
+
+    panel.style.display = 'block';
+
+    // Mapeo de código de plan a nombre legible
+    const planNombres = { plan_4:'4 clases/mes', plan_6:'6 clases/mes', plan_8:'8 clases/mes', plan_12:'12 clases/mes', privada:'Clase privada' };
+
+    lista.innerHTML = rows.map(p => `
+      <div class="d-flex align-items-center justify-content-between border rounded p-3 mb-2" style="background:#fffdf0;">
+        <div>
+          <div class="fw-semibold">${p.nombre}</div>
+          <div class="small text-muted">📋 ${planNombres[p.plan] || p.plan} — <strong>$${Number(p.monto).toLocaleString('es-AR')}</strong></div>
+          <div class="small text-muted">🕐 ${new Date(p.created_at).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}</div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap justify-content-end">
+          <button class="btn btn-success btn-sm" onclick="confirmarTransferencia(${p.id})">✓ Confirmar pago</button>
+          <button class="btn btn-outline-danger btn-sm" onclick="rechazarTransferencia(${p.id})">✗ Rechazar</button>
+        </div>
+      </div>`).join('');
+  } catch(e) { lista.innerHTML = '<div class="text-danger small p-2">Error de conexión.</div>'; }
+}
+
+async function confirmarTransferencia(id) {
+  if (!confirm('¿Confirmar este pago? Se registrará como pago real.')) return;
+  const tk = localStorage.getItem('token');
+  try {
+    const r = await fetch(`${API_URL}/admin/pagos-pendientes/${id}/confirmar`, {
+      method: 'POST', headers: { Authorization: `Bearer ${tk}` }
+    });
+    if (!r.ok) { alert('Error al confirmar.'); return; }
+    await cargarTransferenciasPendientes();
+    await cargarDashboard();
+  } catch(e) { alert('Error de conexión.'); }
+}
+
+async function rechazarTransferencia(id) {
+  if (!confirm('¿Rechazar este pago?')) return;
+  const tk = localStorage.getItem('token');
+  try {
+    await fetch(`${API_URL}/admin/pagos-pendientes/${id}`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${tk}` }
+    });
+    await cargarTransferenciasPendientes();
+  } catch(e) { alert('Error de conexión.'); }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// CENTRO DE AVISOS — WhatsApp popup
+// ─────────────────────────────────────────────────────────────────
+const AVISO_TEMPLATES = {
+  feriado:      'Hola {nombre}! 🎉 Te avisamos que mañana el estudio permanecerá cerrado por feriado. ¡Nos vemos el próximo turno! Saludos, Bem Pilates',
+  imprevisto:   'Hola {nombre}! ⚠️ Por un inconveniente el estudio no abrirá hoy. Disculpá las molestias. Vamos a reprogramar tu clase. Saludos, Bem Pilates',
+  reprogramar:  'Hola {nombre}! 🔄 Necesitamos que reprogrames tu clase. Por favor respondé este mensaje para coordinar el nuevo turno. Saludos, Bem Pilates',
+  recordatorio: 'Hola {nombre}! 🕐 Te recordamos que tenés clase hoy en Bem Pilates. ¡Te esperamos! Cualquier consulta escribinos. Saludos 💪',
+  pago1al10:    'Hola {nombre}! 💳 Te recordamos que el período de pago del estudio es del 1 al 10 de cada mes. Unificar los pagos en esa fecha nos ayuda a organizar mejor las clases para todas. ¡Muchas gracias por tu apoyo! Saludos, Bem Pilates 🙏',
+  personalizado:''
+};
+
+let _avisoAlumnos = [];
+let _avisoEnviando = false;
+
+function avisarTemplate(tipo) {
+  document.getElementById('avisoMensaje').value = AVISO_TEMPLATES[tipo] || '';
+  document.getElementById('avisoMensaje').focus();
+  // Si es el template de pago, auto-seleccionar "Sin pago este mes"
+  if (tipo === 'pago1al10') {
+    const radio = document.getElementById('avisoSinPago');
+    if (radio) { radio.checked = true; radio.dispatchEvent(new Event('change')); }
+  }
+}
+
+async function iniciarAvisos() {
+  await cargarDestinatarios();
+  await cargarNotifHistorial();
+}
+
+async function cargarDestinatarios() {
+  const tk   = localStorage.getItem('token');
+  const dest = document.querySelector('input[name="avisoDestino"]:checked')?.value || 'todos';
+  const lista = document.getElementById('avisoListaAlumnos');
+  const count = document.getElementById('avisoCount');
+  lista.innerHTML = '<div class="text-center text-muted py-3 small">Cargando…</div>';
+  try {
+    const filtro = dest === 'conAbono' ? 'conAbono' : dest === 'sinPago' ? 'sinPago' : 'todos';
+    const r = await fetch(`${API_URL}/stats/alumnos-aviso?filtro=${filtro}`, { headers: { Authorization: `Bearer ${tk}` } });
+    const data = await r.json();
+    _avisoAlumnos = data.map(a => ({ nombre: a.nombre, telefono: a.telefono || '', documento: a.documento }));
+
+    // Filtrar solo los que tienen teléfono
+    const conTel   = _avisoAlumnos.filter(a => a.telefono);
+    const sinTel   = _avisoAlumnos.filter(a => !a.telefono);
+
+    count.textContent = conTel.length;
+
+    lista.innerHTML = conTel.map((a, i) => `
+      <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom" id="avisoRow_${i}">
+        <div>
+          <div class="fw-semibold" style="font-size:13px;">${a.nombre}</div>
+          <div class="small text-muted">${a.telefono}</div>
+        </div>
+        <button class="btn btn-sm btn-outline-success" onclick="enviarAvisoUno(${i})" id="avisoBtn_${i}">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-right:4px;"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/></svg>
+          Enviar
+        </button>
+      </div>`).join('') +
+      (sinTel.length ? `<div class="px-3 py-2 small text-muted bg-light">⚠️ ${sinTel.length} alumno${sinTel.length!==1?'s':''} sin teléfono registrado — no recibirán el aviso</div>` : '');
+
+  } catch(e) {
+    lista.innerHTML = '<div class="text-danger small p-3">Error al cargar alumnos.</div>';
+  }
+}
+
+function _buildWAUrl(telefono, nombre, mensaje) {
+  const tel    = '+54' + telefono.replace(/\D/g,'').replace(/^0/,'').replace(/^54/,'');
+  const texto  = mensaje.replace(/\{nombre\}/gi, nombre.split(' ')[0]);
+  return `https://wa.me/${tel}?text=${encodeURIComponent(texto)}`;
+}
+
+function enviarAvisoUno(idx) {
+  const mensaje = document.getElementById('avisoMensaje').value.trim();
+  if (!mensaje) { alert('Escribí el mensaje primero.'); return; }
+  const a   = _avisoAlumnos.filter(x => x.telefono)[idx];
+  const url = _buildWAUrl(a.telefono, a.nombre, mensaje);
+  window.open(url, `wa_${idx}`, 'width=800,height=620,menubar=no,toolbar=no,location=no');
+  // Marcar como enviado visualmente
+  const btn = document.getElementById(`avisoBtn_${idx}`);
+  if (btn) { btn.textContent = '✓ Abierto'; btn.classList.replace('btn-outline-success','btn-success'); btn.disabled = true; }
+}
+
+let _avisoQueue = [];
+let _avisoQueueIdx = 0;
+
+async function enviarAvisoTodos() {
+  const mensaje = document.getElementById('avisoMensaje').value.trim();
+  if (!mensaje) { alert('Escribí el mensaje primero.'); return; }
+  const conTel = _avisoAlumnos.filter(a => a.telefono);
+  if (!conTel.length) { alert('No hay alumnos con teléfono registrado.'); return; }
+
+  if (!confirm(`¿Abrir WhatsApp para ${conTel.length} alumnos? Se abrirá de a uno — confirmás cada envío antes de pasar al siguiente.`)) return;
+
+  _avisoQueue    = conTel;
+  _avisoQueueIdx = 0;
+  avisarSiguiente(mensaje);
+}
+
+function avisarSiguiente(mensaje) {
+  if (_avisoQueueIdx >= _avisoQueue.length) {
+    alert(`✅ Listo. Se abrió WhatsApp para los ${_avisoQueue.length} alumnos.`);
+    return;
+  }
+  const a   = _avisoQueue[_avisoQueueIdx];
+  const url = _buildWAUrl(a.telefono, a.nombre, mensaje);
+  window.open(url, `wa_mass_${_avisoQueueIdx}`, 'width=800,height=620,menubar=no,toolbar=no,location=no');
+
+  // Marcar en la lista
+  const idx = _avisoAlumnos.filter(x=>x.telefono).indexOf(a);
+  const btn = document.getElementById(`avisoBtn_${idx}`);
+  if (btn) { btn.textContent = '✓ Abierto'; btn.classList.replace('btn-outline-success','btn-success'); btn.disabled = true; }
+
+  _avisoQueueIdx++;
+  if (_avisoQueueIdx < _avisoQueue.length) {
+    const prox = _avisoQueue[_avisoQueueIdx].nombre.split(' ')[0];
+    // Pausa de 1.5s para no saturar el bloqueador de popups del navegador
+    setTimeout(() => {
+      if (confirm(`✓ WhatsApp abierto para ${a.nombre.split(' ')[0]}.\n\n¿Continuar con ${prox}?`)) {
+        avisarSiguiente(mensaje);
+      }
+    }, 600);
+  } else {
+    setTimeout(() => alert(`✅ Listo. Se abrió WhatsApp para los ${_avisoQueue.length} alumnos.`), 600);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// NOTIFICACIONES INTERNAS — lado admin
+// ─────────────────────────────────────────────────────────────────
+document.addEventListener('change', e => {
+  if (e.target.id === 'notifPara') {
+    document.getElementById('notifDocRow').style.display = e.target.value === 'individual' ? 'block' : 'none';
+  }
+});
+
+async function enviarNotifInterna() {
+  const tk      = localStorage.getItem('token');
+  const titulo  = document.getElementById('notifTitulo').value.trim();
+  const mensaje = document.getElementById('notifMensaje').value.trim();
+  const tipo    = document.getElementById('notifTipo').value;
+  const para    = document.getElementById('notifPara').value;
+  const doc     = document.getElementById('notifDocumento')?.value.trim() || null;
+  const fb      = document.getElementById('notifFeedback');
+
+  if (!titulo || !mensaje) { fb.innerHTML = '<span class="text-danger">Completá título y mensaje.</span>'; return; }
+  if (para === 'individual' && !doc) { fb.innerHTML = '<span class="text-danger">Ingresá el documento de la alumna.</span>'; return; }
+
+  fb.innerHTML = '<span class="text-muted">Enviando…</span>';
+  try {
+    const r = await fetch(`${API_URL}/admin/notificacion`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titulo, mensaje, tipo, para, documento_destino: doc })
+    });
+    if (!r.ok) { fb.innerHTML = '<span class="text-danger">Error al enviar.</span>'; return; }
+    fb.innerHTML = '<span class="text-success">✓ Notificación enviada correctamente.</span>';
+    document.getElementById('notifTitulo').value  = '';
+    document.getElementById('notifMensaje').value = '';
+    setTimeout(() => { fb.innerHTML = ''; }, 3000);
+    cargarNotifHistorial();
+  } catch(e) { fb.innerHTML = '<span class="text-danger">Error de conexión.</span>'; }
+}
+
+async function cargarNotifHistorial() {
+  const tk  = localStorage.getItem('token');
+  const div = document.getElementById('notifHistorial');
+  try {
+    const r = await fetch(`${API_URL}/admin/notificaciones`, { headers: { Authorization: `Bearer ${tk}` } });
+    const rows = await r.json();
+    if (!rows.length) { div.innerHTML = '<div class="text-center text-muted py-3 small">Sin notificaciones enviadas.</div>'; return; }
+    const iconos = { info:'ℹ️', aviso:'⚠️', urgente:'🚨', fija:'📌' };
+    const paraLabel = { todos:'Todas', conAbono:'Con abono', individual:'Individual' };
+    div.innerHTML = rows.map(n => `
+      <div class="d-flex align-items-start justify-content-between px-3 py-2 border-bottom">
+        <div>
+          <div style="font-size:13px;font-weight:600;">${iconos[n.tipo]||'🔔'} ${n.titulo}</div>
+          <div class="small text-muted">${n.mensaje.substring(0,80)}${n.mensaje.length>80?'…':''}</div>
+          <div class="small text-muted">${paraLabel[n.para]||n.para} · ${new Date(n.created_at).toLocaleDateString('es-AR')} · ${n.leidas} leída${n.leidas!=1?'s':''}</div>
+        </div>
+        <button class="btn btn-sm btn-outline-danger ms-2 flex-shrink-0" onclick="eliminarNotif(${n.id})">✕</button>
+      </div>`).join('');
+  } catch(e) { div.innerHTML = '<div class="text-danger small p-3">Error de conexión.</div>'; }
+}
+
+async function eliminarNotif(id) {
+  if (!confirm('¿Eliminar esta notificación?')) return;
+  const tk = localStorage.getItem('token');
+  await fetch(`${API_URL}/admin/notificacion/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${tk}` } });
+  cargarNotifHistorial();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// CONFIG PAGO (CBU / alias / titular) — lado admin
+// ─────────────────────────────────────────────────────────────────
+async function cargarConfigPago() {
+  const tk = localStorage.getItem('token');
+  try {
+    const r = await fetch(`${API_URL}/admin/config-pago`, { headers: { Authorization: `Bearer ${tk}` } });
+    if (!r.ok) return;
+    const cfg = await r.json();
+    if (cfg.cbu)        document.getElementById('cfgAdminCBU').value       = cfg.cbu;
+    if (cfg.alias)      document.getElementById('cfgAdminAlias').value     = cfg.alias;
+    if (cfg.titular)    document.getElementById('cfgAdminTitular').value   = cfg.titular;
+    if (cfg.alias_mp)   document.getElementById('cfgAdminAliasMP').value   = cfg.alias_mp;
+    if (cfg.titular_mp) document.getElementById('cfgAdminTitularMP').value = cfg.titular_mp;
+  } catch(e) {}
+}
+
+async function guardarConfigPago() {
+  const tk = localStorage.getItem('token');
+  const body = {
+    cbu:        document.getElementById('cfgAdminCBU').value.trim(),
+    alias:      document.getElementById('cfgAdminAlias').value.trim(),
+    titular:    document.getElementById('cfgAdminTitular').value.trim(),
+    alias_mp:   document.getElementById('cfgAdminAliasMP').value.trim(),
+    titular_mp: document.getElementById('cfgAdminTitularMP').value.trim()
+  };
+  const fb = document.getElementById('cfgPagoFeedback');
+  try {
+    const r = await fetch(`${API_URL}/admin/config-pago`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    fb.innerHTML = r.ok
+      ? '<span class="text-success">✓ Datos guardados correctamente.</span>'
+      : '<span class="text-danger">Error al guardar.</span>';
+    setTimeout(() => { fb.innerHTML = ''; }, 3000);
+  } catch(e) { fb.innerHTML = '<span class="text-danger">Error de conexión.</span>'; }
+}
 </script>
 </body>
 </html>
