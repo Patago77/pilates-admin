@@ -277,6 +277,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 const API = '/api';
+const STUDIO_SLUG = 'bem-pilates'; // cambiar por el slug del estudio al deployar
 let TOKEN_ALUMNO = localStorage.getItem('token_alumno');
 let DOCUMENTO_TMP = '';
 let fechaSeleccionada = '';
@@ -313,7 +314,7 @@ async function solicitarOTP() {
   try {
     const r = await fetch(`${API}/alumno/solicitar-otp`, {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ documento: doc })
+      body: JSON.stringify({ documento: doc, studio_slug: STUDIO_SLUG })
     });
     const d = await r.json();
     if (!r.ok) { fb.className='feedback err'; fb.textContent=d.error; return; }
@@ -334,7 +335,7 @@ async function verificarOTP() {
   try {
     const r = await fetch(`${API}/alumno/verificar-otp`, {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ documento: DOCUMENTO_TMP, otp })
+      body: JSON.stringify({ documento: DOCUMENTO_TMP, otp, studio_slug: STUDIO_SLUG })
     });
     const d = await r.json();
     if (!r.ok) { fb.className='feedback err'; fb.textContent=d.error; return; }
@@ -350,7 +351,7 @@ async function reenviarOTP() {
   try {
     const r = await fetch(`${API}/alumno/solicitar-otp`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ documento: DOCUMENTO_TMP })
+      body: JSON.stringify({ documento: DOCUMENTO_TMP, studio_slug: STUDIO_SLUG })
     });
     const d = await r.json();
     if (!r.ok) { fb.className = 'feedback err'; fb.textContent = d.error; return; }

@@ -83,14 +83,15 @@ router.get('/gastos/por-mes', authenticateToken, async (req, res) => {
 router.get('/resumen/mensual', authenticateToken, async (req, res) => {
   try {
     const hoy = new Date();
+    const mesActual = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
     const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0];
     const ultimoDiaMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).toISOString().split('T')[0];
 
     const [[{ totalIngresos }]] = await req.db.query(
       `SELECT COALESCE(SUM(amount), 0) AS totalIngresos
        FROM payments
-       WHERE paymentDate BETWEEN ? AND ?`,
-      [primerDiaMes, ultimoDiaMes]
+       WHERE DATE_FORMAT(COALESCE(serviceMonth, paymentDate), '%Y-%m') = ?`,
+      [mesActual]
     );
 
     const [[{ totalGastos }]] = await req.db.query(

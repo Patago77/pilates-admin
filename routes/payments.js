@@ -370,10 +370,13 @@ router.delete('/admin/pagos-pendientes/:id', authenticateToken, async (req, res)
 // ============================================================
 // CONFIG PAGO (CBU / alias) — admin
 // ============================================================
+const _configTableReady = new WeakSet();
 async function ensureConfigTable(db) {
+  if (_configTableReady.has(db)) return;
   await db.query(`CREATE TABLE IF NOT EXISTS studio_config (
     clave VARCHAR(80) PRIMARY KEY, valor TEXT NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)`);
+  _configTableReady.add(db);
 }
 
 router.get('/admin/config-pago', authenticateToken, async (req, res) => {

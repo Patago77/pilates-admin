@@ -1,5 +1,6 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
 const authenticateToken = require('../authMiddleware');
 const { enviarOTP, enviarConfirmacionReserva, enviarCancelacion } = require('../emailService');
 
@@ -7,6 +8,14 @@ const router = express.Router();
 const SECRET_KEY = process.env.SECRET_KEY;
 const CAPACIDAD = 5;
 const HORAS_CANCELACION = 12;
+
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados intentos. Esperá 15 minutos.' }
+});
 
 // Horarios disponibles (sin descanso 14-17)
 const HORAS_VALIDAS = ['09:00','10:00','11:00','12:00','13:00','17:00','18:00','19:00','20:00'];
@@ -28,17 +37,16 @@ function authAlumno(req, res, next) {
 // ================================================================
 
 // POST /api/alumno/solicitar-otp — alumno ingresa su documento
-router.post('/alumno/solicitar-otp', async (req, res) => {
-  const { documento } = req.body;
+router.post('/alumno/solicitar-otp', otpLimiter, async (req, res) => {
+  const { documento, studio_slug } = req.body;
   if (!documento) return res.status(400).json({ error: 'Documento requerido.' });
+  if (!studio_slug) return res.status(400).json({ error: 'Estudio no especificado.' });
 
-  // Buscamos en el pool del studio — necesitamos el db del studio
-  // Para esto usamos el header studio_id o el primer studio activo
   const { getCorePool, getStudioPool } = require('../db');
   try {
     const core = getCorePool();
-    const [studios] = await core.query('SELECT db_name FROM studios WHERE active = 1 LIMIT 1');
-    if (!studios.length) return res.status(500).json({ error: 'Estudio no encontrado.' });
+    const [studios] = await core.query('SELECT db_name FROM studios WHERE slug = ? AND active = 1', [studio_slug]);
+    if (!studios.length) return res.status(404).json({ error: 'Estudio no encontrado.' });
 
     const db = getStudioPool(studios[0].db_name);
     const [rows] = await db.query(
@@ -77,14 +85,16 @@ router.post('/alumno/solicitar-otp', async (req, res) => {
 });
 
 // POST /api/alumno/verificar-otp
-router.post('/alumno/verificar-otp', async (req, res) => {
-  const { documento, otp } = req.body;
+router.post('/alumno/verificar-otp', otpLimiter, async (req, res) => {
+  const { documento, otp, studio_slug } = req.body;
   if (!documento || !otp) return res.status(400).json({ error: 'Datos incompletos.' });
+  if (!studio_slug) return res.status(400).json({ error: 'Estudio no especificado.' });
 
   const { getCorePool, getStudioPool } = require('../db');
   try {
     const core = getCorePool();
-    const [studios] = await core.query('SELECT db_name FROM studios WHERE active = 1 LIMIT 1');
+    const [studios] = await core.query('SELECT db_name FROM studios WHERE slug = ? AND active = 1', [studio_slug]);
+    if (!studios.length) return res.status(404).json({ error: 'Estudio no encontrado.' });
     const db = getStudioPool(studios[0].db_name);
 
     const [tokens] = await db.query(
@@ -230,24 +240,37 @@ router.post('/agenda/reservar', authAlumno, async (req, res) => {
       });
     }
 
-    // Verificar que no tenga ya una reserva ese día
-    const [yaReservado] = await db.query(
-      `SELECT id FROM agenda_reservas WHERE fecha = ? AND documento = ? AND estado = 'confirmado'`,
-      [fecha, req.alumno.documento]
-    );
-    if (yaReservado.length) return res.status(409).json({ error: 'Ya tenés una clase reservada ese día.' });
+    // Verificar cupo y reservar en una transacción para evitar race conditions
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
 
-    // Verificar cupo
-    const [[{ ocupados }]] = await db.query(
-      `SELECT COUNT(*) AS ocupados FROM agenda_reservas WHERE fecha = ? AND hora = ? AND estado = 'confirmado'`,
-      [fecha, hora]
-    );
-    if (ocupados >= CAPACIDAD) return res.status(409).json({ error: 'El turno está completo.' });
+      const [yaReservado] = await conn.query(
+        `SELECT id FROM agenda_reservas WHERE fecha = ? AND documento = ? AND estado = 'confirmado' FOR UPDATE`,
+        [fecha, req.alumno.documento]
+      );
+      if (yaReservado.length) {
+        await conn.rollback();
+        return res.status(409).json({ error: 'Ya tenés una clase reservada ese día.' });
+      }
 
-    await db.query(
-      'INSERT INTO agenda_reservas (fecha, hora, documento, estado) VALUES (?, ?, ?, ?)',
-      [fecha, hora, req.alumno.documento, 'confirmado']
-    );
+      const [[{ ocupados }]] = await conn.query(
+        `SELECT COUNT(*) AS ocupados FROM agenda_reservas WHERE fecha = ? AND hora = ? AND estado = 'confirmado' FOR UPDATE`,
+        [fecha, hora]
+      );
+      if (ocupados >= CAPACIDAD) {
+        await conn.rollback();
+        return res.status(409).json({ error: 'El turno está completo.' });
+      }
+
+      await conn.query(
+        'INSERT INTO agenda_reservas (fecha, hora, documento, estado) VALUES (?, ?, ?, ?)',
+        [fecha, hora, req.alumno.documento, 'confirmado']
+      );
+      await conn.commit();
+    } finally {
+      conn.release();
+    }
 
     // Email confirmación (sin await para no bloquear)
     if (req.alumno.email) {
@@ -402,21 +425,31 @@ router.post('/admin/agenda/agregar', authenticateToken, async (req, res) => {
   const { fecha, hora, documento } = req.body;
   if (!fecha || !hora || !documento) return res.status(400).json({ error: 'Datos incompletos.' });
 
+  const conn = await req.db.getConnection();
   try {
-    const [[{ ocupados }]] = await req.db.query(
-      `SELECT COUNT(*) AS ocupados FROM agenda_reservas WHERE fecha = ? AND hora = ? AND estado = 'confirmado'`,
+    await conn.beginTransaction();
+
+    const [[{ ocupados }]] = await conn.query(
+      `SELECT COUNT(*) AS ocupados FROM agenda_reservas WHERE fecha = ? AND hora = ? AND estado = 'confirmado' FOR UPDATE`,
       [fecha, hora]
     );
-    if (ocupados >= CAPACIDAD) return res.status(409).json({ error: 'El turno está completo.' });
+    if (ocupados >= CAPACIDAD) {
+      await conn.rollback();
+      return res.status(409).json({ error: 'El turno está completo.' });
+    }
 
-    await req.db.query(
+    await conn.query(
       'INSERT INTO agenda_reservas (fecha, hora, documento, estado) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE estado = "confirmado", cancelado_en = NULL',
       [fecha, hora, documento, 'confirmado']
     );
+    await conn.commit();
     res.json({ ok: true });
   } catch (err) {
+    await conn.rollback();
     console.error('❌ Error agregar turno:', err.message);
     res.status(500).json({ error: 'Error al agregar alumno al turno.' });
+  } finally {
+    conn.release();
   }
 });
 

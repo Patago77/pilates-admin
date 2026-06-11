@@ -1,4 +1,9 @@
 
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 // ===== MODAL FORMULARIO MOVIMIENTO =====
 window.abrirModalMovimiento = async function() {
   // Setear fecha de hoy si está vacía
@@ -156,9 +161,9 @@ function renderTablaAlumnos() {
 
   tbody.innerHTML = filtrados.map(a => `
     <tr class="${a.activo == 0 ? 'table-secondary text-muted' : ''}">
-      <td>${a.nombre}</td>
-      <td>${a.documento}</td>
-      <td>${a.telefono || "—"}</td>
+      <td>${escapeHtml(a.nombre)}</td>
+      <td>${escapeHtml(a.documento)}</td>
+      <td>${escapeHtml(a.telefono) || "—"}</td>
       <td>
         <span class="badge ${a.activo != 0 ? 'bg-success' : 'bg-secondary'}">
           ${a.activo != 0 ? 'Activo' : 'Inactivo'}
@@ -166,7 +171,7 @@ function renderTablaAlumnos() {
       </td>
       <td>
         <button class="btn btn-sm ${a.activo != 0 ? 'btn-outline-danger' : 'btn-outline-success'}"
-          onclick="toggleActivoAlumno('${a.documento}', ${a.activo != 0 ? 0 : 1})">
+          onclick="toggleActivoAlumno('${escapeHtml(a.documento)}', ${a.activo != 0 ? 0 : 1})">
           ${a.activo != 0 ? 'Desactivar' : 'Activar'}
         </button>
       </td>
@@ -223,7 +228,7 @@ window.abrirModalAsistencias = async function() {
     if (select) {
       select.innerHTML = '<option value="">Seleccioná un alumno</option>';
       alumnos.forEach(a => {
-        select.innerHTML += `<option value="${a.documento}">${a.nombre}</option>`;
+        select.innerHTML += `<option value="${escapeHtml(a.documento)}">${escapeHtml(a.nombre)}</option>`;
       });
     }
   } catch(e) { console.error(e); }
@@ -340,8 +345,8 @@ window.cargarResumenMesHistorico = async function() {
       ? gastos.map(g => `
           <tr>
             <td>${new Date(g.fecha).toLocaleDateString("es-AR")}</td>
-            <td>${g.categoria}</td>
-            <td>${g.descripcion || "—"}</td>
+            <td>${escapeHtml(g.categoria)}</td>
+            <td>${escapeHtml(g.descripcion) || "—"}</td>
             <td class="text-end">$${parseFloat(g.monto).toLocaleString("es-AR")}</td>
           </tr>
         `).join("")
@@ -437,6 +442,7 @@ function seleccionarTipo(tipo) {
 
   const alumnoDocumento = document.getElementById("alumnoDocumento");
   const subscriptionType = document.getElementById("subscriptionType");
+  const alumnoSearch = document.getElementById("alumnoSearch");
 
   if (tipo === "ingreso") {
     camposIngreso?.classList.remove("d-none");
@@ -447,6 +453,7 @@ function seleccionarTipo(tipo) {
     btnGasto?.classList.remove("btn-danger");
     if (alumnoDocumento) alumnoDocumento.required = true;
     if (subscriptionType) subscriptionType.required = true;
+    if (alumnoSearch) alumnoSearch.required = true;
   } else {
     camposIngreso?.classList.add("d-none");
     camposGasto?.classList.remove("d-none");
@@ -456,6 +463,7 @@ function seleccionarTipo(tipo) {
     btnIngreso?.classList.remove("btn-success");
     if (alumnoDocumento) alumnoDocumento.required = false;
     if (subscriptionType) subscriptionType.required = false;
+    if (alumnoSearch) alumnoSearch.required = false;
   }
 }
 
@@ -1576,6 +1584,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const tipo = tipoMovimientoSelect.value;
         const alumnoDocumento = document.getElementById("alumnoDocumento");
         const subscriptionType = document.getElementById("subscriptionType");
+        const alumnoSearch = document.getElementById("alumnoSearch");
 
         if (tipo === "ingreso") {
           camposIngreso?.classList.remove("d-none");
@@ -1583,12 +1592,14 @@ document.addEventListener("DOMContentLoaded", async () => {
           updateAmount();
           if (alumnoDocumento)   alumnoDocumento.required = true;
           if (subscriptionType)  subscriptionType.required = true;
+          if (alumnoSearch)      alumnoSearch.required = true;
         } else {
           camposIngreso?.classList.add("d-none");
           camposGasto?.classList.remove("d-none");
           contenedorMonto?.classList.remove("d-none");
           if (alumnoDocumento)   alumnoDocumento.required = false;
           if (subscriptionType)  subscriptionType.required = false;
+          if (alumnoSearch)      alumnoSearch.required = false;
         }
       });
     } else {

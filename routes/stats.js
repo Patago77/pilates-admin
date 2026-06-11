@@ -3,8 +3,9 @@ const authenticateToken = require('../authMiddleware');
 
 const router = express.Router();
 
-// Asegura que exista la tabla de configuración del estudio
+const _configTableReady = new WeakSet();
 async function ensureConfigTable(db) {
+  if (_configTableReady.has(db)) return;
   await db.query(`
     CREATE TABLE IF NOT EXISTS studio_config (
       clave VARCHAR(80) PRIMARY KEY,
@@ -12,6 +13,7 @@ async function ensureConfigTable(db) {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )
   `);
+  _configTableReady.add(db);
 }
 
 // ============================================================
