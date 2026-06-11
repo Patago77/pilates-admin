@@ -118,11 +118,16 @@ router.get('/students/:documento/cuenta', authenticateToken, async (req, res) =>
       [documento]
     );
 
-    // Pagos últimos 6 meses
+    // Últimos 10 pagos individuales (no agrupados)
     const [pagosRecientes] = await req.db.query(
-      `SELECT DATE_FORMAT(paymentDate,'%Y-%m') AS mes, SUM(amount) AS total, subscriptionType
+      `SELECT
+         COALESCE(serviceMonth, DATE_FORMAT(paymentDate,'%Y-%m')) AS mes,
+         subscriptionType,
+         amount AS total,
+         paymentDate,
+         COALESCE(estadoDeuda, 'al_dia') AS estadoDeuda
        FROM payments WHERE documento = ?
-       GROUP BY mes, subscriptionType ORDER BY mes DESC LIMIT 6`,
+       ORDER BY paymentDate DESC LIMIT 10`,
       [documento]
     );
 
@@ -134,18 +139,24 @@ router.get('/students/:documento/cuenta', authenticateToken, async (req, res) =>
       [documento]
     );
 
-    // Plan actual (del último pago de este mes)
-    const [pagoMes] = await req.db.query(
-      `SELECT subscriptionType FROM payments WHERE documento = ?
-       AND DATE_FORMAT(paymentDate,'%Y-%m') = ? ORDER BY paymentDate DESC LIMIT 1`,
+    // Todos los pagos del mes (igual que calcularEstadoAbono — suma clases de múltiples planes)
+    const [pagosMes] = await req.db.query(
+      `SELECT p.subscriptionType, COALESCE(pc.clases, 0) AS clases
+       FROM payments p
+       LEFT JOIN planes_config pc ON pc.codigo = p.subscriptionType
+       WHERE p.documento = ?
+         AND COALESCE(p.serviceMonth, DATE_FORMAT(p.paymentDate,'%Y-%m')) = ?
+       ORDER BY COALESCE(pc.clases, 0) DESC, p.paymentDate DESC`,
       [documento, mesActual]
     );
-    const planCodigo = pagoMes[0]?.subscriptionType || null;
+    // Plan principal = el de más clases; total = suma de todos
+    const planCodigo   = pagosMes[0]?.subscriptionType || null;
+    const clasesPagadas = pagosMes.reduce((s, p) => s + (parseInt(p.clases) || 0), 0);
 
     let planInfo = null;
     if (planCodigo) {
       const [plan] = await req.db.query('SELECT * FROM planes_config WHERE codigo = ?', [planCodigo]);
-      planInfo = plan[0] || null;
+      if (plan[0]) planInfo = { ...plan[0], clases: clasesPagadas }; // clases = total agregado
     }
 
     // Clases usadas este mes

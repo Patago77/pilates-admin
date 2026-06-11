@@ -189,7 +189,7 @@
       </div>
       <div style="padding:10px 14px;margin-top:4px;">
         <button onclick="abrirRenovarAbono()" style="width:100%;background:#6D28D9;color:#fff;border:none;border-radius:9px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.01em;">
-          💳 Renovar / pagar abono
+          💳 Declarar pago
         </button>
       </div>
     </div>
@@ -208,7 +208,7 @@
       <div class="tab active" onclick="switchTab('agenda')">Reservar clase</div>
       <div class="tab" onclick="switchTab('misclases')">Mis clases</div>
       <div class="tab" onclick="switchTab('info')">ℹ️ Info</div>
-      <div class="tab" onclick="abrirRenovarAbono()" style="color:#6D28D9;font-weight:700;">💳 Pagar</div>
+      <div class="tab" onclick="abrirRenovarAbono()" style="color:#6D28D9;font-weight:700;">💳 Declarar pago</div>
     </div>
 
   <!-- TAB AGENDA -->
@@ -394,14 +394,14 @@ async function cargarEstadoAbono() {
         <div style="background:#fce8e8;border:1.5px solid #E24B4A;border-radius:10px;padding:14px 16px;text-align:center;">
           <div style="font-weight:700;color:#E24B4A;margin-bottom:4px;">Sin abono activo</div>
           <div style="font-size:13px;color:#666;margin-bottom:10px;">No tenés abono para este mes.</div>
-          <button onclick="abrirRenovarAbono()" style="background:#6D28D9;color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;">Renovar mi abono</button>
+          <button onclick="abrirRenovarAbono()" style="background:#6D28D9;color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;">Declarar pago</button>
         </div>`;
     } else if (d.abono_agotado) {
       el.innerHTML = `
         <div style="background:#fce8e8;border:1.5px solid #E24B4A;border-radius:10px;padding:14px 16px;text-align:center;">
           <div style="font-weight:700;color:#E24B4A;margin-bottom:4px;">Abono agotado</div>
           <div style="font-size:13px;color:#666;margin-bottom:10px;">Usaste todas tus clases del mes (${d.consumidas}/${d.clases_plan}).</div>
-          <button onclick="abrirRenovarAbono()" style="background:#6D28D9;color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;">Renovar mi abono</button>
+          <button onclick="abrirRenovarAbono()" style="background:#6D28D9;color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;">Declarar pago</button>
         </div>`;
     } else {
       const restantes = d.restantes;
@@ -430,7 +430,7 @@ async function cargarEstadoAbono() {
           ${libresReales === 0 ? `
           <div style="margin-top:10px;padding-top:10px;border-top:1px solid ${libresReales===0?'#fecaca':'#bbf7d0'};text-align:center;">
             <span style="font-size:12px;color:#E24B4A;margin-right:8px;">Usaste todas tus clases disponibles</span>
-            <button onclick="abrirRenovarAbono()" style="background:#6D28D9;color:#fff;border:none;border-radius:7px;padding:6px 16px;font-size:12px;font-weight:600;cursor:pointer;">Agregar más clases</button>
+            <button onclick="abrirRenovarAbono()" style="background:#6D28D9;color:#fff;border:none;border-radius:7px;padding:6px 16px;font-size:12px;font-weight:600;cursor:pointer;">Declarar pago</button>
           </div>` : ''}
         </div>`;
     }
@@ -883,8 +883,8 @@ async function confirmarTransferencia() {
     document.getElementById('renovarStep1').style.display = 'none';
     document.getElementById('renovarStep2').style.display = 'block';
     document.getElementById('renovarConfirmaTexto').innerHTML =
-      `✅ Tu solicitud de renovación de <strong>${planNombre}</strong> por <strong>$${monto.toLocaleString('es-AR')}</strong> fue registrada.<br><br>
-      La profe confirmará el pago cuando acredite la transferencia y tu abono quedará activo.`;
+      `✅ Tu pago de <strong>${planNombre}</strong> por <strong>$${monto.toLocaleString('es-AR')}</strong> fue registrado.<br><br>
+      La profe lo confirmará cuando acredite la transferencia y tu cuenta quedará activa.`;
   } catch(e) {
     document.getElementById('renovarFeedback').innerHTML = '<span style="color:#E24B4A;">Error de conexión.</span>';
   }
@@ -922,15 +922,15 @@ if (TOKEN_ALUMNO) {
   <div style="background:#fff;border-radius:16px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.2);">
     <!-- Header -->
     <div style="background:#1C1A2E;color:#fff;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-weight:700;font-size:16px;">💳 Renovar abono</div>
+      <div style="font-weight:700;font-size:16px;">💳 Declarar pago</div>
       <button onclick="cerrarRenovarAbono()" style="background:none;border:none;color:#aaa;font-size:20px;cursor:pointer;line-height:1;">×</button>
     </div>
 
     <!-- Paso 1: elegir plan + datos de transferencia -->
     <div id="renovarStep1" style="padding:20px;">
-      <p style="font-size:13px;color:#555;margin-bottom:16px;">Elegí tu plan, transferí el monto indicado y presioná <strong>"Ya transferí"</strong>. La profe confirmará cuando acredite.</p>
+      <p style="font-size:13px;color:#555;margin-bottom:16px;">Elegí el plan o clase que pagaste, transferí el monto indicado y presioná <strong>"Ya transferí"</strong>. La profe confirmará cuando acredite y tu cuenta quedará activa.</p>
 
-      <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Plan</label>
+      <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Plan / Clase</label>
       <select id="renovarPlanSel" onchange="actualizarMonto()" class="form-control" style="margin-bottom:12px;">
         <option value="">Seleccioná tu plan…</option>
       </select>

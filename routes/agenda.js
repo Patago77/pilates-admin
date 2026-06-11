@@ -508,20 +508,23 @@ router.get('/admin/agenda/semana/:lunes', authenticateToken, async (req, res) =>
 
 // Función central: calcula el estado del abono de un alumno en un mes
 async function calcularEstadoAbono(db, documento, mes) {
-  // 1. Plan pagado para este serviceMonth (mes de servicio)
-  // Busca primero por serviceMonth, luego por paymentDate como fallback
+  // 1. Todos los pagos del mes (sin LIMIT) para sumar clases de planes múltiples
+  // Ejemplo: plan_4 (4 clases) + clase_suelta (1 clase) = 5 clases en total
   const [pagos] = await db.query(
-    `SELECT p.subscriptionType, pc.nombre AS plan_nombre, pc.clases AS clases_plan,
+    `SELECT p.subscriptionType, pc.nombre AS plan_nombre, COALESCE(pc.clases, 0) AS clases_plan,
             p.amount, p.paymentDate,
             COALESCE(p.serviceMonth, DATE_FORMAT(p.paymentDate,'%Y-%m')) AS mes_servicio
      FROM payments p
      LEFT JOIN planes_config pc ON pc.codigo = p.subscriptionType
      WHERE p.documento = ?
        AND COALESCE(p.serviceMonth, DATE_FORMAT(p.paymentDate,'%Y-%m')) = ?
-     ORDER BY p.paymentDate DESC LIMIT 1`,
+     ORDER BY COALESCE(pc.clases, 0) DESC, p.paymentDate DESC`,
     [documento, mes]
   );
+  // Plan principal = el que tiene más clases (primero tras ordenar)
   let pago = pagos[0] || null;
+  // Total de clases = suma de todos los pagos del mes
+  let clasesPlan = pagos.reduce((sum, p) => sum + (parseInt(p.clases_plan) || 0), 0);
 
   // Si no hay pago este mes, intentar con plan_actual del perfil del alumno
   if (!pago) {
@@ -529,13 +532,11 @@ async function calcularEstadoAbono(db, documento, mes) {
     if (st?.plan_actual) {
       const [[pc]] = await db.query(`SELECT codigo, nombre, clases FROM planes_config WHERE codigo=?`, [st.plan_actual]);
       if (pc) {
-        // Tratamos plan_actual como abono activo sin pago registrado todavía
         pago = { subscriptionType: pc.codigo, plan_nombre: pc.nombre, clases_plan: pc.clases, amount: null, _sinPago: true };
+        clasesPlan = parseInt(pc.clases) || 0;
       }
     }
   }
-
-  const clasesPlan = pago ? (parseInt(pago.clases_plan) || 0) : 0;
 
   // Período del abono: todo el mes calendario del serviceMonth
   const inicioMes = `${mes}-01`;

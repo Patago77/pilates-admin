@@ -15,11 +15,15 @@ CREATE TABLE IF NOT EXISTS payments (
   subscriptionType VARCHAR(50) NOT NULL,
   amount DECIMAL(10,2) NOT NULL,
   paymentDate DATE NOT NULL,
+  serviceMonth VARCHAR(7) DEFAULT NULL,
+  metodoPago VARCHAR(30) DEFAULT NULL,
+  estadoDeuda ENUM('al_dia','debe','le_debemos') DEFAULT 'al_dia',
   comentarios TEXT DEFAULT NULL,
   creado_en TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   KEY (documento),
-  KEY (paymentDate)
+  KEY (paymentDate),
+  KEY (serviceMonth)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS gastos (

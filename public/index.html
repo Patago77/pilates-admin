@@ -1850,6 +1850,15 @@ small { color: var(--muted) !important; }
           <label class="form-label">Fecha</label>
           <input type="date" id="ep-paymentDate" class="form-control">
         </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">📋 Estado</label>
+          <div class="d-flex gap-2 flex-wrap" id="ep-estadoChips">
+            <button type="button" class="btn btn-outline-success btn-sm estado-chip-ep active" data-estado="al_dia" onclick="seleccionarEstadoEP(this)">✅ Al día</button>
+            <button type="button" class="btn btn-outline-danger btn-sm estado-chip-ep" data-estado="debe" onclick="seleccionarEstadoEP(this)">⚠️ Debe</button>
+            <button type="button" class="btn btn-outline-warning btn-sm estado-chip-ep" data-estado="le_debemos" onclick="seleccionarEstadoEP(this)">↩️ Le debemos</button>
+          </div>
+          <input type="hidden" id="ep-estadoDeuda" value="al_dia">
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -3378,15 +3387,28 @@ window.verCuentaAlumno = async function(documento) {
       `<tr><td>${m.mes}</td><td class="text-center"><b>${m.clases}</b></td></tr>`
     ).join("") || '<tr><td colspan="2" class="text-muted text-center">Sin registros</td></tr>';
 
+    const _edLabel = { al_dia:"✅ Al día", debe:"⚠️ Debe", le_debemos:"↩️ Le debemos" };
+    const _edColor = { al_dia:"var(--green)", debe:"var(--danger)", le_debemos:"#854F0B" };
     const filasPagos = d.pagosRecientes.map(p =>
-      `<tr><td>${p.mes}</td><td>${p.subscriptionType || "—"}</td><td class="text-end"><b>${fmt(p.total)}</b></td></tr>`
-    ).join("") || '<tr><td colspan="3" class="text-muted text-center">Sin pagos</td></tr>';
+      `<tr>
+         <td>${p.mes}</td>
+         <td>${p.subscriptionType || "—"}</td>
+         <td class="text-end"><b>${fmt(p.total)}</b></td>
+         <td style="font-size:11px;font-weight:600;color:${_edColor[p.estadoDeuda]||'var(--muted)'};">${_edLabel[p.estadoDeuda] || "—"}</td>
+       </tr>`
+    ).join("") || '<tr><td colspan="4" class="text-muted text-center">Sin pagos</td></tr>';
+
+    // Badge resumen: toma el estadoDeuda del pago más reciente
+    const ultimoEstado = d.pagosRecientes[0]?.estadoDeuda || null;
+    const badgeDeuda = ultimoEstado && ultimoEstado !== 'al_dia'
+      ? `<span style="background:${_edColor[ultimoEstado]};color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:2px 8px;margin-left:8px;">${_edLabel[ultimoEstado]}</span>`
+      : (ultimoEstado === 'al_dia' ? `<span style="background:var(--green);color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:2px 8px;margin-left:8px;">✅ Al día</span>` : '');
 
     body.innerHTML = `
       <div class="row g-3 mb-3">
         <div class="col-md-6">
           <div style="background:var(--surface-2);border-radius:10px;padding:16px;">
-            <div style="font-size:17px;font-weight:700;margin-bottom:4px;">${a.nombre}</div>
+            <div style="font-size:17px;font-weight:700;margin-bottom:4px;">${a.nombre}${badgeDeuda}</div>
             <div style="color:var(--muted);font-size:13px;">Doc: ${a.documento}</div>
             ${a.telefono ? `<div style="color:var(--muted);font-size:13px;">📞 ${a.telefono}</div>` : ""}
             ${a.email    ? `<div style="color:var(--muted);font-size:13px;">✉️ ${a.email}</div>` : ""}
@@ -3426,7 +3448,7 @@ window.verCuentaAlumno = async function(documento) {
         <div class="col-md-6">
           <div style="font-size:13px;font-weight:600;margin-bottom:8px;">Últimos pagos</div>
           <table class="table table-sm table-striped mb-0" style="font-size:13px;">
-            <thead><tr><th>Mes</th><th>Plan</th><th class="text-end">Monto</th></tr></thead>
+            <thead><tr><th>Mes</th><th>Plan</th><th class="text-end">Monto</th><th>Estado</th></tr></thead>
             <tbody>${filasPagos}</tbody>
           </table>
         </div>

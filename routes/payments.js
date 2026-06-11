@@ -13,23 +13,42 @@ async function syncPlanActual(db, documento, plan) {
   }
 }
 
+// Migración segura: agrega columnas nuevas si aún no existen en la DB del estudio
+const _paymentColsReady = new WeakSet();
+async function ensurePaymentColumns(db) {
+  if (_paymentColsReady.has(db)) return;
+  const migrations = [
+    `ALTER TABLE payments ADD COLUMN IF NOT EXISTS serviceMonth VARCHAR(7) DEFAULT NULL`,
+    `ALTER TABLE payments ADD COLUMN IF NOT EXISTS metodoPago VARCHAR(30) DEFAULT NULL`,
+    `ALTER TABLE payments ADD COLUMN IF NOT EXISTS estadoDeuda ENUM('al_dia','debe','le_debemos') DEFAULT 'al_dia'`,
+    `ALTER TABLE payments ADD COLUMN IF NOT EXISTS comentarios TEXT DEFAULT NULL`,
+  ];
+  for (const sql of migrations) {
+    await db.query(sql).catch(e => console.warn('⚠️ migration:', e.message));
+  }
+  _paymentColsReady.add(db);
+}
+
 // 📥 Registrar un pago con validación y monto incluido
 router.post('/payments', authenticateToken, async (req, res) => {
-  const { fullName, subscriptionType, paymentDate, amount, documento } = req.body;
+  const { fullName, subscriptionType, paymentDate, amount, documento, serviceMonth, comentarios, metodoPago, estadoDeuda } = req.body;
 
   if (!fullName || !subscriptionType || !paymentDate || isNaN(amount)) {
     return res.status(400).json({ error: "Todos los campos son obligatorios y el monto debe ser válido." });
   }
 
+  const mesServicio = serviceMonth || paymentDate.substring(0, 7);
+  const estadoFinal = ['al_dia','debe','le_debemos'].includes(estadoDeuda) ? estadoDeuda : 'al_dia';
+
   try {
+    await ensurePaymentColumns(req.db);
     const [result] = await req.db.query(
-      `INSERT INTO payments (fullName, subscriptionType, paymentDate, amount, documento)
-       VALUES (?, ?, ?, ?, ?)`,
-      [fullName, subscriptionType, paymentDate, amount, documento || null]
+      `INSERT INTO payments (fullName, subscriptionType, paymentDate, amount, documento, serviceMonth, metodoPago, estadoDeuda, comentarios)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [fullName, subscriptionType, paymentDate, amount, documento || null, mesServicio, metodoPago || null, estadoFinal, comentarios || null]
     );
-    // Sincronizar plan_actual del alumno
     await syncPlanActual(req.db, documento, subscriptionType);
-    res.json({ id: result.insertId, fullName, subscriptionType, paymentDate, amount, documento: documento || null });
+    res.json({ id: result.insertId, fullName, subscriptionType, paymentDate, amount, documento: documento || null, serviceMonth: mesServicio, estadoDeuda: estadoFinal });
   } catch (err) {
     console.error("❌ Error al guardar pago:", err.message);
     res.status(500).json({ error: "Error al guardar el pago." });
@@ -39,40 +58,50 @@ router.post('/payments', authenticateToken, async (req, res) => {
 // ✏️ Editar un pago existente por ID
 router.put('/payments/:id', authenticateToken, async (req, res) => {
   const paymentId = req.params.id;
-  const { fullName, subscriptionType, paymentDate, amount, documento } = req.body;
+  const { fullName, subscriptionType, paymentDate, amount, documento, estadoDeuda, metodoPago } = req.body;
 
   if (!fullName || !subscriptionType || !paymentDate || isNaN(amount)) {
     return res.status(400).json({ error: "Todos los campos son obligatorios y el monto debe ser válido." });
   }
 
+  const estadoFinal = ['al_dia','debe','le_debemos'].includes(estadoDeuda) ? estadoDeuda : null;
+
   try {
-    // Si NO viene documento, NO lo actualizamos (evita poner NULL en una columna NOT NULL)
+    await ensurePaymentColumns(req.db);
+
     if (documento === undefined) {
       const [result] = await req.db.query(
         `UPDATE payments
          SET fullName = ?, subscriptionType = ?, paymentDate = ?, amount = ?
+             ${estadoFinal  ? ', estadoDeuda = ?' : ''}
+             ${metodoPago !== undefined ? ', metodoPago = ?' : ''}
          WHERE id = ?`,
-        [fullName, subscriptionType, paymentDate, amount, paymentId]
+        [fullName, subscriptionType, paymentDate, amount,
+         ...(estadoFinal  ? [estadoFinal]  : []),
+         ...(metodoPago !== undefined ? [metodoPago || null] : []),
+         paymentId]
       );
       if (result.affectedRows === 0) return res.status(404).json({ error: "Pago no encontrado." });
-      // Sincronizar plan_actual si podemos recuperar el documento del pago
       const [[pago]] = await req.db.query(`SELECT documento FROM payments WHERE id=?`, [paymentId]);
       await syncPlanActual(req.db, pago?.documento, subscriptionType);
       return res.json({ message: "Pago actualizado correctamente" });
     }
 
-    // Si viene documento explícito (aunque sea vacío), lo actualizamos
     const doc = String(documento).trim();
     if (!doc) return res.status(400).json({ error: "El documento no puede estar vacío." });
 
     const [result] = await req.db.query(
       `UPDATE payments
        SET fullName = ?, subscriptionType = ?, paymentDate = ?, amount = ?, documento = ?
+           ${estadoFinal  ? ', estadoDeuda = ?' : ''}
+           ${metodoPago !== undefined ? ', metodoPago = ?' : ''}
        WHERE id = ?`,
-      [fullName, subscriptionType, paymentDate, amount, doc, paymentId]
+      [fullName, subscriptionType, paymentDate, amount, doc,
+       ...(estadoFinal  ? [estadoFinal]  : []),
+       ...(metodoPago !== undefined ? [metodoPago || null] : []),
+       paymentId]
     );
     if (result.affectedRows === 0) return res.status(404).json({ error: "Pago no encontrado." });
-    // Sincronizar plan_actual del alumno
     await syncPlanActual(req.db, doc, subscriptionType);
 
     res.json({ message: "Pago actualizado correctamente" });
@@ -337,11 +366,19 @@ router.get('/admin/pagos-pendientes', authenticateToken, async (req, res) => {
 router.post('/admin/pagos-pendientes/:id/confirmar', authenticateToken, async (req, res) => {
   const { id } = req.params;
   try {
-    const [rows] = await req.db.query(`SELECT * FROM pagos_pendientes WHERE id=?`, [id]);
-    if (!rows.length) return res.status(404).json({ error: 'Pago no encontrado.' });
-    const p = rows[0];
+    // UPDATE atómico: solo avanza si el estado es 'pendiente', previene doble confirmación
+    const [lock] = await req.db.query(
+      `UPDATE pagos_pendientes SET estado='procesando' WHERE id=? AND estado='pendiente'`,
+      [id]
+    );
+    if (lock.affectedRows === 0) {
+      return res.status(409).json({ error: 'Este pago ya fue confirmado o no existe.' });
+    }
+
+    const [[p]] = await req.db.query(`SELECT * FROM pagos_pendientes WHERE id=?`, [id]);
     const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
     const mes = hoy.substring(0, 7);
+
     // Registrar como pago real
     await req.db.query(
       `INSERT INTO payments (fullName, subscriptionType, paymentDate, amount, documento, serviceMonth)
@@ -354,6 +391,8 @@ router.post('/admin/pagos-pendientes/:id/confirmar', authenticateToken, async (r
     await req.db.query(`UPDATE pagos_pendientes SET estado='confirmado' WHERE id=?`, [id]);
     res.json({ ok: true });
   } catch (err) {
+    // Si falla después del lock, revertir a 'pendiente' para que se pueda reintentar
+    try { await req.db.query(`UPDATE pagos_pendientes SET estado='pendiente' WHERE id=? AND estado='procesando'`, [id]); } catch {}
     console.error('❌ Error confirmar pago:', err.message);
     res.status(500).json({ error: 'Error al confirmar.' });
   }

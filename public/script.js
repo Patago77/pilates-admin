@@ -1071,6 +1071,17 @@ async function deletePayment(id) {
   }
 }
 
+function seleccionarEstadoEP(btn) {
+  document.querySelectorAll(".estado-chip-ep").forEach(b => {
+    b.classList.remove("btn-success","btn-danger","btn-warning");
+    b.classList.add("btn-outline-secondary");
+  });
+  const colorMap = { al_dia:"btn-success", debe:"btn-danger", le_debemos:"btn-warning" };
+  btn.classList.remove("btn-outline-secondary","btn-outline-success","btn-outline-danger","btn-outline-warning");
+  btn.classList.add(colorMap[btn.dataset.estado] || "btn-success");
+  document.getElementById("ep-estadoDeuda").value = btn.dataset.estado;
+}
+
 async function editPayment(id) {
   window.currentPaymentId = id;
   try {
@@ -1083,6 +1094,15 @@ async function editPayment(id) {
     document.getElementById("ep-subscriptionType").value = pago.subscriptionType || "";
     document.getElementById("ep-amount").value = pago.amount || "";
     document.getElementById("ep-paymentDate").value = new Date(pago.paymentDate).toISOString().split("T")[0];
+
+    // Pre-seleccionar chip de estado de deuda
+    const estadoActual = pago.estadoDeuda || "al_dia";
+    document.getElementById("ep-estadoDeuda").value = estadoActual;
+    document.querySelectorAll(".estado-chip-ep").forEach(b => {
+      const colorMap = { al_dia:"btn-success", debe:"btn-danger", le_debemos:"btn-warning" };
+      const activo = b.dataset.estado === estadoActual;
+      b.className = `btn btn-sm estado-chip-ep ${activo ? colorMap[b.dataset.estado] : "btn-outline-secondary"}`;
+    });
 
     const modal = new bootstrap.Modal(document.getElementById("modalEditarPago"));
     modal.show();
@@ -1097,6 +1117,7 @@ async function guardarEditarPago() {
   const subscriptionType = document.getElementById("ep-subscriptionType").value.trim();
   const amount = parseFloat(document.getElementById("ep-amount").value);
   const paymentDate = document.getElementById("ep-paymentDate").value;
+  const estadoDeuda = document.getElementById("ep-estadoDeuda")?.value || "al_dia";
 
   if (!fullName || !subscriptionType || !paymentDate || isNaN(amount)) {
     return Swal.fire("Error", "Todos los campos son obligatorios.", "warning");
@@ -1106,7 +1127,7 @@ async function guardarEditarPago() {
     const res = await fetch(`${API_URL}/payments/${id}`, {
       method: "PUT",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ fullName, subscriptionType, amount, paymentDate })
+      body: JSON.stringify({ fullName, subscriptionType, amount, paymentDate, estadoDeuda })
     });
     if (!res.ok) throw new Error("No se pudo actualizar el pago");
 
