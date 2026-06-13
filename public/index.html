@@ -107,7 +107,9 @@ body {
 .ag-filtro-badge { font-size:11px; font-weight:700; background:#f0eeff; color:var(--accent); border-radius:10px; padding:1px 7px; min-width:20px; text-align:center; }
 
 /* Semana grid */
-.ag-semana-grid { display:grid; grid-template-columns:52px repeat(5,1fr); gap:3px; }
+.ag-semana-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.ag-semana-grid { display:grid; grid-template-columns:52px repeat(5,1fr); gap:3px; min-width:480px; }
+@media (max-width:600px) { .ag-semana-grid { grid-template-columns:44px repeat(5,80px); } }
 .ag-semana-hdr  { text-align:center; padding:6px 4px 8px; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
 .ag-semana-hdr.hoy { color:var(--accent); }
 .ag-semana-hora { display:flex; align-items:center; font-size:11px; font-weight:600; color:var(--muted); padding-right:6px; justify-content:flex-end; }
@@ -2787,7 +2789,7 @@ function fmtDiaLargo(iso) {
 function iniciarAgendaAdmin() {
   const mesActual = hoyAR().substring(0, 7);
   cargarAlertaSinAbono(mesActual);
-  agSetVista('semana');
+  agSetVista(window.innerWidth < 768 ? 'dia' : 'semana');
   agMiniCalRender();
   agFiltroHoy();
 }
@@ -2956,7 +2958,7 @@ async function agRenderSemana(lunes) {
 
     const NOMBRES_CORTOS = ['Lun','Mar','Mié','Jue','Vie'];
 
-    let html = '<div class="ag-semana-grid">';
+    let html = '<div class="ag-semana-scroll"><div class="ag-semana-grid">';
     // Header
     html += '<div class="ag-semana-hora"></div>';
     dias.forEach((iso, i) => {
@@ -2987,7 +2989,7 @@ async function agRenderSemana(lunes) {
       });
     });
 
-    html += '</div>';
+    html += '</div></div>';
 
     // Leyenda
     html += `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:11px;color:var(--muted);">
