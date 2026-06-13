@@ -44,17 +44,45 @@ router.post('/importar/preview', authenticateToken, upload.single('csv'), async 
   if (!req.file) return res.status(400).json({ error: 'No se recibió archivo.' });
   try {
     const registros = parsearCSVNeocita(req.file.buffer);
-    const confirmados = registros.filter(r => r.estado === 'Confirmado');
-    const porFecha = {};
+    const confirmados = registros.filter(r => r.estado === 'Confirmado' && r.documento);
+    const noAsistieron = registros.filter(r => r.estado !== 'Confirmado' && r.documento);
+
+    // Verificar qué documentos existen en el sistema
+    const docs = [...new Set(confirmados.map(r => r.documento))];
+    let reconocidosSet = new Set();
+    if (docs.length) {
+      const placeholders = docs.map(() => '?').join(',');
+      const [rows] = await req.db.query(`SELECT documento FROM students WHERE documento IN (${placeholders})`, docs);
+      reconocidosSet = new Set(rows.map(r => r.documento));
+    }
+
+    // Alumnos no reconocidos (únicos)
+    const noReconMap = {};
     confirmados.forEach(r => {
-      if (!porFecha[r.fechaISO]) porFecha[r.fechaISO] = 0;
-      porFecha[r.fechaISO]++;
+      if (!reconocidosSet.has(r.documento) && !noReconMap[r.documento]) {
+        noReconMap[r.documento] = { documento: r.documento, cliente: r.cliente };
+      }
     });
+    const no_reconocidos_lista = Object.values(noReconMap);
+
+    // Rango de fechas
+    const fechas = confirmados.map(r => r.fechaISO).sort();
+    const fechas_rango = fechas.length ? { desde: fechas[0], hasta: fechas[fechas.length - 1] } : { desde: '-', hasta: '-' };
+
+    // Muestra de asistencias reconocidas
+    const muestra = confirmados
+      .filter(r => reconocidosSet.has(r.documento))
+      .slice(0, 10)
+      .map(r => ({ fecha: r.fechaISO, hora: r.hora, nombre: r.cliente, documento: r.documento }));
+
     res.json({
-      total: registros.length,
-      confirmados: confirmados.length,
-      muestra: confirmados.slice(0, 10),
-      resumenFechas: Object.entries(porFecha).sort().slice(0, 10).map(([f, n]) => ({ fecha: f, cantidad: n }))
+      asistieron: confirmados.length,
+      no_asistieron: noAsistieron.length,
+      reconocidos: docs.filter(d => reconocidosSet.has(d)).length,
+      no_reconocidos: no_reconocidos_lista.length,
+      fechas_rango,
+      muestra,
+      no_reconocidos_lista
     });
   } catch (err) {
     console.error('❌ Error preview:', err.message, err.stack);
