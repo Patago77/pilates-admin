@@ -1094,6 +1094,8 @@ async function editPayment(id) {
     document.getElementById("ep-subscriptionType").value = pago.subscriptionType || "";
     document.getElementById("ep-amount").value = pago.amount || "";
     document.getElementById("ep-paymentDate").value = new Date(pago.paymentDate).toISOString().split("T")[0];
+    const epComentarios = document.getElementById("ep-comentarios");
+    if (epComentarios) epComentarios.value = pago.comentarios || "";
 
     // Pre-seleccionar chip de estado de deuda
     const estadoActual = pago.estadoDeuda || "al_dia";
@@ -1118,6 +1120,7 @@ async function guardarEditarPago() {
   const amount = parseFloat(document.getElementById("ep-amount").value);
   const paymentDate = document.getElementById("ep-paymentDate").value;
   const estadoDeuda = document.getElementById("ep-estadoDeuda")?.value || "al_dia";
+  const comentarios = document.getElementById("ep-comentarios")?.value?.trim() || "";
 
   if (!fullName || !subscriptionType || !paymentDate || isNaN(amount)) {
     return Swal.fire("Error", "Todos los campos son obligatorios.", "warning");
@@ -1127,7 +1130,7 @@ async function guardarEditarPago() {
     const res = await fetch(`${API_URL}/payments/${id}`, {
       method: "PUT",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ fullName, subscriptionType, amount, paymentDate, estadoDeuda })
+      body: JSON.stringify({ fullName, subscriptionType, amount, paymentDate, estadoDeuda, comentarios })
     });
     if (!res.ok) throw new Error("No se pudo actualizar el pago");
 
@@ -1135,6 +1138,7 @@ async function guardarEditarPago() {
     await Swal.fire({ title: "Actualizado", text: "El pago se actualizó correctamente.", icon: "success", didOpen: () => { document.querySelector(".swal2-container").style.zIndex = "99999"; } });
     await cargarResumenMensual();
     await cargarPagos();
+    if (typeof cargarMovimientosExt === "function") await cargarMovimientosExt();
   } catch (error) {
     handleError(error);
   }

@@ -58,7 +58,7 @@ router.post('/payments', authenticateToken, async (req, res) => {
 // ✏️ Editar un pago existente por ID
 router.put('/payments/:id', authenticateToken, async (req, res) => {
   const paymentId = req.params.id;
-  const { fullName, subscriptionType, paymentDate, amount, documento, estadoDeuda, metodoPago } = req.body;
+  const { fullName, subscriptionType, paymentDate, amount, documento, estadoDeuda, metodoPago, comentarios } = req.body;
 
   if (!fullName || !subscriptionType || !paymentDate || isNaN(amount)) {
     return res.status(400).json({ error: "Todos los campos son obligatorios y el monto debe ser válido." });
@@ -73,12 +73,14 @@ router.put('/payments/:id', authenticateToken, async (req, res) => {
       const [result] = await req.db.query(
         `UPDATE payments
          SET fullName = ?, subscriptionType = ?, paymentDate = ?, amount = ?
-             ${estadoFinal  ? ', estadoDeuda = ?' : ''}
+             ${estadoFinal !== null ? ', estadoDeuda = ?' : ''}
              ${metodoPago !== undefined ? ', metodoPago = ?' : ''}
+             ${comentarios !== undefined ? ', comentarios = ?' : ''}
          WHERE id = ?`,
         [fullName, subscriptionType, paymentDate, amount,
-         ...(estadoFinal  ? [estadoFinal]  : []),
+         ...(estadoFinal !== null ? [estadoFinal] : []),
          ...(metodoPago !== undefined ? [metodoPago || null] : []),
+         ...(comentarios !== undefined ? [comentarios || null] : []),
          paymentId]
       );
       if (result.affectedRows === 0) return res.status(404).json({ error: "Pago no encontrado." });
@@ -93,12 +95,14 @@ router.put('/payments/:id', authenticateToken, async (req, res) => {
     const [result] = await req.db.query(
       `UPDATE payments
        SET fullName = ?, subscriptionType = ?, paymentDate = ?, amount = ?, documento = ?
-           ${estadoFinal  ? ', estadoDeuda = ?' : ''}
+           ${estadoFinal !== null ? ', estadoDeuda = ?' : ''}
            ${metodoPago !== undefined ? ', metodoPago = ?' : ''}
+           ${comentarios !== undefined ? ', comentarios = ?' : ''}
        WHERE id = ?`,
       [fullName, subscriptionType, paymentDate, amount, doc,
-       ...(estadoFinal  ? [estadoFinal]  : []),
+       ...(estadoFinal !== null ? [estadoFinal] : []),
        ...(metodoPago !== undefined ? [metodoPago || null] : []),
+       ...(comentarios !== undefined ? [comentarios || null] : []),
        paymentId]
     );
     if (result.affectedRows === 0) return res.status(404).json({ error: "Pago no encontrado." });
