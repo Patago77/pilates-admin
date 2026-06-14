@@ -117,4 +117,20 @@ async function enviarRecordatorio(email, nombre, fecha, hora) {
   });
 }
 
-module.exports = { enviarOTP, enviarConfirmacionReserva, enviarCancelacion, enviarRecordatorio };
+async function enviarCampana(email, nombre, mensajeTexto, asunto) {
+  const to = destino(email);
+  const primerNombre = nombre.split(' ')[0];
+  const texto = mensajeTexto.replace(/\{nombre\}/gi, primerNombre).replace(/\n/g, '<br>');
+  await transporter.sendMail({
+    from: FROM,
+    to,
+    subject: asunto || 'Te extrañamos — Studio Pilates',
+    html: wrapEmail(`
+      <h2 style="color:#6D28D9;margin:0 0 16px;">¡Hola ${primerNombre}!</h2>
+      <div style="color:#555;line-height:1.7;font-size:15px;">${texto}</div>
+      ${OVERRIDE ? `<p style="color:#E24B4A;font-size:11px;margin-top:12px;">[TEST] Destinatario original: ${email}</p>` : ''}
+    `),
+  });
+}
+
+module.exports = { enviarOTP, enviarConfirmacionReserva, enviarCancelacion, enviarRecordatorio, enviarCampana };

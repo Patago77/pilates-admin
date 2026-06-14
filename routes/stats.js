@@ -241,8 +241,7 @@ router.get('/stats/informe-mes', authenticateToken, async (req, res) => {
   }
 });
 
-// GET /stats/alumnos-aviso?filtro=todos|conAbono|sinPago
-// Devuelve alumnos activos con nombre, teléfono y documento para enviar avisos
+// GET /stats/alumnos-aviso?filtro=todos|conAbono|sinPago|inactivos
 router.get('/stats/alumnos-aviso', authenticateToken, async (req, res) => {
   const filtro = req.query.filtro || 'todos';
   try {
@@ -251,7 +250,7 @@ router.get('/stats/alumnos-aviso', authenticateToken, async (req, res) => {
 
     if (filtro === 'conAbono') {
       [rows] = await req.db.query(
-        `SELECT DISTINCT s.documento, s.nombre, s.telefono
+        `SELECT DISTINCT s.documento, s.nombre, s.telefono, s.email
          FROM students s
          INNER JOIN payments p ON p.documento = s.documento
            AND COALESCE(p.serviceMonth, DATE_FORMAT(p.paymentDate,'%Y-%m')) = ?
@@ -261,7 +260,7 @@ router.get('/stats/alumnos-aviso', authenticateToken, async (req, res) => {
       );
     } else if (filtro === 'sinPago') {
       [rows] = await req.db.query(
-        `SELECT s.documento, s.nombre, s.telefono
+        `SELECT s.documento, s.nombre, s.telefono, s.email
          FROM students s
          WHERE s.activo = 1
            AND s.documento NOT IN (
@@ -272,15 +271,49 @@ router.get('/stats/alumnos-aviso', authenticateToken, async (req, res) => {
          ORDER BY s.nombre ASC`,
         [mes]
       );
+    } else if (filtro === 'inactivos') {
+      [rows] = await req.db.query(
+        `SELECT s.documento, s.nombre, s.telefono, s.email
+         FROM students s
+         WHERE s.activo = 0
+         ORDER BY s.nombre ASC`
+      );
     } else {
       [rows] = await req.db.query(
-        `SELECT documento, nombre, telefono FROM students WHERE activo = 1 ORDER BY nombre ASC`
+        `SELECT documento, nombre, telefono, email FROM students WHERE activo = 1 ORDER BY nombre ASC`
       );
     }
     res.json(rows);
   } catch (err) {
     console.error('❌ Error alumnos-aviso:', err.message);
     res.status(500).json({ error: 'Error al obtener alumnos.' });
+  }
+});
+
+// POST /stats/campana-email — envía campaña de reactivación a inactivos
+router.post('/stats/campana-email', authenticateToken, async (req, res) => {
+  const { mensaje, asunto } = req.body;
+  if (!mensaje) return res.status(400).json({ error: 'Falta el mensaje.' });
+  try {
+    const { enviarCampana } = require('../emailService');
+    const [alumnos] = await req.db.query(
+      `SELECT nombre, email FROM students WHERE activo = 0 AND email IS NOT NULL AND email != '' ORDER BY nombre ASC`
+    );
+    let enviados = 0, errores = 0;
+    for (const a of alumnos) {
+      try {
+        await enviarCampana(a.email, a.nombre, mensaje, asunto);
+        enviados++;
+        await new Promise(r => setTimeout(r, 150));
+      } catch(e) {
+        console.warn(`⚠️ Email fallido ${a.email}:`, e.message);
+        errores++;
+      }
+    }
+    res.json({ ok: true, enviados, errores, total: alumnos.length });
+  } catch(err) {
+    console.error('❌ Error campaña email:', err.message);
+    res.status(500).json({ error: 'Error al enviar campaña.' });
   }
 });
 

@@ -1113,6 +1113,7 @@ small { color: var(--muted) !important; }
                 <button class="btn btn-outline-secondary btn-sm" onclick="avisarTemplate('reprogramar')">🔄 Reprogramá tu clase</button>
                 <button class="btn btn-outline-secondary btn-sm" onclick="avisarTemplate('recordatorio')">🕐 Recordatorio de clase</button>
                 <button class="btn btn-success btn-sm" onclick="avisarTemplate('pago1al10')">💳 Pagá del 1 al 10</button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="avisarTemplate('reactivacion')">🎯 Oferta de reactivación</button>
                 <button class="btn btn-outline-secondary btn-sm" onclick="avisarTemplate('personalizado')">✏️ Personalizado</button>
               </div>
             </div>
@@ -1138,6 +1139,10 @@ small { color: var(--muted) !important; }
                   <input class="form-check-input" type="radio" name="avisoDestino" id="avisoSinPago" value="sinPago" onchange="cargarDestinatarios()">
                   <label class="form-check-label small" for="avisoSinPago">Sin pago este mes</label>
                 </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="avisoDestino" id="avisoInactivos" value="inactivos" onchange="cargarDestinatarios()">
+                  <label class="form-check-label small" for="avisoInactivos">🎯 Inactivos +3 meses</label>
+                </div>
               </div>
             </div>
 
@@ -1146,11 +1151,16 @@ small { color: var(--muted) !important; }
 
         <!-- Lista de destinatarios -->
         <div class="sa-card mb-3">
-          <div class="sa-card-hd" style="display:flex;align-items:center;justify-content:space-between;">
+          <div class="sa-card-hd" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
             <span class="sa-card-ttl">Destinatarios <span id="avisoCount" class="badge bg-secondary ms-2">0</span></span>
-            <button class="btn btn-success btn-sm" onclick="enviarAvisoTodos()" id="btnEnviarTodos">
-              📤 Abrir WhatsApp para todos
-            </button>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-primary btn-sm" onclick="enviarEmailCampana()" id="btnEnviarEmail" style="display:none;">
+                📧 Enviar email a todos
+              </button>
+              <button class="btn btn-success btn-sm" onclick="enviarAvisoTodos()" id="btnEnviarTodos">
+                📤 Abrir WhatsApp para todos
+              </button>
+            </div>
           </div>
           <div class="sa-card-body p-0">
             <div id="avisoListaAlumnos" style="max-height:420px;overflow-y:auto;"></div>
@@ -3542,12 +3552,13 @@ async function rechazarTransferencia(id) {
 // CENTRO DE AVISOS — WhatsApp popup
 // ─────────────────────────────────────────────────────────────────
 const AVISO_TEMPLATES = {
-  feriado:      'Hola {nombre}! 🎉 Te avisamos que mañana el estudio permanecerá cerrado por feriado. ¡Nos vemos el próximo turno! Saludos, Bem Pilates',
-  imprevisto:   'Hola {nombre}! ⚠️ Por un inconveniente el estudio no abrirá hoy. Disculpá las molestias. Vamos a reprogramar tu clase. Saludos, Bem Pilates',
-  reprogramar:  'Hola {nombre}! 🔄 Necesitamos que reprogrames tu clase. Por favor respondé este mensaje para coordinar el nuevo turno. Saludos, Bem Pilates',
-  recordatorio: 'Hola {nombre}! 🕐 Te recordamos que tenés clase hoy en Bem Pilates. ¡Te esperamos! Cualquier consulta escribinos. Saludos 💪',
-  pago1al10:    'Hola {nombre}! 💳 Te recordamos que el período de pago del estudio es del 1 al 10 de cada mes. Unificar los pagos en esa fecha nos ayuda a organizar mejor las clases para todas. ¡Muchas gracias por tu apoyo! Saludos, Bem Pilates 🙏',
-  personalizado:''
+  feriado:       'Hola {nombre}! 🎉 Te avisamos que mañana el estudio permanecerá cerrado por feriado. ¡Nos vemos el próximo turno! Saludos, Bem Pilates',
+  imprevisto:    'Hola {nombre}! ⚠️ Por un inconveniente el estudio no abrirá hoy. Disculpá las molestias. Vamos a reprogramar tu clase. Saludos, Bem Pilates',
+  reprogramar:   'Hola {nombre}! 🔄 Necesitamos que reprogrames tu clase. Por favor respondé este mensaje para coordinar el nuevo turno. Saludos, Bem Pilates',
+  recordatorio:  'Hola {nombre}! 🕐 Te recordamos que tenés clase hoy en Bem Pilates. ¡Te esperamos! Cualquier consulta escribinos. Saludos 💪',
+  pago1al10:     'Hola {nombre}! 💳 Te recordamos que el período de pago del estudio es del 1 al 10 de cada mes. Unificar los pagos en esa fecha nos ayuda a organizar mejor las clases para todas. ¡Muchas gracias por tu apoyo! Saludos, Bem Pilates 🙏',
+  reactivacion:  'Hola {nombre}! 💜 Hace un tiempo que no te vemos en el estudio y te extrañamos.\n\nQuería contarte que tenemos una propuesta especial para vos: volvé a entrenar este mes y conseguís un descuento en tu primer abono de regreso.\n\nSi querés saber más o reservar tu lugar, respondé este mensaje o escribinos. ¡Te esperamos con los brazos abiertos!\n\nSaludos, Bem Pilates 🌸',
+  personalizado: ''
 };
 
 let _avisoAlumnos = [];
@@ -3556,9 +3567,12 @@ let _avisoEnviando = false;
 function avisarTemplate(tipo) {
   document.getElementById('avisoMensaje').value = AVISO_TEMPLATES[tipo] || '';
   document.getElementById('avisoMensaje').focus();
-  // Si es el template de pago, auto-seleccionar "Sin pago este mes"
   if (tipo === 'pago1al10') {
     const radio = document.getElementById('avisoSinPago');
+    if (radio) { radio.checked = true; radio.dispatchEvent(new Event('change')); }
+  }
+  if (tipo === 'reactivacion') {
+    const radio = document.getElementById('avisoInactivos');
     if (radio) { radio.checked = true; radio.dispatchEvent(new Event('change')); }
   }
 }
@@ -3578,7 +3592,8 @@ async function cargarDestinatarios() {
     const filtro = dest === 'conAbono' ? 'conAbono' : dest === 'sinPago' ? 'sinPago' : 'todos';
     const r = await fetch(`${API_URL}/stats/alumnos-aviso?filtro=${filtro}`, { headers: { Authorization: `Bearer ${tk}` } });
     const data = await r.json();
-    _avisoAlumnos = data.map(a => ({ nombre: a.nombre, telefono: a.telefono || '', documento: a.documento }));
+    _avisoAlumnos = data.map(a => ({ nombre: a.nombre, telefono: a.telefono || '', documento: a.documento, email: a.email || '' }));
+    document.getElementById('btnEnviarEmail').style.display = dest === 'inactivos' ? '' : 'none';
 
     // Filtrar solo los que tienen teléfono
     const conTel   = _avisoAlumnos.filter(a => a.telefono);
@@ -3662,6 +3677,31 @@ function avisarSiguiente(mensaje) {
     }, 600);
   } else {
     setTimeout(() => alert(`✅ Listo. Se abrió WhatsApp para los ${_avisoQueue.length} alumnos.`), 600);
+  }
+}
+
+async function enviarEmailCampana() {
+  const mensaje = document.getElementById('avisoMensaje').value.trim();
+  if (!mensaje) { alert('Escribí el mensaje primero.'); return; }
+  const conEmail = _avisoAlumnos.filter(a => a.email);
+  if (!conEmail.length) { alert('No hay alumnos inactivos con email registrado.'); return; }
+  if (!confirm(`¿Enviar email a ${conEmail.length} alumnos inactivos?\nEsto puede tardar unos minutos.`)) return;
+  const btn = document.getElementById('btnEnviarEmail');
+  btn.textContent = '⏳ Enviando...';
+  btn.disabled = true;
+  try {
+    const r = await fetch(`${API_URL}/stats/campana-email`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ mensaje })
+    });
+    const d = await r.json();
+    alert(`✅ Campaña enviada\n📧 ${d.enviados} emails enviados exitosamente${d.errores ? `\n⚠️ ${d.errores} fallidos` : ''}`);
+  } catch(e) {
+    alert('Error al enviar la campaña. Revisá los logs del servidor.');
+  } finally {
+    btn.textContent = '📧 Enviar email a todos';
+    btn.disabled = false;
   }
 }
 
