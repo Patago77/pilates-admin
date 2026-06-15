@@ -2651,6 +2651,83 @@ window.seleccionarEstado = function(btn) {
 // FERIADOS
 // ============================================================
 
+// ── CONFIG AGENDA SIDEBAR ──
+const AG_HORAS_TODAS = ['09:00','10:00','11:00','12:00','13:00','17:00','18:00','19:00','20:00'];
+
+window.toggleConfigAgenda = function() {
+  const panel = document.getElementById('agConfigPanel');
+  const visible = panel.style.display !== 'none';
+  panel.style.display = visible ? 'none' : 'block';
+  if (!visible) {
+    cargarListaBloques();
+    renderHorasGrid();
+    document.getElementById('agBloqueTipo').onchange = function() {
+      document.getElementById('agBloqueHorasPanel').style.display = this.value === 'horas' ? 'block' : 'none';
+    };
+  }
+};
+
+function renderHorasGrid() {
+  const grid = document.getElementById('agBloqueHorasGrid');
+  if (!grid) return;
+  grid.innerHTML = AG_HORAS_TODAS.map(h => `
+    <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 6px;border-radius:5px;background:#f5f4ff;">
+      <input type="checkbox" value="${h}" style="cursor:pointer;"> ${h}hs
+    </label>`).join('');
+}
+
+window.guardarBloqueAgenda = async function() {
+  const fecha  = document.getElementById('agBloqueeFecha').value;
+  const motivo = document.getElementById('agBloqueMotivo').value.trim();
+  const tipo   = document.getElementById('agBloqueTipo').value;
+  if (!fecha || !motivo) return alert('Completá fecha y motivo.');
+
+  if (tipo === 'horas') {
+    const horasCerradas = [...document.querySelectorAll('#agBloqueHorasGrid input:checked')].map(i => i.value);
+    if (!horasCerradas.length) return alert('Seleccioná al menos una hora a cerrar.');
+    const horasAbiertas = AG_HORAS_TODAS.filter(h => !horasCerradas.includes(h));
+    // Guardar como feriado tipo cierre con horas abiertas
+    await fetch(`${API_URL}/admin/feriados`, {
+      method: 'POST', headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fecha, nombre: motivo, tipo: 'cierre', motivo })
+    });
+    await fetch(`${API_URL}/admin/feriados/${fecha}/horas`, {
+      method: 'PUT', headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ horas: horasAbiertas })
+    });
+  } else {
+    await fetch(`${API_URL}/admin/feriados`, {
+      method: 'POST', headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fecha, nombre: motivo, tipo: 'cierre', motivo })
+    });
+  }
+
+  document.getElementById('agBloqueeFecha').value = '';
+  document.getElementById('agBloqueMotivo').value = '';
+  cargarListaBloques();
+  if (_agFecha === fecha) agRenderDia(fecha);
+};
+
+async function cargarListaBloques() {
+  const cont = document.getElementById('agListaBloques');
+  if (!cont) return;
+  const hoy = hoyAR();
+  const resp = await fetch(`${API_URL}/admin/feriados`, { headers: getAuthHeaders() });
+  const lista = await resp.json();
+  const proximos = lista.filter(f => f.fecha >= hoy).slice(0, 8);
+  if (!proximos.length) { cont.innerHTML = '<div style="font-size:12px;color:var(--muted);">Sin cierres próximos.</div>'; return; }
+  cont.innerHTML = proximos.map(f => {
+    const d = new Date(f.fecha + 'T12:00:00-03:00');
+    const label = d.toLocaleDateString('es-AR', { day:'numeric', month:'short' });
+    const icono = f.tipo === 'cierre' ? '🔒' : '🗓️';
+    return `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #f0eeff;font-size:12px;">
+      <span>${icono}</span>
+      <div style="flex:1;"><div style="font-weight:600;">${f.nombre}</div><div style="color:var(--muted);font-size:10px;">${label}</div></div>
+      <button onclick="eliminarFeriado('${f.fecha}')" style="background:none;border:none;color:#a32d2d;font-size:13px;cursor:pointer;padding:0 4px;">✕</button>
+    </div>`;
+  }).join('');
+}
+
 window.seleccionarHorasFeriado = async function(fecha) {
   const horas = ['09:00','10:00','11:00','12:00','13:00','17:00','18:00','19:00','20:00'];
   const seleccionadas = new Set();

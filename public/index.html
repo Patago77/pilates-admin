@@ -735,6 +735,32 @@ small { color: var(--muted) !important; }
               <a href="/mi-agenda" target="_blank" class="ag-filtro" style="text-decoration:none;color:var(--accent);">
                 <span>Portal del alumno ↗</span>
               </a>
+              <div style="border-top:1px solid #f0eeff;margin:6px 0;"></div>
+              <div class="ag-filtro" onclick="toggleConfigAgenda()" style="color:var(--muted);">
+                <span>⚙ Configurar agenda</span>
+              </div>
+            </div>
+
+            <!-- Panel configuración agenda -->
+            <div id="agConfigPanel" class="sa-card" style="display:none;padding:14px 16px;">
+              <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Bloquear un día</div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <input type="date" id="agBloqueeFecha" class="form-control form-control-sm" placeholder="Fecha">
+                <input type="text" id="agBloqueMotivo" class="form-control form-control-sm" placeholder="Motivo (ej: Profe ausente)">
+                <select id="agBloqueTipo" class="form-control form-control-sm">
+                  <option value="cierre">Cierre completo</option>
+                  <option value="horas">Cerrar horas específicas</option>
+                </select>
+                <div id="agBloqueHorasPanel" style="display:none;">
+                  <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Seleccioná las horas a CERRAR:</div>
+                  <div id="agBloqueHorasGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;"></div>
+                </div>
+                <button onclick="guardarBloqueAgenda()" class="btn btn-sm btn-primary w-100">Guardar bloqueo</button>
+              </div>
+              <div style="margin-top:14px;">
+                <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Próximos cierres</div>
+                <div id="agListaBloques"></div>
+              </div>
             </div>
           </div>
 
@@ -3150,8 +3176,8 @@ async function agRenderDia(fecha) {
       cont.innerHTML = `
         <div style="background:#fff8e1;border:1.5px solid #f9c74f;border-radius:10px;padding:20px 24px;text-align:center;margin-bottom:12px;">
           <div style="font-size:22px;margin-bottom:6px;">🗓️</div>
-          <div style="font-weight:700;font-size:15px;color:#7a4f00;margin-bottom:4px;">Feriado — ${feriado.nombre}</div>
-          <div style="color:#854F0B;font-size:13px;margin-bottom:14px;">El estudio está cerrado este día.</div>
+          <div style="font-weight:700;font-size:15px;color:#7a4f00;margin-bottom:4px;">${feriado.tipo === 'cierre' ? '🔒 Cierre' : '🗓️ Feriado'} — ${feriado.nombre}</div>
+          <div style="color:#854F0B;font-size:13px;margin-bottom:14px;">${feriado.motivo || 'El estudio está cerrado este día.'}</div>
           <button onclick="seleccionarHorasFeriado('${fecha}')" style="background:#6D28D9;color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;">Habilitar horas...</button>
         </div>`;
       return;

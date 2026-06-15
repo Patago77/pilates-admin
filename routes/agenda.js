@@ -833,22 +833,28 @@ async function ensureFeriadosTable(db) {
   `);
 }
 
-// GET /api/admin/feriados — listar feriados
+// GET /api/admin/feriados — listar feriados y cierres
 router.get('/admin/feriados', authenticateToken, async (req, res) => {
   try {
     await ensureFeriadosTable(req.db);
-    const [rows] = await req.db.query(`SELECT fecha, nombre, habilitado FROM feriados ORDER BY fecha ASC`);
-    res.json(rows);
+    const [rows] = await req.db.query(`SELECT fecha, nombre, habilitado, tipo, motivo FROM feriados ORDER BY fecha ASC`);
+    const result = rows.map(r => ({ ...r, horas: r.horas ? JSON.parse(r.horas) : null }));
+    res.json(result);
   } catch(err) { res.status(500).json({ error: 'Error al obtener feriados.' }); }
 });
 
-// POST /api/admin/feriados — agregar feriado
+// POST /api/admin/feriados — agregar feriado o cierre
 router.post('/admin/feriados', authenticateToken, async (req, res) => {
-  const { fecha, nombre } = req.body;
+  const { fecha, nombre, tipo, motivo } = req.body;
   if (!fecha || !nombre) return res.status(400).json({ error: 'Fecha y nombre son obligatorios.' });
+  const tipoFinal = tipo === 'cierre' ? 'cierre' : 'feriado';
   try {
     await ensureFeriadosTable(req.db);
-    await req.db.query(`INSERT INTO feriados (fecha, nombre) VALUES (?, ?) ON DUPLICATE KEY UPDATE nombre = VALUES(nombre)`, [fecha, nombre]);
+    await req.db.query(
+      `INSERT INTO feriados (fecha, nombre, tipo, motivo) VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE nombre = VALUES(nombre), tipo = VALUES(tipo), motivo = VALUES(motivo)`,
+      [fecha, nombre, tipoFinal, motivo || null]
+    );
     res.json({ ok: true });
   } catch(err) { res.status(500).json({ error: 'Error al guardar feriado.' }); }
 });
