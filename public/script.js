@@ -45,7 +45,7 @@ window.abrirModalMovimiento = async function() {
       const resp = await fetch(`${API_URL}/planes`, { headers: getAuthHeaders() });
       const planes = await resp.json();
       selectAbono.innerHTML = '<option value="">Seleccioná un abono</option>';
-      planes.filter(p => p.activo).forEach(p => {
+      planes.forEach(p => {
         const opt = document.createElement('option');
         opt.value = p.codigo;
         opt.textContent = p.nombre + (p.precio > 0 ? ' — $' + Number(p.precio).toLocaleString('es-AR') : '');
