@@ -2651,6 +2651,53 @@ window.seleccionarEstado = function(btn) {
 // FERIADOS
 // ============================================================
 
+window.seleccionarHorasFeriado = async function(fecha) {
+  const horas = ['09:00','10:00','11:00','12:00','13:00','17:00','18:00','19:00','20:00'];
+  const seleccionadas = new Set();
+
+  const horasHtml = horas.map(h => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0eeff;">
+      <span style="font-size:14px;font-weight:600;">${h}hs</span>
+      <button type="button" id="btn-hora-${h.replace(':','')}"
+        onclick="toggleHoraFeriado('${h}')"
+        style="min-width:90px;padding:4px 14px;border-radius:6px;border:none;font-size:12px;font-weight:700;background:#fce8e8;color:#a32d2d;cursor:pointer;">
+        CERRADO
+      </button>
+    </div>`).join('');
+
+  await Swal.fire({
+    title: 'Horas habilitadas este feriado',
+    html: `<div style="text-align:left;">${horasHtml}</div>`,
+    showCancelButton: true,
+    confirmButtonText: 'Guardar',
+    cancelButtonText: 'Cancelar',
+    didOpen: () => {
+      document.querySelector('.swal2-container').style.zIndex = '99999';
+      window._feriadoHorasSet = new Set();
+      window.toggleHoraFeriado = function(h) {
+        const btn = document.getElementById(`btn-hora-${h.replace(':','')}`);
+        if (window._feriadoHorasSet.has(h)) {
+          window._feriadoHorasSet.delete(h);
+          btn.style.background = '#fce8e8'; btn.style.color = '#a32d2d'; btn.textContent = 'CERRADO';
+        } else {
+          window._feriadoHorasSet.add(h);
+          btn.style.background = '#e6f7f1'; btn.style.color = '#0f6e56'; btn.textContent = 'ABIERTO';
+        }
+      };
+    },
+    preConfirm: () => [...window._feriadoHorasSet]
+  }).then(async result => {
+    if (!result.isConfirmed) return;
+    const horasSeleccionadas = result.value;
+    await fetch(`${API_URL}/admin/feriados/${fecha}/horas`, {
+      method: 'PUT',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ horas: horasSeleccionadas })
+    });
+    agRenderDia(fecha);
+  });
+};
+
 window.habilitarFeriado = async function(fecha) {
   if (!confirm('¿Habilitar el estudio para este feriado?')) return;
   await fetch(`${API_URL}/admin/feriados/${fecha}`, { method: 'PUT', headers: getAuthHeaders() });

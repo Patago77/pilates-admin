@@ -853,12 +853,23 @@ router.post('/admin/feriados', authenticateToken, async (req, res) => {
   } catch(err) { res.status(500).json({ error: 'Error al guardar feriado.' }); }
 });
 
-// PUT /api/admin/feriados/:fecha — habilitar/deshabilitar
+// PUT /api/admin/feriados/:fecha — toggle habilitar/deshabilitar día completo
 router.put('/admin/feriados/:fecha', authenticateToken, async (req, res) => {
   try {
-    await req.db.query(`UPDATE feriados SET habilitado = NOT habilitado WHERE fecha = ?`, [req.params.fecha]);
+    await req.db.query(`UPDATE feriados SET habilitado = NOT habilitado, horas = NULL WHERE fecha = ?`, [req.params.fecha]);
     res.json({ ok: true });
   } catch(err) { res.status(500).json({ error: 'Error al actualizar feriado.' }); }
+});
+
+// PUT /api/admin/feriados/:fecha/horas — guardar horas específicas habilitadas
+router.put('/admin/feriados/:fecha/horas', authenticateToken, async (req, res) => {
+  const { horas } = req.body;
+  try {
+    const horasJSON = horas && horas.length > 0 ? JSON.stringify(horas) : null;
+    const habilitado = horasJSON ? 1 : 0;
+    await req.db.query(`UPDATE feriados SET habilitado = ?, horas = ? WHERE fecha = ?`, [habilitado, horasJSON, req.params.fecha]);
+    res.json({ ok: true });
+  } catch(err) { res.status(500).json({ error: 'Error al guardar horas.' }); }
 });
 
 // DELETE /api/admin/feriados/:fecha — eliminar feriado
@@ -873,8 +884,11 @@ router.delete('/admin/feriados/:fecha', authenticateToken, async (req, res) => {
 router.get('/admin/agenda/feriado/:fecha', authenticateToken, async (req, res) => {
   try {
     await ensureFeriadosTable(req.db);
-    const [rows] = await req.db.query(`SELECT nombre, habilitado FROM feriados WHERE fecha = ?`, [req.params.fecha]);
-    res.json(rows[0] || null);
+    const [rows] = await req.db.query(`SELECT nombre, habilitado, horas FROM feriados WHERE fecha = ?`, [req.params.fecha]);
+    if (!rows[0]) return res.json(null);
+    const f = rows[0];
+    f.horas = f.horas ? JSON.parse(f.horas) : null;
+    res.json(f);
   } catch(err) { res.status(500).json({ error: 'Error.' }); }
 });
 

@@ -3152,10 +3152,13 @@ async function agRenderDia(fecha) {
           <div style="font-size:22px;margin-bottom:6px;">🗓️</div>
           <div style="font-weight:700;font-size:15px;color:#7a4f00;margin-bottom:4px;">Feriado — ${feriado.nombre}</div>
           <div style="color:#854F0B;font-size:13px;margin-bottom:14px;">El estudio está cerrado este día.</div>
-          <button onclick="habilitarFeriado('${fecha}')" style="background:#6D28D9;color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;">Habilitar para este día</button>
+          <button onclick="seleccionarHorasFeriado('${fecha}')" style="background:#6D28D9;color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;">Habilitar horas...</button>
         </div>`;
       return;
     }
+
+    // Si es feriado con horas parciales, filtrar slots
+    const horasFeriado = feriado?.horas || null;
 
     const totalAlumnos = slots.reduce((s, sl) => s + sl.ocupados, 0);
     const sobrevendidos = slots.filter(s => s.ocupados > s.capacidad).length;
@@ -3167,7 +3170,9 @@ async function agRenderDia(fecha) {
     }
     resumen += '</div>';
 
-    cont.innerHTML = resumen + slots.map(s => {
+    const slotsFiltrados = horasFeriado ? slots.filter(s => horasFeriado.includes(s.hora)) : slots;
+
+    cont.innerHTML = resumen + slotsFiltrados.map(s => {
       const sobrevendido = s.ocupados > s.capacidad;
       const completo     = s.ocupados === s.capacidad;
       const vacio        = s.ocupados === 0;
