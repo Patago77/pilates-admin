@@ -160,6 +160,29 @@ router.get('/agenda/disponibilidad/:fecha', authAlumno, async (req, res) => {
   }
 
   try {
+    // Cargar horario semanal desde studio_config
+    let horasDelDia = HORAS_VALIDAS;
+    try {
+      const [[cfgRow]] = await db.query(`SELECT valor FROM studio_config WHERE clave = 'agenda_horario_semana'`);
+      if (cfgRow) {
+        const horario = JSON.parse(cfgRow.valor);
+        const diaSem = String(diaSemana);
+        if (horario[diaSem] && horario[diaSem].length > 0) horasDelDia = horario[diaSem];
+      }
+    } catch {}
+
+    // Verificar feriado/cierre
+    try {
+      const [[feriado]] = await db.query(`SELECT habilitado, horas FROM feriados WHERE fecha = ?`, [fecha]);
+      if (feriado) {
+        if (!feriado.habilitado) return res.json([]);
+        if (feriado.horas) {
+          const horasFeriado = JSON.parse(feriado.horas);
+          horasDelDia = horasDelDia.filter(h => horasFeriado.includes(h));
+        }
+      }
+    } catch {}
+
     const [ocupados] = await db.query(
       `SELECT hora, COUNT(*) AS ocupados FROM agenda_reservas
        WHERE fecha = ? AND estado = 'confirmado' GROUP BY hora`,
@@ -180,7 +203,7 @@ router.get('/agenda/disponibilidad/:fecha', authAlumno, async (req, res) => {
     const hoyAR   = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
     const ahoraAR = new Date().toLocaleTimeString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires', hour12: false }).substring(0, 5);
 
-    const slots = HORAS_VALIDAS.map(hora => ({
+    const slots = horasDelDia.map(hora => ({
       hora,
       ocupados:    mapOcupados[hora] || 0,
       disponibles: CAPACIDAD - (mapOcupados[hora] || 0),
