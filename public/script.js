@@ -2659,6 +2659,7 @@ window.abrirHorarioSemanal = async function() {
   if (!_horarioSemanal) {
     const r = await fetch(`${API_URL}/stats/agenda-horario`, { headers: getAuthHeaders() });
     _horarioSemanal = await r.json();
+    window._horarioSemanal = _horarioSemanal;
   }
   switchTabHorario('1', document.querySelector('#tabsHorario .nav-link'));
   bootstrap.Modal.getOrCreateInstance(document.getElementById('modalHorarioSemanal')).show();
@@ -2704,9 +2705,9 @@ window.guardarHorarioSemanal = async function() {
     method: 'POST', headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(_horarioSemanal)
   });
+  window._horarioSemanal = _horarioSemanal;
   bootstrap.Modal.getInstance(document.getElementById('modalHorarioSemanal')).hide();
-  // Refrescar vista actual
-  if (_agFecha) agRenderDia(_agFecha);
+  if (typeof agRenderDia === 'function' && window._agFecha) agRenderDia(window._agFecha);
 };
 
 // ── CONFIG AGENDA SIDEBAR ──
