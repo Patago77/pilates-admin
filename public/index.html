@@ -106,6 +106,10 @@ body {
 .ag-filtro.active { background:#f0eeff; color:var(--accent); font-weight:600; border-left:3px solid var(--accent); }
 .ag-filtro-badge { font-size:11px; font-weight:700; background:#f0eeff; color:var(--accent); border-radius:10px; padding:1px 7px; min-width:20px; text-align:center; }
 
+/* Agenda layout */
+.ag-layout { display:grid; grid-template-columns:220px 1fr; gap:16px; align-items:start; }
+@media (max-width:768px) { .ag-layout { grid-template-columns:1fr; } }
+
 /* Semana grid */
 .ag-semana-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
 .ag-semana-grid { display:grid; grid-template-columns:52px repeat(5,1fr); gap:3px; min-width:480px; }
@@ -123,6 +127,7 @@ body {
 .ag-cell.hoy-col { box-shadow:inset 0 0 0 1.5px var(--accent); }
 .ag-cell-n    { font-size:14px; font-weight:700; line-height:1; }
 .ag-cell-cap  { font-size:10px; opacity:.7; }
+.ag-cell-names { font-size:9px; line-height:1.35; opacity:.85; max-width:100%; overflow:hidden; text-align:center; word-break:break-word; margin-top:2px; }
 
 /* Mes grid */
 .ag-mes-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
@@ -688,7 +693,7 @@ small { color: var(--muted) !important; }
         <!-- Alerta: alumnos con reservas sin pago -->
         <div id="alertaSinAbono" style="margin-bottom:12px;"></div>
 
-        <div style="display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:start;">
+        <div class="ag-layout">
 
           <!-- ── SIDEBAR IZQUIERDO ── -->
           <div>
@@ -2962,12 +2967,15 @@ async function agRenderSemana(lunes) {
     const r = await fetch(`${API_URL}/admin/agenda/semana/${lunes}`, { headers: getAuthHeaders() });
     const reservas = await r.json();
 
-    // Agrupar por fecha|hora → count
+    // Agrupar por fecha|hora → count + nombres
     const mapa = {};
     reservas.forEach(rv => {
       const fISO = rv.fecha instanceof String ? rv.fecha : (rv.fecha?.split ? rv.fecha.split('T')[0] : String(rv.fecha).split('T')[0]);
       const key = `${fISO}|${rv.hora}`;
-      mapa[key] = (mapa[key] || 0) + 1;
+      if (!mapa[key]) mapa[key] = { n: 0, nombres: [] };
+      mapa[key].n++;
+      const primerNombre = (rv.nombre || '').split(' ')[0];
+      if (primerNombre) mapa[key].nombres.push(primerNombre);
     });
 
     const NOMBRES_CORTOS = ['Lun','Mar','Mié','Jue','Vie'];
@@ -2989,16 +2997,21 @@ async function agRenderSemana(lunes) {
       html += `<div class="ag-semana-hora">${hora}</div>`;
       dias.forEach((iso, i) => {
         const key = `${iso}|${hora}`;
-        const n = mapa[key] || 0;
+        const slot = mapa[key] || { n: 0, nombres: [] };
+        const n = slot.n;
         const esHoy = iso === hoy;
         let clase = 'vacio';
         if (n > AG_CAP) clase = 'sobre';
         else if (n === AG_CAP) clase = 'lleno';
         else if (n >= 3) clase = 'medio';
         else if (n > 0) clase = 'bajo';
+        const nombresHtml = slot.nombres.length > 0
+          ? `<div class="ag-cell-names">${slot.nombres.slice(0,3).join('<br>')}${slot.nombres.length > 3 ? `<br>+${slot.nombres.length - 3}` : ''}</div>`
+          : '';
         html += `<div class="ag-cell ${clase}${esHoy?' hoy-col':''}" onclick="agVerSlot('${iso}','${hora}')">
           <div class="ag-cell-n">${n > 0 ? n : ''}</div>
           <div class="ag-cell-cap">${n > 0 ? `/${AG_CAP}` : '·'}</div>
+          ${nombresHtml}
         </div>`;
       });
     });
