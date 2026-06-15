@@ -2266,9 +2266,15 @@ window.confirmarReservas = async function() {
   try {
     const resp = await fetch(`${API_URL}/importar/agenda/confirmar`, { method: 'POST', headers: getAuthHeadersUpload(), body: form });
     const d = await resp.json();
-    el.innerHTML = resp.ok
-      ? `<div class="alert alert-success">${d.mensaje}</div>`
-      : `<div class="alert alert-danger">${d.error}</div>`;
+    if (!resp.ok) { el.innerHTML = `<div class="alert alert-danger">${d.error}</div>`; return; }
+    let html = `<div class="alert alert-success mb-2">${d.mensaje}</div>`;
+    if (d.noEncontradosLista && d.noEncontradosLista.length > 0) {
+      html += `<div style="border:1px solid #fce8e8;border-radius:8px;padding:12px;background:#fff9f9;">
+        <div style="font-size:12px;font-weight:700;color:#a32d2d;margin-bottom:8px;">Alumnos no encontrados en el sistema (${d.noEncontradosLista.length}):</div>
+        ${d.noEncontradosLista.map(n => `<div style="font-size:12px;padding:3px 0;border-bottom:1px solid #f0eeff;">${n}</div>`).join('')}
+      </div>`;
+    }
+    el.innerHTML = html;
     document.getElementById('btnConfirmarReservas').style.display = 'none';
   } catch(err) {
     el.innerHTML = '<div class="alert alert-danger">Error al importar.</div>';

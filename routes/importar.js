@@ -355,6 +355,7 @@ router.post('/importar/agenda/confirmar', authenticateToken, upload.single('csv'
     let duplicados    = 0;
     let noEncontrados = 0;
     let sinCupo       = 0;
+    const noEncontradosNombres = new Set();
 
     for (const r of futuros) {
       let docFinal = null;
@@ -374,7 +375,7 @@ router.post('/importar/agenda/confirmar', authenticateToken, upload.single('csv'
         }
       }
 
-      if (!docFinal) { noEncontrados++; continue; }
+      if (!docFinal) { noEncontrados++; noEncontradosNombres.add(r.cliente); continue; }
 
       const slotKey = `${r.fechaISO}|${r.hora}`;
       if ((cupoActual[slotKey] || 0) >= CAPACIDAD) { sinCupo++; continue; }
@@ -399,7 +400,8 @@ router.post('/importar/agenda/confirmar', authenticateToken, upload.single('csv'
     res.json({
       ok: true,
       mensaje: `✅ ${importados} reservas importadas. ${duplicados} ya existían. ${noEncontrados} alumnos no encontrados.`,
-      importados, duplicados, noEncontrados
+      importados, duplicados, noEncontrados,
+      noEncontradosLista: [...noEncontradosNombres].sort()
     });
   } catch (err) {
     console.error('❌ Error importar agenda:', err.message);
