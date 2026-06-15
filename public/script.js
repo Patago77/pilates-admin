@@ -1638,7 +1638,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const fecha = document.getElementById("fecha")?.value;
       const monto = parseFloat(document.getElementById("monto")?.value);
 
-      if (!fecha || isNaN(monto) || monto <= 0) {
+      if (!fecha || isNaN(monto) || monto < 0) {
         return Swal.fire("Error", "Fecha y monto válidos son obligatorios.", "warning");
       }
 
