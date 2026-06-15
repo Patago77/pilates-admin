@@ -267,7 +267,7 @@ router.post('/importar/agenda/preview', authenticateToken, upload.single('csv'),
     const futuros = registros.filter(r => r.estado === 'Confirmado' && r.fechaISO >= hoy);
 
     // Cargar todos los alumnos para matching por nombre
-    const [alumnos] = await req.db.query('SELECT documento, nombre FROM students WHERE activo = 1');
+    const [alumnos] = await req.db.query('SELECT documento, nombre FROM students');
     const mapaDoc   = {};
     const mapaNombre = {};
     alumnos.forEach(a => {
@@ -326,7 +326,7 @@ router.post('/importar/agenda/confirmar', authenticateToken, upload.single('csv'
     const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
     const futuros = registros.filter(r => r.estado === 'Confirmado' && r.fechaISO >= hoy);
 
-    const [alumnos] = await req.db.query('SELECT documento, nombre FROM students WHERE activo = 1');
+    const [alumnos] = await req.db.query('SELECT documento, nombre FROM students');
     const mapaDoc    = {};
     const mapaNombre = {};
     alumnos.forEach(a => {
