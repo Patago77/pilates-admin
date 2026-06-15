@@ -1540,6 +1540,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (typeof cargarReformers            === "function") await cargarReformers();
     if (typeof cargarInformeMes           === "function") await cargarInformeMes();
     if (typeof cargarPlanes               === "function") await cargarPlanes();
+    if (typeof cargarFeriados             === "function") await cargarFeriados();
     wireTarjetasUI();
   }
 
@@ -2644,4 +2645,58 @@ window.seleccionarEstado = function(btn) {
   btn.classList.remove("btn-outline-secondary","btn-outline-success","btn-outline-danger","btn-outline-warning");
   btn.classList.add(colorMap[btn.dataset.estado] || "btn-success");
   document.getElementById("estadoDeudaValue").value = btn.dataset.estado;
+};
+
+// ============================================================
+// FERIADOS
+// ============================================================
+
+window.habilitarFeriado = async function(fecha) {
+  if (!confirm('¿Habilitar el estudio para este feriado?')) return;
+  await fetch(`${API_URL}/admin/feriados/${fecha}`, { method: 'PUT', headers: getAuthHeaders() });
+  agRenderDia(fecha);
+};
+
+window.cargarFeriados = async function() {
+  const cont = document.getElementById('tablaFeriados');
+  if (!cont) return;
+  const resp = await fetch(`${API_URL}/admin/feriados`, { headers: getAuthHeaders() });
+  const lista = await resp.json();
+  if (!lista.length) { cont.innerHTML = '<div class="text-muted small py-2">No hay feriados cargados.</div>'; return; }
+  cont.innerHTML = lista.map(f => {
+    const fechaFmt = new Date(f.fecha + 'T12:00:00-03:00').toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f0eeff;">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;">${f.nombre}</div>
+        <div style="font-size:11px;color:var(--muted);">${fechaFmt}</div>
+      </div>
+      <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;background:${f.habilitado?'#e6f7f1':'#fff8e1'};color:${f.habilitado?'#0f6e56':'#7a4f00'};">${f.habilitado?'Habilitado':'Cerrado'}</span>
+      <button onclick="toggleFeriado('${f.fecha}')" style="background:#f5f4ff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--accent);">${f.habilitado?'Cerrar':'Habilitar'}</button>
+      <button onclick="eliminarFeriado('${f.fecha}')" style="background:#fce8e8;border:none;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;color:#a32d2d;">✕</button>
+    </div>`;
+  }).join('');
+};
+
+window.toggleFeriado = async function(fecha) {
+  await fetch(`${API_URL}/admin/feriados/${fecha}`, { method: 'PUT', headers: getAuthHeaders() });
+  cargarFeriados();
+};
+
+window.eliminarFeriado = async function(fecha) {
+  if (!confirm('¿Eliminar este feriado?')) return;
+  await fetch(`${API_URL}/admin/feriados/${fecha}`, { method: 'DELETE', headers: getAuthHeaders() });
+  cargarFeriados();
+};
+
+window.agregarFeriado = async function() {
+  const fecha = document.getElementById('nuevoFeriadoFecha')?.value;
+  const nombre = document.getElementById('nuevoFeriadoNombre')?.value?.trim();
+  if (!fecha || !nombre) return alert('Completá fecha y nombre.');
+  await fetch(`${API_URL}/admin/feriados`, {
+    method: 'POST', headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fecha, nombre })
+  });
+  document.getElementById('nuevoFeriadoFecha').value = '';
+  document.getElementById('nuevoFeriadoNombre').value = '';
+  cargarFeriados();
 };

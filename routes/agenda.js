@@ -819,4 +819,63 @@ router.delete('/admin/notificacion/:id', authenticateToken, async (req, res) => 
   } catch(err) { res.status(500).json({ error: 'Error.' }); }
 });
 
+// ================================================================
+// FERIADOS
+// ================================================================
+
+async function ensureFeriadosTable(db) {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS feriados (
+      fecha DATE PRIMARY KEY,
+      nombre VARCHAR(100) NOT NULL,
+      habilitado TINYINT(1) DEFAULT 0
+    )
+  `);
+}
+
+// GET /api/admin/feriados — listar feriados
+router.get('/admin/feriados', authenticateToken, async (req, res) => {
+  try {
+    await ensureFeriadosTable(req.db);
+    const [rows] = await req.db.query(`SELECT fecha, nombre, habilitado FROM feriados ORDER BY fecha ASC`);
+    res.json(rows);
+  } catch(err) { res.status(500).json({ error: 'Error al obtener feriados.' }); }
+});
+
+// POST /api/admin/feriados — agregar feriado
+router.post('/admin/feriados', authenticateToken, async (req, res) => {
+  const { fecha, nombre } = req.body;
+  if (!fecha || !nombre) return res.status(400).json({ error: 'Fecha y nombre son obligatorios.' });
+  try {
+    await ensureFeriadosTable(req.db);
+    await req.db.query(`INSERT INTO feriados (fecha, nombre) VALUES (?, ?) ON DUPLICATE KEY UPDATE nombre = VALUES(nombre)`, [fecha, nombre]);
+    res.json({ ok: true });
+  } catch(err) { res.status(500).json({ error: 'Error al guardar feriado.' }); }
+});
+
+// PUT /api/admin/feriados/:fecha — habilitar/deshabilitar
+router.put('/admin/feriados/:fecha', authenticateToken, async (req, res) => {
+  try {
+    await req.db.query(`UPDATE feriados SET habilitado = NOT habilitado WHERE fecha = ?`, [req.params.fecha]);
+    res.json({ ok: true });
+  } catch(err) { res.status(500).json({ error: 'Error al actualizar feriado.' }); }
+});
+
+// DELETE /api/admin/feriados/:fecha — eliminar feriado
+router.delete('/admin/feriados/:fecha', authenticateToken, async (req, res) => {
+  try {
+    await req.db.query(`DELETE FROM feriados WHERE fecha = ?`, [req.params.fecha]);
+    res.json({ ok: true });
+  } catch(err) { res.status(500).json({ error: 'Error al eliminar feriado.' }); }
+});
+
+// GET /api/admin/agenda/feriado/:fecha — consultar si una fecha es feriado
+router.get('/admin/agenda/feriado/:fecha', authenticateToken, async (req, res) => {
+  try {
+    await ensureFeriadosTable(req.db);
+    const [rows] = await req.db.query(`SELECT nombre, habilitado FROM feriados WHERE fecha = ?`, [req.params.fecha]);
+    res.json(rows[0] || null);
+  } catch(err) { res.status(500).json({ error: 'Error.' }); }
+});
+
 module.exports = router;

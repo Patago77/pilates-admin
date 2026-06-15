@@ -1043,6 +1043,20 @@ small { color: var(--muted) !important; }
           </div>
         </div>
 
+        <!-- Feriados -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <h5 class="mb-3">Feriados</h5>
+            <p class="text-muted small mb-3">Los días marcados como feriado muestran "Estudio cerrado" en la agenda. Podés habilitarlos puntualmente si abrís ese día.</p>
+            <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+              <input type="date" id="nuevoFeriadoFecha" class="form-control form-control-sm" style="width:160px;">
+              <input type="text" id="nuevoFeriadoNombre" class="form-control form-control-sm" placeholder="Nombre del feriado" style="width:200px;">
+              <button class="btn btn-primary btn-sm" onclick="agregarFeriado()">+ Agregar</button>
+            </div>
+            <div id="tablaFeriados"></div>
+          </div>
+        </div>
+
         <div class="card mb-4">
           <div class="card-body">
             <div class="d-flex align-items-center justify-content-between mb-3">
@@ -3126,6 +3140,20 @@ async function agRenderDia(fecha) {
     const diaSemana = new Date(fecha + 'T12:00:00-03:00').getDay();
     if (diaSemana === 0 || diaSemana === 6) {
       cont.innerHTML = '<div class="text-muted text-center py-4">No hay clases los fines de semana.</div>';
+      return;
+    }
+
+    // Verificar si es feriado
+    const rf = await fetch(`${API_URL}/admin/agenda/feriado/${fecha}`, { headers: getAuthHeaders() });
+    const feriado = await rf.json();
+    if (feriado && !feriado.habilitado) {
+      cont.innerHTML = `
+        <div style="background:#fff8e1;border:1.5px solid #f9c74f;border-radius:10px;padding:20px 24px;text-align:center;margin-bottom:12px;">
+          <div style="font-size:22px;margin-bottom:6px;">🗓️</div>
+          <div style="font-weight:700;font-size:15px;color:#7a4f00;margin-bottom:4px;">Feriado — ${feriado.nombre}</div>
+          <div style="color:#854F0B;font-size:13px;margin-bottom:14px;">El estudio está cerrado este día.</div>
+          <button onclick="habilitarFeriado('${fecha}')" style="background:#6D28D9;color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;">Habilitar para este día</button>
+        </div>`;
       return;
     }
 
