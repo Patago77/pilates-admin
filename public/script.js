@@ -2651,8 +2651,65 @@ window.seleccionarEstado = function(btn) {
 // FERIADOS
 // ============================================================
 
-// ── CONFIG AGENDA SIDEBAR ──
+// ── HORARIO SEMANAL ──
 const AG_HORAS_TODAS = ['09:00','10:00','11:00','12:00','13:00','17:00','18:00','19:00','20:00'];
+let _horarioSemanal = null;
+
+window.abrirHorarioSemanal = async function() {
+  if (!_horarioSemanal) {
+    const r = await fetch(`${API_URL}/stats/agenda-horario`, { headers: getAuthHeaders() });
+    _horarioSemanal = await r.json();
+  }
+  switchTabHorario('1', document.querySelector('#tabsHorario .nav-link'));
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalHorarioSemanal')).show();
+};
+
+window.switchTabHorario = function(dia, btn) {
+  document.querySelectorAll('#tabsHorario .nav-link').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const horasAbiertas = (_horarioSemanal && _horarioSemanal[dia]) || AG_HORAS_TODAS;
+  const panel = document.getElementById('horarioDiaPanel');
+  panel.innerHTML = AG_HORAS_TODAS.map(h => {
+    const abierto = horasAbiertas.includes(h);
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f0eeff;">
+      <span style="font-size:14px;font-weight:600;">${h}hs</span>
+      <button type="button" id="hs-${dia}-${h.replace(':','')}"
+        data-dia="${dia}" data-hora="${h}" data-estado="${abierto?'abierto':'cerrado'}"
+        onclick="toggleHoraBase(this)"
+        style="min-width:100px;padding:5px 16px;border-radius:6px;border:none;font-size:12px;font-weight:700;cursor:pointer;
+          background:${abierto?'#e6f7f1':'#fce8e8'};color:${abierto?'#0f6e56':'#a32d2d'};">
+        ${abierto?'ABIERTO':'CERRADO'}
+      </button>
+    </div>`;
+  }).join('');
+  panel.dataset.dia = dia;
+};
+
+window.toggleHoraBase = function(btn) {
+  const abierto = btn.dataset.estado === 'abierto';
+  btn.dataset.estado = abierto ? 'cerrado' : 'abierto';
+  btn.style.background = abierto ? '#fce8e8' : '#e6f7f1';
+  btn.style.color = abierto ? '#a32d2d' : '#0f6e56';
+  btn.textContent = abierto ? 'CERRADO' : 'ABIERTO';
+};
+
+window.guardarHorarioSemanal = async function() {
+  if (!_horarioSemanal) _horarioSemanal = {};
+  ['1','2','3','4','5'].forEach(dia => {
+    const btns = document.querySelectorAll(`[data-dia="${dia}"][data-hora]`);
+    if (!btns.length) return;
+    _horarioSemanal[dia] = [...btns].filter(b => b.dataset.estado === 'abierto').map(b => b.dataset.hora);
+  });
+  await fetch(`${API_URL}/stats/agenda-horario`, {
+    method: 'POST', headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(_horarioSemanal)
+  });
+  bootstrap.Modal.getInstance(document.getElementById('modalHorarioSemanal')).hide();
+  // Refrescar vista actual
+  if (_agFecha) agRenderDia(_agFecha);
+};
+
+// ── CONFIG AGENDA SIDEBAR ──
 
 window.toggleConfigAgenda = function() {
   const panel = document.getElementById('agConfigPanel');

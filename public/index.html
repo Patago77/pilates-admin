@@ -743,6 +743,7 @@ small { color: var(--muted) !important; }
 
             <!-- Panel configuración agenda -->
             <div id="agConfigPanel" class="sa-card" style="display:none;padding:14px 16px;">
+              <button onclick="abrirHorarioSemanal()" style="width:100%;background:#F0EEFF;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:600;color:var(--accent);cursor:pointer;margin-bottom:12px;">📅 Horario semanal base</button>
               <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Bloquear un día</div>
               <div style="display:flex;flex-direction:column;gap:8px;">
                 <input type="date" id="agBloqueeFecha" class="form-control form-control-sm" placeholder="Fecha">
@@ -1841,6 +1842,33 @@ small { color: var(--muted) !important; }
   </div>
 </div>
 
+<!-- MODAL HORARIO SEMANAL -->
+<div class="modal fade" id="modalHorarioSemanal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Configurar horario semanal</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small mb-3">Seleccioná qué horas están <b>abiertas</b> cada día. Esto se aplica todas las semanas.</p>
+        <ul class="nav nav-tabs mb-3" id="tabsHorario">
+          <li class="nav-item"><button class="nav-link active" onclick="switchTabHorario('1',this)">Lunes</button></li>
+          <li class="nav-item"><button class="nav-link" onclick="switchTabHorario('2',this)">Martes</button></li>
+          <li class="nav-item"><button class="nav-link" onclick="switchTabHorario('3',this)">Miércoles</button></li>
+          <li class="nav-item"><button class="nav-link" onclick="switchTabHorario('4',this)">Jueves</button></li>
+          <li class="nav-item"><button class="nav-link" onclick="switchTabHorario('5',this)">Viernes</button></li>
+        </ul>
+        <div id="horarioDiaPanel"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="guardarHorarioSemanal()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL NUEVO PLAN -->
 <div class="modal fade" id="modalNuevoPlan" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
@@ -2845,9 +2873,14 @@ function fmtDiaLargo(iso) {
   return new Date(iso + 'T12:00:00-03:00').toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
 }
 
-function iniciarAgendaAdmin() {
+async function iniciarAgendaAdmin() {
   const mesActual = hoyAR().substring(0, 7);
   cargarAlertaSinAbono(mesActual);
+  // Cargar horario semanal base
+  try {
+    const r = await fetch(`${API_URL}/stats/agenda-horario`, { headers: getAuthHeaders() });
+    if (r.ok) window._horarioSemanal = await r.json();
+  } catch(e) {}
   agSetVista(window.innerWidth < 768 ? 'dia' : 'semana');
   agMiniCalRender();
   agFiltroHoy();
@@ -3196,7 +3229,15 @@ async function agRenderDia(fecha) {
     }
     resumen += '</div>';
 
-    const slotsFiltrados = horasFeriado ? slots.filter(s => horasFeriado.includes(s.hora)) : slots;
+    // Aplicar horario semanal base
+    const diaSem = String(new Date(fecha + 'T12:00:00-03:00').getDay()); // 1=lun..5=vie
+    const horasBase = (_horarioSemanal && _horarioSemanal[diaSem]) || null;
+
+    const slotsFiltrados = (() => {
+      let s = horasFeriado ? slots.filter(s => horasFeriado.includes(s.hora)) : slots;
+      if (horasBase) s = s.filter(sl => horasBase.includes(sl.hora) || sl.ocupados > 0);
+      return s;
+    })();
 
     cont.innerHTML = resumen + slotsFiltrados.map(s => {
       const sobrevendido = s.ocupados > s.capacidad;

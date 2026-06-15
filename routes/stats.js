@@ -317,4 +317,37 @@ router.post('/stats/campana-email', authenticateToken, async (req, res) => {
   }
 });
 
+// ============================================================
+// GET /stats/agenda-horario  — lee horario semanal
+// POST /stats/agenda-horario — guarda horario semanal
+// ============================================================
+const HORAS_DEFAULT = ['09:00','10:00','11:00','12:00','13:00','17:00','18:00','19:00','20:00'];
+const HORARIO_DEFAULT = { '1': HORAS_DEFAULT, '2': HORAS_DEFAULT, '3': HORAS_DEFAULT, '4': HORAS_DEFAULT, '5': HORAS_DEFAULT };
+
+router.get('/stats/agenda-horario', authenticateToken, async (req, res) => {
+  try {
+    await ensureConfigTable(req.db);
+    const [[row]] = await req.db.query(`SELECT valor FROM studio_config WHERE clave = 'agenda_horario_semana'`);
+    const horario = row ? JSON.parse(row.valor) : HORARIO_DEFAULT;
+    res.json(horario);
+  } catch (err) {
+    res.status(500).json({ error: 'Error al cargar horario.' });
+  }
+});
+
+router.post('/stats/agenda-horario', authenticateToken, async (req, res) => {
+  try {
+    await ensureConfigTable(req.db);
+    const horario = req.body;
+    await req.db.query(
+      `INSERT INTO studio_config (clave, valor) VALUES ('agenda_horario_semana', ?)
+       ON DUPLICATE KEY UPDATE valor = VALUES(valor)`,
+      [JSON.stringify(horario)]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al guardar horario.' });
+  }
+});
+
 module.exports = router;
