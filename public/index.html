@@ -3458,9 +3458,11 @@ window.guardarEdicionAlumno = async function() {
             <option value="plan_4">4 clases / mes — $55.000</option>
             <option value="plan_6">6 clases / mes — $63.000</option>
             <option value="plan_8">8 clases / mes — $71.000</option>
-            <option value="plan_12">12 clases / mes — $75.000</option>
+            <option value="plan_12">12 clases / mes — $78.000</option>
             <option value="clase_suelta">Clase suelta</option>
             <option value="privada">Clase privada</option>
+            <option value="cortesia">Cortesía / Excepción</option>
+            <option value="instructorado">Instructorado — gratis</option>
           </select>
         </div>
         <div class="form-check">
@@ -3620,7 +3622,7 @@ async function cargarTransferenciasPendientes() {
     panel.style.display = 'block';
 
     // Mapeo de código de plan a nombre legible
-    const planNombres = { plan_4:'4 clases/mes', plan_6:'6 clases/mes', plan_8:'8 clases/mes', plan_12:'12 clases/mes', privada:'Clase privada' };
+    const planNombres = { plan_4:'4 clases/mes', plan_6:'6 clases/mes', plan_8:'8 clases/mes', plan_12:'12 clases/mes', privada:'Clase privada', cortesia:'Cortesía / Excepción', instructorado:'Instructorado — gratis' };
 
     lista.innerHTML = rows.map(p => `
       <div class="d-flex align-items-center justify-content-between border rounded p-3 mb-2" style="background:#fffdf0;">
