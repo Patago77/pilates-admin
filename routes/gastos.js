@@ -90,7 +90,7 @@ router.get('/resumen/mensual', authenticateToken, async (req, res) => {
     const [[{ totalIngresos }]] = await req.db.query(
       `SELECT COALESCE(SUM(amount), 0) AS totalIngresos
        FROM payments
-       WHERE DATE_FORMAT(COALESCE(serviceMonth, paymentDate), '%Y-%m') = ?`,
+       WHERE COALESCE(serviceMonth, DATE_FORMAT(paymentDate, '%Y-%m')) = ?`,
       [mesActual]
     );
 
