@@ -3704,7 +3704,7 @@ async function cargarDestinatarios() {
   const count = document.getElementById('avisoCount');
   lista.innerHTML = '<div class="text-center text-muted py-3 small">Cargando…</div>';
   try {
-    const filtro = dest === 'conAbono' ? 'conAbono' : dest === 'sinPago' ? 'sinPago' : 'todos';
+    const filtro = dest === 'conAbono' ? 'conAbono' : dest === 'sinPago' ? 'sinPago' : dest === 'inactivos' ? 'inactivos' : 'todos';
     const r = await fetch(`${API_URL}/stats/alumnos-aviso?filtro=${filtro}`, { headers: { Authorization: `Bearer ${tk}` } });
     const data = await r.json();
     _avisoAlumnos = data.map(a => ({ nombre: a.nombre, telefono: a.telefono || '', documento: a.documento, email: a.email || '' }));
