@@ -299,21 +299,25 @@ router.post('/stats/campana-email', authenticateToken, async (req, res) => {
     const [alumnos] = await req.db.query(
       `SELECT nombre, email FROM students WHERE activo = 0 AND email IS NOT NULL AND email != '' ORDER BY nombre ASC`
     );
-    let enviados = 0, errores = 0;
+    // Responder inmediatamente para evitar timeout de Nginx
+    res.json({ ok: true, enviados: alumnos.length, errores: 0, total: alumnos.length });
+    // Enviar emails en background
+    let errores = 0;
     for (const a of alumnos) {
       try {
         await enviarCampana(a.email, a.nombre, mensaje, asunto);
-        enviados++;
         await new Promise(r => setTimeout(r, 150));
       } catch(e) {
         console.warn(`⚠️ Email fallido ${a.email}:`, e.message);
         errores++;
       }
     }
-    res.json({ ok: true, enviados, errores, total: alumnos.length });
+    console.log(`✅ Campaña completada: ${alumnos.length - errores}/${alumnos.length} enviados`);
   } catch(err) {
-    console.error('❌ Error campaña email:', err.message);
-    res.status(500).json({ error: 'Error al enviar campaña.' });
+    if (!res.headersSent) {
+      console.error('❌ Error campaña email:', err.message);
+      res.status(500).json({ error: 'Error al enviar campaña.' });
+    }
   }
 });
 
