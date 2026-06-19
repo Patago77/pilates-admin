@@ -290,15 +290,37 @@ router.get('/stats/alumnos-aviso', authenticateToken, async (req, res) => {
   }
 });
 
-// POST /stats/campana-email — envía campaña de reactivación a inactivos
+// POST /stats/campana-email — envía campaña según filtro de destinatarios
 router.post('/stats/campana-email', authenticateToken, async (req, res) => {
-  const { mensaje, asunto } = req.body;
+  const { mensaje, asunto, filtro } = req.body;
   if (!mensaje) return res.status(400).json({ error: 'Falta el mensaje.' });
   try {
     const { enviarCampana } = require('../emailService');
-    const [alumnos] = await req.db.query(
-      `SELECT nombre, email FROM students WHERE activo = 0 AND email IS NOT NULL AND email != '' ORDER BY nombre ASC`
-    );
+    const mes = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).substring(0, 7);
+    let query, params = [];
+    if (filtro === 'conAbono') {
+      query = `SELECT DISTINCT s.nombre, s.email FROM students s
+               INNER JOIN payments p ON p.documento = s.documento
+                 AND COALESCE(p.serviceMonth, DATE_FORMAT(p.paymentDate,'%Y-%m')) = ?
+               WHERE s.activo = 1 AND s.email IS NOT NULL AND s.email != ''
+               ORDER BY s.nombre ASC`;
+      params = [mes];
+    } else if (filtro === 'sinPago') {
+      query = `SELECT nombre, email FROM students
+               WHERE activo = 1 AND email IS NOT NULL AND email != ''
+                 AND documento NOT IN (
+                   SELECT DISTINCT documento FROM payments
+                   WHERE documento IS NOT NULL
+                     AND COALESCE(serviceMonth, DATE_FORMAT(paymentDate,'%Y-%m')) = ?
+                 )
+               ORDER BY nombre ASC`;
+      params = [mes];
+    } else if (filtro === 'inactivos') {
+      query = `SELECT nombre, email FROM students WHERE activo = 0 AND email IS NOT NULL AND email != '' ORDER BY nombre ASC`;
+    } else {
+      query = `SELECT nombre, email FROM students WHERE activo = 1 AND email IS NOT NULL AND email != '' ORDER BY nombre ASC`;
+    }
+    const [alumnos] = await req.db.query(query, params);
     // Responder inmediatamente para evitar timeout de Nginx
     res.json({ ok: true, enviados: alumnos.length, errores: 0, total: alumnos.length });
     // Enviar emails en background

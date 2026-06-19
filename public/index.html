@@ -1161,6 +1161,7 @@ small { color: var(--muted) !important; }
                 <button class="btn btn-success btn-sm" onclick="avisarTemplate('pago1al10')">💳 Pagá del 1 al 10</button>
                 <button class="btn btn-outline-secondary btn-sm" onclick="avisarTemplate('reactivacion')">🎯 Oferta de reactivación</button>
                 <button class="btn btn-outline-secondary btn-sm" onclick="avisarTemplate('personalizado')">✏️ Personalizado</button>
+                <button class="btn btn-warning btn-sm text-dark" onclick="avisarTemplate('resenaGoogle')">⭐ Reseña Google</button>
               </div>
             </div>
 
@@ -3673,7 +3674,8 @@ const AVISO_TEMPLATES = {
   recordatorio:  'Hola {nombre}! 🕐 Te recordamos que tenés clase hoy en Bem Pilates. ¡Te esperamos! Cualquier consulta escribinos. Saludos 💪',
   pago1al10:     'Hola {nombre}! 💳 Te recordamos que el período de pago del estudio es del 1 al 10 de cada mes. Unificar los pagos en esa fecha nos ayuda a organizar mejor las clases para todas. ¡Muchas gracias por tu apoyo! Saludos, Bem Pilates 🙏',
   reactivacion:  'Hola {nombre}! 💜 Hace un tiempo que no te vemos en el estudio y te extrañamos.\n\nQuería contarte que tenemos una propuesta especial para vos: volvé a entrenar este mes y conseguís un descuento en tu primer abono de regreso.\n\nSi querés saber más o reservar tu lugar, respondé este mensaje o escribinos. ¡Te esperamos con los brazos abiertos!\n\nSaludos, Bem Pilates 🌸',
-  personalizado: ''
+  personalizado: '',
+  resenaGoogle:  'Hola {nombre}! 😊 En BEM Pilates trabajamos cada día para brindarte la mejor experiencia en Pilates Reformer.\n\nSi estás disfrutando de tus clases, nos ayudarías muchísimo dejando una reseña en Google. Solo te lleva un minuto y es muy importante para que más personas puedan conocernos 🙏\n\n👉 https://g.page/r/CWGXdanVLBrXEAE/review\n\n¡Muchas gracias por ser parte de BEM! Saludos 🌸'
 };
 
 let _avisoAlumnos = [];
@@ -3708,7 +3710,7 @@ async function cargarDestinatarios() {
     const r = await fetch(`${API_URL}/stats/alumnos-aviso?filtro=${filtro}`, { headers: { Authorization: `Bearer ${tk}` } });
     const data = await r.json();
     _avisoAlumnos = data.map(a => ({ nombre: a.nombre, telefono: a.telefono || '', documento: a.documento, email: a.email || '' }));
-    document.getElementById('btnEnviarEmail').style.display = dest === 'inactivos' ? '' : 'none';
+    document.getElementById('btnEnviarEmail').style.display = '';
 
     // Filtrar solo los que tienen teléfono
     const conTel   = _avisoAlumnos.filter(a => a.telefono);
@@ -3799,8 +3801,10 @@ async function enviarEmailCampana() {
   const mensaje = document.getElementById('avisoMensaje').value.trim();
   if (!mensaje) { alert('Escribí el mensaje primero.'); return; }
   const conEmail = _avisoAlumnos.filter(a => a.email);
-  if (!conEmail.length) { alert('No hay alumnos inactivos con email registrado.'); return; }
-  if (!confirm(`¿Enviar email a ${conEmail.length} alumnos inactivos?\nEsto puede tardar unos minutos.`)) return;
+  if (!conEmail.length) { alert('No hay alumnos con email registrado en este grupo.'); return; }
+  const dest = document.querySelector('input[name="avisoDestino"]:checked')?.value || 'todos';
+  const filtroLabel = { todos: 'todos los activos', conAbono: 'con abono este mes', sinPago: 'sin pago este mes', inactivos: 'inactivos' }[dest] || dest;
+  if (!confirm(`¿Enviar email a ${conEmail.length} alumno${conEmail.length !== 1 ? 's' : ''} (${filtroLabel})?\nEsto puede tardar unos minutos.`)) return;
   const btn = document.getElementById('btnEnviarEmail');
   btn.textContent = '⏳ Enviando...';
   btn.disabled = true;
@@ -3808,7 +3812,7 @@ async function enviarEmailCampana() {
     const r = await fetch(`${API_URL}/stats/campana-email`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ mensaje })
+      body: JSON.stringify({ mensaje, filtro: dest })
     });
     const d = await r.json();
     alert(`✅ Campaña enviada\n📧 ${d.enviados} emails enviados exitosamente${d.errores ? `\n⚠️ ${d.errores} fallidos` : ''}`);
