@@ -839,6 +839,7 @@ async function cargarTarjetasEstadoMes() {
     const pagaron = [];
 
     (Array.isArray(students) ? students : []).forEach(s => {
+      if (!s.activo) return;
       const doc = (s.documento || "").toString().trim();
       const nombre = s.nombre || "(sin nombre)";
       const telefono = (s.telefono || "").toString().trim();
