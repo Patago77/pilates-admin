@@ -3551,7 +3551,9 @@ window.verCuentaAlumno = async function(documento) {
           <div style="background:var(--surface-2);border-radius:10px;padding:16px;">
             <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">ESTE MES</div>
             ${d.mesActual.plan
-              ? `<div style="font-weight:600;font-size:15px;">${d.mesActual.plan.nombre}</div>
+              ? `<div style="font-weight:600;font-size:15px;">${d.mesActual.plan.nombre}
+                   ${d.mesActual.sinPagoRegistrado ? `<span style="font-size:11px;background:#FEF3C7;color:#92400E;border-radius:4px;padding:1px 7px;margin-left:6px;font-weight:600;">sin pago registrado</span>` : ''}
+                 </div>
                  <div style="font-size:13px;margin:4px 0;">
                    Clases: <b>${d.mesActual.clasesUsadas} / ${d.mesActual.clasesTotal}</b>
                    &nbsp;·&nbsp; Restantes: <b>${d.mesActual.restantes}</b>

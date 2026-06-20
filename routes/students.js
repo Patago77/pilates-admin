@@ -150,13 +150,22 @@ router.get('/students/:documento/cuenta', authenticateToken, async (req, res) =>
       [documento, mesActual]
     );
     // Plan principal = el de más clases; total = suma de todos
-    const planCodigo   = pagosMes[0]?.subscriptionType || null;
-    const clasesPagadas = pagosMes.reduce((s, p) => s + (parseInt(p.clases) || 0), 0);
+    let planCodigo    = pagosMes[0]?.subscriptionType || null;
+    let clasesPagadas = pagosMes.reduce((s, p) => s + (parseInt(p.clases) || 0), 0);
+    let sinPagoRegistrado = false;
 
     let planInfo = null;
     if (planCodigo) {
       const [plan] = await req.db.query('SELECT * FROM planes_config WHERE codigo = ?', [planCodigo]);
-      if (plan[0]) planInfo = { ...plan[0], clases: clasesPagadas }; // clases = total agregado
+      if (plan[0]) planInfo = { ...plan[0], clases: clasesPagadas };
+    } else if (st[0].plan_actual) {
+      // Fallback: mismo comportamiento que el portal — usar plan_actual si no hay pago este mes
+      const [[pc]] = await req.db.query('SELECT * FROM planes_config WHERE codigo = ?', [st[0].plan_actual]);
+      if (pc) {
+        planInfo = { ...pc, clases: parseInt(pc.clases) || 0 };
+        clasesPagadas = parseInt(pc.clases) || 0;
+        sinPagoRegistrado = true;
+      }
     }
 
     // Clases usadas este mes
@@ -184,6 +193,7 @@ router.get('/students/:documento/cuenta', authenticateToken, async (req, res) =>
       asistMeses,
       mesActual: {
         plan: planInfo,
+        sinPagoRegistrado,
         clasesUsadas,
         clasesTotal,
         clasesExtra: parseInt(clasesExtra),
