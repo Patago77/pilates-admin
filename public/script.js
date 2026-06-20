@@ -1729,15 +1729,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }).then(result => {
       if (result.isConfirmed) {
         localStorage.removeItem("token");
-        toggleContainers(false);
-        Swal.fire({ didOpen: () => { document.querySelector(".swal2-container").style.zIndex = "99999"; },
-          toast: true,
-          position: "top-end",
-          icon: "success",
-          title: "Sesión cerrada correctamente",
-          showConfirmButton: false,
-          timer: 2000
-        });
+        location.reload();
       }
     });
   });
