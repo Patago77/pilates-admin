@@ -1693,7 +1693,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           throw new Error(msg);
         }
 
-        Swal.fire("Guardado", "Movimiento registrado con éxito.", "success");
+        Swal.fire({ title: "Guardado", text: "Movimiento registrado con éxito.", icon: "success", didOpen: () => { document.querySelector(".swal2-container").style.zIndex = "99999"; } });
 
         const tipoActual = tipoMovimientoSelect?.value || "ingreso";
         form.reset();
