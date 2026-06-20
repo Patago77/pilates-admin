@@ -47,9 +47,10 @@ router.get('/dashboard', authenticateToken, async (req, res) => {
     const [overduePaymentsRows] = await req.db.query(
       `SELECT DISTINCT s.nombre, p.documento
        FROM payments p
-       LEFT JOIN students s ON s.documento = p.documento
+       INNER JOIN students s ON s.documento = p.documento
        WHERE COALESCE(p.serviceMonth, DATE_FORMAT(p.paymentDate,'%Y-%m')) = ?
          AND p.documento IS NOT NULL
+         AND s.activo = 1
          AND p.documento NOT IN (
            SELECT DISTINCT documento FROM payments
            WHERE documento IS NOT NULL
