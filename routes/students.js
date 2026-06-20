@@ -1,6 +1,7 @@
 // routes/students.js
 const express = require('express');
 const authenticateToken = require('../authMiddleware');
+const { calcularEstadoAbono } = require('./agenda');
 const router = express.Router();
 
 // 👉 Registrar un nuevo alumno
@@ -139,51 +140,8 @@ router.get('/students/:documento/cuenta', authenticateToken, async (req, res) =>
       [documento]
     );
 
-    // Todos los pagos del mes (igual que calcularEstadoAbono — suma clases de múltiples planes)
-    const [pagosMes] = await req.db.query(
-      `SELECT p.subscriptionType, COALESCE(pc.clases, 0) AS clases
-       FROM payments p
-       LEFT JOIN planes_config pc ON pc.codigo = p.subscriptionType
-       WHERE p.documento = ?
-         AND COALESCE(p.serviceMonth, DATE_FORMAT(p.paymentDate,'%Y-%m')) = ?
-       ORDER BY COALESCE(pc.clases, 0) DESC, p.paymentDate DESC`,
-      [documento, mesActual]
-    );
-    // Plan principal = el de más clases; total = suma de todos
-    let planCodigo    = pagosMes[0]?.subscriptionType || null;
-    let clasesPagadas = pagosMes.reduce((s, p) => s + (parseInt(p.clases) || 0), 0);
-    let sinPagoRegistrado = false;
-
-    let planInfo = null;
-    if (planCodigo) {
-      const [plan] = await req.db.query('SELECT * FROM planes_config WHERE codigo = ?', [planCodigo]);
-      if (plan[0]) planInfo = { ...plan[0], clases: clasesPagadas };
-    } else if (st[0].plan_actual) {
-      // Fallback: mismo comportamiento que el portal — usar plan_actual si no hay pago este mes
-      const [[pc]] = await req.db.query('SELECT * FROM planes_config WHERE codigo = ?', [st[0].plan_actual]);
-      if (pc) {
-        planInfo = { ...pc, clases: parseInt(pc.clases) || 0 };
-        clasesPagadas = parseInt(pc.clases) || 0;
-        sinPagoRegistrado = true;
-      }
-    }
-
-    // Clases usadas este mes
-    const [[{ clasesUsadas }]] = await req.db.query(
-      `SELECT COUNT(*) AS clasesUsadas FROM attendance
-       WHERE documento = ? AND DATE_FORMAT(fecha,'%Y-%m') = ?`,
-      [documento, mesActual]
-    );
-
-    // Clases extra devueltas por admin este mes
-    const [[{ clasesExtra }]] = await req.db.query(
-      `SELECT COALESCE(SUM(cantidad),0) AS clasesExtra FROM clases_extra
-       WHERE documento = ? AND mes = ?`,
-      [documento, mesActual]
-    );
-
-    const clasesTotal = planInfo?.clases || 0;
-    const restantes   = Math.max(0, clasesTotal + parseInt(clasesExtra) - clasesUsadas);
+    // Estado completo del mes — misma lógica que el portal (cruce reservas + asistencias)
+    const estadoMes = await calcularEstadoAbono(req.db, documento, mesActual);
 
     res.json({
       alumno: st[0],
@@ -192,12 +150,15 @@ router.get('/students/:documento/cuenta', authenticateToken, async (req, res) =>
       pagosRecientes,
       asistMeses,
       mesActual: {
-        plan: planInfo,
-        sinPagoRegistrado,
-        clasesUsadas,
-        clasesTotal,
-        clasesExtra: parseInt(clasesExtra),
-        restantes
+        plan: estadoMes.plan,
+        sinPagoRegistrado: estadoMes.sin_pago_registrado,
+        clasesUsadas: estadoMes.consumidas,
+        clasesTotal: estadoMes.clases_plan,
+        clasesExtra: estadoMes.extra_admin,
+        restantes: estadoMes.restantes,
+        reservasActivas: estadoMes.reservas_activas,
+        asistidas: estadoMes.asistidas,
+        ausencias: estadoMes.ausencias
       }
     });
   } catch (err) {

@@ -3555,9 +3555,14 @@ window.verCuentaAlumno = async function(documento) {
                    ${d.mesActual.sinPagoRegistrado ? `<span style="font-size:11px;background:#FEF3C7;color:#92400E;border-radius:4px;padding:1px 7px;margin-left:6px;font-weight:600;">sin pago registrado</span>` : ''}
                  </div>
                  <div style="font-size:13px;margin:4px 0;">
-                   Clases: <b>${d.mesActual.clasesUsadas} / ${d.mesActual.clasesTotal}</b>
+                   Usadas: <b>${d.mesActual.clasesUsadas} / ${d.mesActual.clasesTotal}</b>
                    &nbsp;·&nbsp; Restantes: <b>${d.mesActual.restantes}</b>
                    ${d.mesActual.clasesExtra > 0 ? `&nbsp;<span style="font-size:11px;background:#D1FAE5;color:#065F46;border-radius:4px;padding:1px 6px;">+${d.mesActual.clasesExtra} devuelta${d.mesActual.clasesExtra>1?'s':''}</span>` : ''}
+                 </div>
+                 <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">
+                   Asistidas: <b>${d.mesActual.asistidas}</b>
+                   &nbsp;·&nbsp; Reservadas: <b>${d.mesActual.reservasActivas}</b>
+                   ${d.mesActual.ausencias > 0 ? `&nbsp;·&nbsp; Ausencias: <b style="color:var(--danger);">${d.mesActual.ausencias}</b>` : ''}
                  </div>
                  <div style="height:6px;background:#e9e4ff;border-radius:3px;overflow:hidden;">
                    <div style="height:100%;width:${barraW}%;background:var(--green);border-radius:3px;"></div>

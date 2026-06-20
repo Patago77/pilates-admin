@@ -922,3 +922,4 @@ router.get('/admin/agenda/feriado/:fecha', authenticateToken, async (req, res) =
 });
 
 module.exports = router;
+module.exports.calcularEstadoAbono = calcularEstadoAbono;
