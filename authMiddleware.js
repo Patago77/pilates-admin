@@ -47,4 +47,13 @@ function authenticateToken(req, res, next) {
   });
 }
 
+// Solo permite acceso a roles admin
+function requireAdmin(req, res, next) {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'Acceso restringido a administradores.' });
+  }
+  next();
+}
+
 module.exports = authenticateToken;
+module.exports.requireAdmin = requireAdmin;

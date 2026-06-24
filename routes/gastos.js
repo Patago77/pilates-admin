@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const authenticateToken = require('../authMiddleware');
+const { requireAdmin } = require('../authMiddleware');
 
-router.get('/gastos/detalle/:mes', authenticateToken, async (req, res) => {
+router.get('/gastos/detalle/:mes', authenticateToken, requireAdmin, async (req, res) => {
   const { mes } = req.params; // formato '2025-05'
   try {
     const [rows] = await req.db.query(`
@@ -19,7 +20,7 @@ router.get('/gastos/detalle/:mes', authenticateToken, async (req, res) => {
 });
 
 // ✅ Total de gastos del mes actual
-router.get('/gastos/mensuales/total', authenticateToken, async (req, res) => {
+router.get('/gastos/mensuales/total', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const hoy = new Date();
     const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0];
@@ -38,7 +39,7 @@ router.get('/gastos/mensuales/total', authenticateToken, async (req, res) => {
 });
 
 // ✅ Gastos agrupados por categoría del mes actual
-router.get('/gastos/mensuales', authenticateToken, async (req, res) => {
+router.get('/gastos/mensuales', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const hoy = new Date();
     const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0];
@@ -60,7 +61,7 @@ router.get('/gastos/mensuales', authenticateToken, async (req, res) => {
 });
 
 // ✅ Gastos agrupados por mes (para la tabla "Gastos Mensuales")
-router.get('/gastos/por-mes', authenticateToken, async (req, res) => {
+router.get('/gastos/por-mes', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const [rows] = await req.db.query(`
       SELECT DATE_FORMAT(fecha, '%Y-%m') AS mes,
@@ -80,7 +81,7 @@ router.get('/gastos/por-mes', authenticateToken, async (req, res) => {
 
 
 // ✅ Total de ingresos y egresos y saldo del mes actual (consolidado)
-router.get('/resumen/mensual', authenticateToken, async (req, res) => {
+router.get('/resumen/mensual', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const hoy = new Date();
     const mesActual = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
@@ -115,7 +116,7 @@ router.get('/resumen/mensual', authenticateToken, async (req, res) => {
 });
 
 // Obtener todos los gastos
-router.get('/gastos', authenticateToken, async (req, res) => {
+router.get('/gastos', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const [rows] = await req.db.query(
       `SELECT id, categoria, descripcion, monto, fecha FROM gastos ORDER BY fecha DESC`
@@ -128,7 +129,7 @@ router.get('/gastos', authenticateToken, async (req, res) => {
 });
 
 // Registrar un nuevo gasto
-router.post('/gastos', authenticateToken, async (req, res) => {
+router.post('/gastos', authenticateToken, requireAdmin, async (req, res) => {
   const { categoria, descripcion, monto, fecha } = req.body;
 
   if (!categoria || !descripcion || !fecha || isNaN(monto)) {
@@ -148,7 +149,7 @@ router.post('/gastos', authenticateToken, async (req, res) => {
 });
 
 // Editar un gasto
-router.put('/gastos/:id', authenticateToken, async (req, res) => {
+router.put('/gastos/:id', authenticateToken, requireAdmin, async (req, res) => {
   const gastoId = req.params.id;
   const { categoria, descripcion, monto, fecha } = req.body;
 
@@ -172,7 +173,7 @@ router.put('/gastos/:id', authenticateToken, async (req, res) => {
 });
 
 // Eliminar un gasto
-router.delete('/gastos/:id', authenticateToken, async (req, res) => {
+router.delete('/gastos/:id', authenticateToken, requireAdmin, async (req, res) => {
   const gastoId = req.params.id;
 
   try {

@@ -567,6 +567,8 @@ const API_URL = (() => {
   return "/api";
 })();
 
+let _userRole = 'admin';
+
 // Interceptor global: agrega credentials a todos los fetch hacia la API
 const _origFetch = window.fetch.bind(window);
 window.fetch = function(url, opts = {}) {
@@ -628,6 +630,16 @@ async function cargarAlumnos() {
   }
 }
 
+// ===== ROL DE USUARIO =====
+function applyRoleVisibility(role) {
+  _userRole = role || 'admin';
+  const restricted = ['movimientos', 'metricas', 'gastos', 'diagnostico', 'avisos', 'usuarios'];
+  restricted.forEach(page => {
+    const item = document.querySelector(`[data-sa-page="${page}"]`);
+    if (item) item.style.display = (_userRole === 'instructor') ? 'none' : '';
+  });
+}
+
 // ===== VERIFICAR AUTENTICACIÓN =====
 async function checkAuth() {
   try {
@@ -637,6 +649,13 @@ async function checkAuth() {
       return false;
     }
     toggleContainers(true);
+    try {
+      const meRes = await fetch(`${API_URL}/me`);
+      if (meRes.ok) {
+        const me = await meRes.json();
+        applyRoleVisibility(me.role);
+      }
+    } catch (_) {}
     return true;
   } catch (error) {
     console.error("Error verificando sesión:", error);
@@ -663,6 +682,7 @@ async function login(event) {
     if (!response.ok) throw new Error(data.error || "Error al iniciar sesión");
 
     toggleContainers(true);
+    applyRoleVisibility(data.user?.role);
 
     if (typeof cargarResumenMensual === "function") await cargarResumenMensual();
     if (typeof cargarDashboard === "function") await cargarDashboard();

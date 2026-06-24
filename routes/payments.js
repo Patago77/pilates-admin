@@ -1,5 +1,6 @@
 const express = require('express');
 const authenticateToken = require('../authMiddleware');
+const { requireAdmin } = require('../authMiddleware');
 
 const router = express.Router();
 
@@ -30,7 +31,7 @@ async function ensurePaymentColumns(db) {
 }
 
 // 📥 Registrar un pago con validación y monto incluido
-router.post('/payments', authenticateToken, async (req, res) => {
+router.post('/payments', authenticateToken, requireAdmin, async (req, res) => {
   const { fullName, subscriptionType, paymentDate, amount, documento, serviceMonth, comentarios, metodoPago, estadoDeuda } = req.body;
 
   if (!fullName || !subscriptionType || !paymentDate || isNaN(amount)) {
@@ -56,7 +57,7 @@ router.post('/payments', authenticateToken, async (req, res) => {
 });
 
 // ✏️ Editar un pago existente por ID
-router.put('/payments/:id', authenticateToken, async (req, res) => {
+router.put('/payments/:id', authenticateToken, requireAdmin, async (req, res) => {
   const paymentId = req.params.id;
   const { fullName, subscriptionType, paymentDate, amount, documento, estadoDeuda, metodoPago, comentarios } = req.body;
 
@@ -116,7 +117,7 @@ router.put('/payments/:id', authenticateToken, async (req, res) => {
 });
 
 // Obtener pagos con paginación y búsqueda opcional
-router.get('/payments', authenticateToken, async (req, res) => {
+router.get('/payments', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const page   = Math.max(1, parseInt(req.query.page  || '1', 10));
     const limit  = Math.min(200, Math.max(1, parseInt(req.query.limit || '100', 10)));
@@ -148,7 +149,7 @@ router.get('/payments', authenticateToken, async (req, res) => {
 });
 
 // 📄 Obtener un pago por ID
-router.get('/payments/:id', authenticateToken, async (req, res) => {
+router.get('/payments/:id', authenticateToken, requireAdmin, async (req, res) => {
   const paymentId = req.params.id;
 
   try {
@@ -162,7 +163,7 @@ router.get('/payments/:id', authenticateToken, async (req, res) => {
 });
 
 // 🔄 Busca por documento **O** por nombre
-router.get('/payments/buscar/:query', authenticateToken, async (req, res) => {
+router.get('/payments/buscar/:query', authenticateToken, requireAdmin, async (req, res) => {
   const query = (req.params.query || '').trim();
   if (!query) return res.status(400).json({ error: "La búsqueda no puede estar vacía" });
 
@@ -181,7 +182,7 @@ router.get('/payments/buscar/:query', authenticateToken, async (req, res) => {
 });
 
 // 🗑️ Eliminar un pago por ID
-router.delete('/payments/:id', authenticateToken, async (req, res) => {
+router.delete('/payments/:id', authenticateToken, requireAdmin, async (req, res) => {
   const paymentId = req.params.id;
 
   try {
@@ -208,7 +209,7 @@ router.delete('/payments/:id', authenticateToken, async (req, res) => {
 });
 
 // 📈 Alumnos activos por mes
-router.get('/alumnos/mensuales', authenticateToken, async (req, res) => {
+router.get('/alumnos/mensuales', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const [results] = await req.db.query(`
       SELECT COALESCE(serviceMonth, DATE_FORMAT(paymentDate,'%Y-%m')) AS mes,
@@ -226,7 +227,7 @@ router.get('/alumnos/mensuales', authenticateToken, async (req, res) => {
 });
 
 // 📊 Estado de abono del mes actual por documento
-router.get('/abono/:documento', authenticateToken, async (req, res) => {
+router.get('/abono/:documento', authenticateToken, requireAdmin, async (req, res) => {
   const { documento } = req.params;
   const mesActual = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).substring(0, 7);
 
@@ -281,7 +282,7 @@ router.get('/abono/:documento', authenticateToken, async (req, res) => {
 });
 
 // 💳 Ingresos por tipo de abono
-router.get('/estadisticas/abonos', authenticateToken, async (req, res) => {
+router.get('/estadisticas/abonos', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const [results] = await req.db.query(`
       SELECT subscriptionType AS tipo_abono, SUM(amount) AS total
@@ -298,7 +299,7 @@ router.get('/estadisticas/abonos', authenticateToken, async (req, res) => {
 // ============================================================
 // PLANES (planes_config)
 // ============================================================
-router.get('/planes', authenticateToken, async (req, res) => {
+router.get('/planes', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const [rows] = await req.db.query('SELECT * FROM planes_config ORDER BY precio ASC');
     res.json(rows);
@@ -308,7 +309,7 @@ router.get('/planes', authenticateToken, async (req, res) => {
   }
 });
 
-router.post('/planes', authenticateToken, async (req, res) => {
+router.post('/planes', authenticateToken, requireAdmin, async (req, res) => {
   const { codigo, nombre, clases, precio } = req.body;
   if (!codigo || !nombre) return res.status(400).json({ error: 'Código y nombre son obligatorios.' });
   try {
@@ -325,7 +326,7 @@ router.post('/planes', authenticateToken, async (req, res) => {
   }
 });
 
-router.put('/planes/:codigo', authenticateToken, async (req, res) => {
+router.put('/planes/:codigo', authenticateToken, requireAdmin, async (req, res) => {
   const { nombre, clases, precio } = req.body;
   if (!nombre) return res.status(400).json({ error: 'El nombre es obligatorio.' });
   try {
@@ -341,7 +342,7 @@ router.put('/planes/:codigo', authenticateToken, async (req, res) => {
   }
 });
 
-router.delete('/planes/:codigo', authenticateToken, async (req, res) => {
+router.delete('/planes/:codigo', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const [result] = await req.db.query('DELETE FROM planes_config WHERE codigo=?', [req.params.codigo]);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Plan no encontrado.' });
@@ -357,7 +358,7 @@ router.delete('/planes/:codigo', authenticateToken, async (req, res) => {
 // ============================================================
 
 // GET /admin/pagos-pendientes
-router.get('/admin/pagos-pendientes', authenticateToken, async (req, res) => {
+router.get('/admin/pagos-pendientes', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const [rows] = await req.db.query(
       `SELECT * FROM pagos_pendientes WHERE estado='pendiente' ORDER BY created_at ASC`
@@ -367,7 +368,7 @@ router.get('/admin/pagos-pendientes', authenticateToken, async (req, res) => {
 });
 
 // POST /admin/pagos-pendientes/:id/confirmar — convierte en pago real
-router.post('/admin/pagos-pendientes/:id/confirmar', authenticateToken, async (req, res) => {
+router.post('/admin/pagos-pendientes/:id/confirmar', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
   try {
     // UPDATE atómico: solo avanza si el estado es 'pendiente', previene doble confirmación
@@ -403,7 +404,7 @@ router.post('/admin/pagos-pendientes/:id/confirmar', authenticateToken, async (r
 });
 
 // DELETE /admin/pagos-pendientes/:id — rechazar
-router.delete('/admin/pagos-pendientes/:id', authenticateToken, async (req, res) => {
+router.delete('/admin/pagos-pendientes/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     await req.db.query(`UPDATE pagos_pendientes SET estado='rechazado' WHERE id=?`, [req.params.id]);
     res.json({ ok: true });
@@ -422,7 +423,7 @@ async function ensureConfigTable(db) {
   _configTableReady.add(db);
 }
 
-router.get('/admin/config-pago', authenticateToken, async (req, res) => {
+router.get('/admin/config-pago', authenticateToken, requireAdmin, async (req, res) => {
   try {
     await ensureConfigTable(req.db);
     const [rows] = await req.db.query(`SELECT clave, valor FROM studio_config WHERE clave LIKE 'pago_%'`);
@@ -432,7 +433,7 @@ router.get('/admin/config-pago', authenticateToken, async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'Error al obtener config.' }); }
 });
 
-router.post('/admin/config-pago', authenticateToken, async (req, res) => {
+router.post('/admin/config-pago', authenticateToken, requireAdmin, async (req, res) => {
   try {
     await ensureConfigTable(req.db);
     const campos = ['cbu', 'alias', 'titular', 'alias_mp', 'titular_mp'];

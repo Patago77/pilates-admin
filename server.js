@@ -24,6 +24,7 @@ const usersRouter   = require('./routes/users');
 const importarRouter = require('./routes/importar');
 
 const { getCorePool } = require('./db');
+const authenticateToken = require('./authMiddleware');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -116,7 +117,7 @@ app.post('/api/login',
         sameSite: 'strict',
         maxAge: 24 * 60 * 60 * 1000, // 24h en ms
       });
-      res.json({ ok: true });
+      res.json({ ok: true, user: { nombre: user.nombre, role: user.role } });
     } catch (error) {
       console.error("❌ Error en el login:", error.message);
       res.status(500).json({ error: "Error interno del servidor" });
@@ -128,6 +129,11 @@ app.post('/api/login',
 app.post('/api/logout', (req, res) => {
   res.clearCookie('admin_token', { httpOnly: true, sameSite: 'strict' });
   res.json({ ok: true });
+});
+
+// ================== ME ==================
+app.get('/api/me', authenticateToken, (req, res) => {
+  res.json({ nombre: req.user.nombre, role: req.user.role });
 });
 
 // ================== RUTAS DE APP (requieren JWT) ==================

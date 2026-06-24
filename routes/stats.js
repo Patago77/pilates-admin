@@ -1,5 +1,6 @@
 const express = require('express');
 const authenticateToken = require('../authMiddleware');
+const { requireAdmin } = require('../authMiddleware');
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ async function ensureConfigTable(db) {
 // ============================================================
 // GET /stats/salud
 // ============================================================
-router.get('/stats/salud', authenticateToken, async (req, res) => {
+router.get('/stats/salud', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const mesActualAR = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).substring(0, 7);
     const [yAR, mAR] = mesActualAR.split('-').map(Number);
@@ -122,7 +123,7 @@ router.get('/stats/salud', authenticateToken, async (req, res) => {
 // GET /stats/reformers  — lee config guardada
 // POST /stats/reformers — guarda config
 // ============================================================
-router.get('/stats/reformers', authenticateToken, async (req, res) => {
+router.get('/stats/reformers', authenticateToken, requireAdmin, async (req, res) => {
   try {
     await ensureConfigTable(req.db);
     const [rows] = await req.db.query(
@@ -140,7 +141,7 @@ router.get('/stats/reformers', authenticateToken, async (req, res) => {
   }
 });
 
-router.post('/stats/reformers', authenticateToken, async (req, res) => {
+router.post('/stats/reformers', authenticateToken, requireAdmin, async (req, res) => {
   try {
     await ensureConfigTable(req.db);
     const campos = ['cantidad', 'precio_clase', 'precio_alquiler', 'sueldo_profe', 'precio_clase_profe', 'alumnos_por_reformer', 'horario'];
@@ -163,7 +164,7 @@ router.post('/stats/reformers', authenticateToken, async (req, res) => {
 // ============================================================
 // GET /stats/informe-mes
 // ============================================================
-router.get('/stats/informe-mes', authenticateToken, async (req, res) => {
+router.get('/stats/informe-mes', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const ahoraAR  = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
     const mesActual = ahoraAR.substring(0, 7);
@@ -242,7 +243,7 @@ router.get('/stats/informe-mes', authenticateToken, async (req, res) => {
 });
 
 // GET /stats/alumnos-aviso?filtro=todos|conAbono|sinPago|inactivos
-router.get('/stats/alumnos-aviso', authenticateToken, async (req, res) => {
+router.get('/stats/alumnos-aviso', authenticateToken, requireAdmin, async (req, res) => {
   const filtro = req.query.filtro || 'todos';
   try {
     let rows;
@@ -291,7 +292,7 @@ router.get('/stats/alumnos-aviso', authenticateToken, async (req, res) => {
 });
 
 // POST /stats/campana-email — envía campaña según filtro de destinatarios
-router.post('/stats/campana-email', authenticateToken, async (req, res) => {
+router.post('/stats/campana-email', authenticateToken, requireAdmin, async (req, res) => {
   const { mensaje, asunto, filtro } = req.body;
   if (!mensaje) return res.status(400).json({ error: 'Falta el mensaje.' });
   try {
@@ -361,7 +362,7 @@ router.get('/stats/agenda-horario', authenticateToken, async (req, res) => {
   }
 });
 
-router.post('/stats/agenda-horario', authenticateToken, async (req, res) => {
+router.post('/stats/agenda-horario', authenticateToken, requireAdmin, async (req, res) => {
   try {
     await ensureConfigTable(req.db);
     const horario = req.body;

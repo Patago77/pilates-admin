@@ -1,12 +1,13 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const authenticateToken = require('../authMiddleware');
+const { requireAdmin } = require('../authMiddleware');
 const { getCorePool } = require('../db');
 
 const router = express.Router();
 
 // GET /api/users — usuarios del estudio actual
-router.get('/users', authenticateToken, async (req, res) => {
+router.get('/users', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const core = getCorePool();
     const [rows] = await core.query(
@@ -21,7 +22,7 @@ router.get('/users', authenticateToken, async (req, res) => {
 });
 
 // POST /api/users — crear usuario
-router.post('/users', authenticateToken, async (req, res) => {
+router.post('/users', authenticateToken, requireAdmin, async (req, res) => {
   const { nombre, email, password, rol } = req.body;
   if (!nombre || !email || !password) return res.status(400).json({ error: 'Todos los campos son obligatorios.' });
   try {
@@ -40,7 +41,7 @@ router.post('/users', authenticateToken, async (req, res) => {
 });
 
 // PUT /api/users/:id — editar usuario
-router.put('/users/:id', authenticateToken, async (req, res) => {
+router.put('/users/:id', authenticateToken, requireAdmin, async (req, res) => {
   const { nombre, email, rol } = req.body;
   try {
     const core = getCorePool();
@@ -55,7 +56,7 @@ router.put('/users/:id', authenticateToken, async (req, res) => {
 });
 
 // PATCH /api/users/:id/active — activar/desactivar
-router.patch('/users/:id/active', authenticateToken, async (req, res) => {
+router.patch('/users/:id/active', authenticateToken, requireAdmin, async (req, res) => {
   const { active } = req.body;
   try {
     const core = getCorePool();
