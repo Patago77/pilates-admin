@@ -633,6 +633,7 @@ async function cargarAlumnos() {
 // ===== ROL DE USUARIO =====
 function applyRoleVisibility(role) {
   _userRole = role || 'admin';
+  window._userRole = _userRole; // expuesto para getUserRole() en index.html
   // Actualiza visibilidad del nav usando ROLE_PAGES del sistema anterior
   if (typeof aplicarPermisos === 'function') aplicarPermisos();
   // Oculta KPIs financieros del dashboard para no-admin
