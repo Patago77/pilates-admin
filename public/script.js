@@ -567,6 +567,15 @@ const API_URL = (() => {
   return "/api";
 })();
 
+// Interceptor global: agrega credentials a todos los fetch hacia la API
+const _origFetch = window.fetch.bind(window);
+window.fetch = function(url, opts = {}) {
+  if (typeof url === 'string' && (url.startsWith(API_URL) || url.includes('/api/'))) {
+    opts = { ...opts, credentials: 'include' };
+  }
+  return _origFetch(url, opts);
+};
+
 
 // ===== FUNCIONES UTILES =====
 function handleError(error, silent = false) {
@@ -583,11 +592,11 @@ function handleError(error, silent = false) {
 }
 
 function getAuthHeaders() {
-  const token = localStorage.getItem("token");
-  return {
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${token}`
-  };
+  return { "Content-Type": "application/json" };
+}
+
+function getAuthFetchOpts(extra = {}) {
+  return { credentials: 'include', ...extra, headers: { ...getAuthHeaders(), ...(extra.headers || {}) } };
 }
 
 function toggleContainers(showApp) {
@@ -621,36 +630,17 @@ async function cargarAlumnos() {
 
 // ===== VERIFICAR AUTENTICACIÓN =====
 async function checkAuth() {
-  const token = localStorage.getItem("token");
-  if (!token) {
-    toggleContainers(false);
-    return false;
-  }
   try {
-    const response = await fetch(`${API_URL}/dashboard`, {
-      method: "GET",
-      headers: getAuthHeaders()
-    });
-    const data = await response.json();
-
-    const kpiIngresos = document.getElementById("kpiIngresos");
-    const kpiActivos = document.getElementById("kpiActivos");
-    const kpiPendientes = document.getElementById("kpiPendientes");
-
-    if (kpiIngresos) kpiIngresos.textContent = `$${Number(data.totalIncome).toLocaleString()}`;
-    if (kpiActivos) kpiActivos.textContent = data.activeStudents ?? 0;
-    if (kpiPendientes) kpiPendientes.textContent = data.pendingPayments ?? 0;
-
-    if (response.status === 401) {
-      localStorage.removeItem("token");
+    const r = await fetch(`${API_URL}/students?limit=1`);
+    if (r.status === 401 || r.status === 403) {
       toggleContainers(false);
       return false;
     }
-
     toggleContainers(true);
     return true;
   } catch (error) {
-    console.error("Error verificando token:", error);
+    console.error("Error verificando sesión:", error);
+    toggleContainers(false);
     return false;
   }
 }
@@ -672,7 +662,6 @@ async function login(event) {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Error al iniciar sesión");
 
-    localStorage.setItem("token", data.token);
     toggleContainers(true);
 
     if (typeof cargarResumenMensual === "function") await cargarResumenMensual();
@@ -1039,9 +1028,8 @@ async function cargarPagos() {
 
 // ===== RECIBO PDF =====
 window.descargarRecibo = function(id) {
-  const token = localStorage.getItem("token");
   const a = document.createElement("a");
-  a.href = `${API_URL}/recibo/${id}?token=${encodeURIComponent(token)}`;
+  a.href = `${API_URL}/recibo/${id}`;
   a.download = `recibo-${id}.pdf`;
   a.click();
 };
@@ -1728,7 +1716,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       cancelButtonText: "Cancelar"
     }).then(result => {
       if (result.isConfirmed) {
-        localStorage.removeItem("token");
+        await fetch(`${API_URL}/logout`, { method: 'POST' });
         location.reload();
       }
     });
@@ -2276,8 +2264,7 @@ window.confirmarReservas = async function() {
 }
 
 function getAuthHeadersUpload() {
-  const token = localStorage.getItem("token");
-  return { "Authorization": `Bearer ${token}` };
+  return {};
 }
 
 // ============================================================

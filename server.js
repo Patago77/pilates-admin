@@ -7,6 +7,7 @@ const bcrypt = require('bcrypt');
 const dotenv = require('dotenv');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 const { body, validationResult } = require('express-validator');
 
 dotenv.config();
@@ -45,6 +46,7 @@ app.use(cors({
   credentials: false,
 }));
 
+app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(express.static('public'));
@@ -104,16 +106,29 @@ app.post('/api/login',
           studio_db: user.studio_db,
         },
         SECRET_KEY,
-        { expiresIn: '7d' }
+        { expiresIn: '24h' }
       );
 
-      res.json({ token });
+      const isProd = process.env.NODE_ENV === 'production';
+      res.cookie('admin_token', token, {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60 * 1000, // 24h en ms
+      });
+      res.json({ ok: true });
     } catch (error) {
       console.error("❌ Error en el login:", error.message);
       res.status(500).json({ error: "Error interno del servidor" });
     }
   }
 );
+
+// ================== LOGOUT ==================
+app.post('/api/logout', (req, res) => {
+  res.clearCookie('admin_token', { httpOnly: true, sameSite: 'strict' });
+  res.json({ ok: true });
+});
 
 // ================== RUTAS DE APP (requieren JWT) ==================
 app.use('/api', paymentsRouter);

@@ -19,8 +19,9 @@ if (!SECRET_KEY) {
  */
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
-  // Acepta token por header o por query param (solo para descargas directas como PDF)
-  const token = (authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null)
+  // Cookie httpOnly (admin panel) → header Authorization (fallback) → query param (descarga PDF)
+  const token = req.cookies?.admin_token
+                || (authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null)
                 || req.query.token || null;
 
   if (!token) {
