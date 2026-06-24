@@ -636,7 +636,7 @@ function applyRoleVisibility(role) {
   const restricted = ['movimientos', 'metricas', 'gastos', 'diagnostico', 'avisos', 'usuarios'];
   restricted.forEach(page => {
     const item = document.querySelector(`[data-sa-page="${page}"]`);
-    if (item) item.style.display = (_userRole === 'instructor') ? 'none' : '';
+    if (item) item.style.display = (_userRole !== 'admin') ? 'none' : '';
   });
 }
 
