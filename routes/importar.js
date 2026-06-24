@@ -86,7 +86,7 @@ router.post('/importar/preview', authenticateToken, upload.single('csv'), async 
     });
   } catch (err) {
     console.error('❌ Error preview:', err.message, err.stack);
-    res.status(500).json({ error: 'Error al procesar el archivo: ' + err.message });
+    res.status(500).json({ error: 'Error al procesar el archivo.' });
   }
 });
 
@@ -218,7 +218,7 @@ router.post('/importar/clientes', authenticateToken, upload.single('csv'), async
     });
   } catch (err) {
     console.error('❌ Error importar clientes:', err.message);
-    res.status(500).json({ error: 'Error al importar clientes: ' + err.message });
+    res.status(500).json({ error: 'Error al importar clientes.' });
   }
 });
 
@@ -314,7 +314,7 @@ router.post('/importar/agenda/preview', authenticateToken, upload.single('csv'),
     res.json({ resumen, registros: preview });
   } catch (err) {
     console.error('❌ Error preview agenda:', err.message);
-    res.status(500).json({ error: 'Error al procesar: ' + err.message });
+    res.status(500).json({ error: 'Error al procesar.' });
   }
 });
 
@@ -405,7 +405,7 @@ router.post('/importar/agenda/confirmar', authenticateToken, upload.single('csv'
     });
   } catch (err) {
     console.error('❌ Error importar agenda:', err.message);
-    res.status(500).json({ error: 'Error al importar reservas: ' + err.message });
+    res.status(500).json({ error: 'Error al importar reservas.' });
   }
 });
 

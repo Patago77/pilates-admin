@@ -62,10 +62,6 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true, ts: new Date().toISOString() });
 });
 
-// Ruta de prueba
-app.get('/api/test', (req, res) => {
-  res.json({ message: "✅ El servidor responde correctamente." });
-});
 
 // ================== LOGIN (core_db) ==================
 app.post('/api/login',
