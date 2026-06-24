@@ -685,14 +685,19 @@ async function login(event) {
     toggleContainers(true);
     applyRoleVisibility(data.user?.role);
 
-    if (typeof cargarResumenMensual === "function") await cargarResumenMensual();
-    if (typeof cargarDashboard === "function") await cargarDashboard();
-    if (typeof cargarPagos === "function") await cargarPagos();
-    if (typeof cargarAlumnos === "function") await cargarAlumnos();
-    if (typeof cargarSerieMensual === "function") {
-      setTimeout(() => cargarSerieMensual(), 100);
+    if (_userRole !== 'admin') {
+      if (typeof cargarFeriados === "function") await cargarFeriados();
+      if (typeof saGoPage === "function") saGoPage('agenda');
+    } else {
+      if (typeof cargarResumenMensual === "function") await cargarResumenMensual();
+      if (typeof cargarDashboard === "function") await cargarDashboard();
+      if (typeof cargarPagos === "function") await cargarPagos();
+      if (typeof cargarAlumnos === "function") await cargarAlumnos();
+      if (typeof cargarSerieMensual === "function") {
+        setTimeout(() => cargarSerieMensual(), 100);
+      }
+      if (typeof cargarTarjetasEstadoMes === "function") await cargarTarjetasEstadoMes();
     }
-    if (typeof cargarTarjetasEstadoMes === "function") await cargarTarjetasEstadoMes();
 
     Swal.fire({ didOpen: () => { document.querySelector(".swal2-container").style.zIndex = "99999"; },
       toast: true,
@@ -1540,18 +1545,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   const autenticado = await checkAuth();
 
   if (autenticado) {
-    if (typeof cargarResumenMensual     === "function") await cargarResumenMensual();
-    if (typeof cargarDashboard          === "function") await cargarDashboard();
-    if (typeof cargarPagos              === "function") await cargarPagos();
-    if (typeof cargarAlumnos            === "function") await cargarAlumnos();
-    if (typeof cargarSerieMensual       === "function") await cargarSerieMensual();
-    if (typeof cargarTarjetasEstadoMes  === "function") await cargarTarjetasEstadoMes();
-    if (typeof cargarSaludEstudio        === "function") await cargarSaludEstudio();
-    if (typeof cargarReformers            === "function") await cargarReformers();
-    if (typeof cargarInformeMes           === "function") await cargarInformeMes();
-    if (typeof cargarPlanes               === "function") await cargarPlanes();
-    if (typeof cargarFeriados             === "function") await cargarFeriados();
-    wireTarjetasUI();
+    if (_userRole !== 'admin') {
+      if (typeof cargarFeriados === "function") await cargarFeriados();
+      if (typeof saGoPage === "function") saGoPage('agenda');
+    } else {
+      if (typeof cargarResumenMensual     === "function") await cargarResumenMensual();
+      if (typeof cargarDashboard          === "function") await cargarDashboard();
+      if (typeof cargarPagos              === "function") await cargarPagos();
+      if (typeof cargarAlumnos            === "function") await cargarAlumnos();
+      if (typeof cargarSerieMensual       === "function") await cargarSerieMensual();
+      if (typeof cargarTarjetasEstadoMes  === "function") await cargarTarjetasEstadoMes();
+      if (typeof cargarSaludEstudio        === "function") await cargarSaludEstudio();
+      if (typeof cargarReformers            === "function") await cargarReformers();
+      if (typeof cargarInformeMes           === "function") await cargarInformeMes();
+      if (typeof cargarPlanes               === "function") await cargarPlanes();
+      if (typeof cargarFeriados             === "function") await cargarFeriados();
+      wireTarjetasUI();
+    }
   }
 
   // ===== MODAL NUEVO ALUMNO =====
