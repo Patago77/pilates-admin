@@ -446,21 +446,21 @@ small { color: var(--muted) !important; }
       <!-- DASHBOARD -->
       <div id="paginaDashboard" class="sa-page active">
         <div class="sa-kpi-row">
-          <div class="sa-kpi">
+          <div class="sa-kpi admin-only-kpi">
             <div class="sa-kpi-accent" style="background:rgba(109,40,217,.07);"></div>
             <div class="sa-kpi-lbl">Ingresos del mes</div>
             <div id="kpiIncome" class="sa-kpi-val">$ 0</div>
             <div class="sa-kpi-sub">Total cobrado</div>
             <div class="mt-3"><button class="btn btn-outline-secondary btn-sm w-100" onclick="abrirModalMesHistorico()">Ver otro mes</button></div>
           </div>
-          <div class="sa-kpi">
+          <div class="sa-kpi admin-only-kpi">
             <div class="sa-kpi-accent" style="background:rgba(226,75,74,.07);"></div>
             <div class="sa-kpi-lbl">Gastos del mes</div>
             <div id="kpiGastos" class="sa-kpi-val">$ 0</div>
             <div class="sa-kpi-sub">Total gastado</div>
             <div class="mt-3"><button class="btn btn-outline-secondary btn-sm w-100" onclick="abrirModalGastosMes()">Ver detalle</button></div>
           </div>
-          <div class="sa-kpi">
+          <div class="sa-kpi admin-only-kpi">
             <div class="sa-kpi-accent" style="background:rgba(29,158,117,.07);"></div>
             <div class="sa-kpi-lbl">Saldo del mes</div>
             <div id="kpiSaldo" class="sa-kpi-val">$ 0</div>
@@ -1966,18 +1966,12 @@ small { color: var(--muted) !important; }
 <script>
 // ── PERMISOS POR ROL ──
 const ROLE_PAGES = {
-  admin:     ["dashboard","movimientos","asistencias","agenda","metricas","alumnos","abonos","gastos","diagnostico","avisos","usuarios"],
-  recepcion: ["dashboard","movimientos","asistencias","agenda","alumnos","abonos"],
-  viewer:    ["dashboard"]
+  admin:  ["dashboard","movimientos","asistencias","agenda","metricas","alumnos","abonos","gastos","diagnostico","avisos","usuarios"],
+  viewer: ["dashboard","asistencias","agenda","alumnos","abonos"]
 };
 
 function getUserRole() {
-  try {
-    const token = localStorage.getItem("token");
-    if (!token) return "viewer";
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.role || payload.rol || "viewer";
-  } catch(e) { return "viewer"; }
+  return window._userRole || 'admin';
 }
 
 function aplicarPermisos() {

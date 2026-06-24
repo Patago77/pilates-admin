@@ -633,10 +633,11 @@ async function cargarAlumnos() {
 // ===== ROL DE USUARIO =====
 function applyRoleVisibility(role) {
   _userRole = role || 'admin';
-  const restricted = ['movimientos', 'metricas', 'gastos', 'diagnostico', 'avisos', 'usuarios'];
-  restricted.forEach(page => {
-    const item = document.querySelector(`[data-sa-page="${page}"]`);
-    if (item) item.style.display = (_userRole !== 'admin') ? 'none' : '';
+  // Actualiza visibilidad del nav usando ROLE_PAGES del sistema anterior
+  if (typeof aplicarPermisos === 'function') aplicarPermisos();
+  // Oculta KPIs financieros del dashboard para no-admin
+  document.querySelectorAll('.admin-only-kpi').forEach(el => {
+    el.style.display = (_userRole !== 'admin') ? 'none' : '';
   });
 }
 
