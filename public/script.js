@@ -1714,7 +1714,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       showCancelButton: true,
       confirmButtonText: "Sí, cerrar sesión",
       cancelButtonText: "Cancelar"
-    }).then(result => {
+    }).then(async result => {
       if (result.isConfirmed) {
         await fetch(`${API_URL}/logout`, { method: 'POST' });
         location.reload();
