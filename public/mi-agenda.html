@@ -642,11 +642,10 @@ async function reservar(fecha, hora) {
     });
     const d = await r.json();
     if (r.status === 403) {
-      // Abono agotado o sin abono
       fb.className = 'feedback err';
       fb.textContent = d.error;
-      // Refrescar el banner de estado
-      cargarEstadoAbono();
+      await cargarEstadoAbono();
+      await cargarSlots(fecha);
       return;
     }
     if (!r.ok) { fb.className='feedback err'; fb.textContent=d.error; return; }
