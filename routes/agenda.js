@@ -146,6 +146,46 @@ router.get('/alumno/mis-reservas', authAlumno, async (req, res) => {
   }
 });
 
+// GET /api/alumno/historial/:mes — próximas + historial del mes para el alumno
+router.get('/alumno/historial/:mes', authAlumno, async (req, res) => {
+  const { mes } = req.params;
+  if (!/^\d{4}-\d{2}$/.test(mes)) return res.status(400).json({ error: 'Mes inválido.' });
+  const { getStudioPool } = require('../db');
+  const db = getStudioPool(req.alumno.studio_db);
+  const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+  const inicioMes = `${mes}-01`;
+  const [y, m] = mes.split('-').map(Number);
+  const finMes = new Date(y, m, 0).toISOString().split('T')[0];
+
+  try {
+    // Próximas: confirmadas desde hoy
+    const [proximas] = await db.query(
+      `SELECT id, fecha, hora FROM agenda_reservas
+       WHERE documento = ? AND estado = 'confirmado' AND fecha >= ?
+       ORDER BY fecha ASC, hora ASC`,
+      [req.alumno.documento, hoy]
+    );
+
+    // Historial: pasadas (confirmadas o canceladas) del mes
+    const [historial] = await db.query(
+      `SELECT ar.id, ar.fecha, ar.hora, ar.estado, ar.clase_devuelta, ar.motivo_consumo,
+              IF(a.id IS NOT NULL, 1, 0) AS asistio
+       FROM agenda_reservas ar
+       LEFT JOIN attendance a ON a.documento = ar.documento AND a.fecha = ar.fecha
+       WHERE ar.documento = ?
+         AND ar.fecha BETWEEN ? AND ?
+         AND (ar.estado = 'cancelado' OR (ar.estado = 'confirmado' AND ar.fecha < ?))
+       ORDER BY ar.fecha DESC, ar.hora DESC`,
+      [req.alumno.documento, inicioMes, finMes, hoy]
+    );
+
+    res.json({ proximas, historial });
+  } catch (err) {
+    console.error('❌ Error historial alumno:', err.message);
+    res.status(500).json({ error: 'Error al obtener historial.' });
+  }
+});
+
 // GET /api/agenda/disponibilidad/:fecha — slots del día con disponibilidad
 router.get('/agenda/disponibilidad/:fecha', authAlumno, async (req, res) => {
   const { fecha } = req.params;
@@ -567,7 +607,7 @@ async function calcularEstadoAbono(db, documento, mes) {
                       .toISOString().split('T')[0];
 
   // 2. Clases asistidas en el período (solo hasta hoy — no contar clases futuras)
-  const hoy = new Date().toISOString().split('T')[0];
+  const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
   const [[{ asistidas }]] = await db.query(
     `SELECT COUNT(*) AS asistidas FROM attendance
      WHERE documento = ? AND fecha BETWEEN ? AND ? AND fecha <= ?`,
@@ -582,9 +622,9 @@ async function calcularEstadoAbono(db, documento, mes) {
     [documento, inicioMes, finMes]
   );
 
-  const confirmadas    = reservas.filter(r => r.estado === 'confirmado').length;
-  const cancelDevuelta = reservas.filter(r => r.estado === 'cancelado' && r.clase_devuelta === 1).length;
-  const cancelPerdida  = reservas.filter(r => r.estado === 'cancelado' && r.clase_devuelta === 0).length;
+  const confirmadasFuturas = reservas.filter(r => r.estado === 'confirmado' && r.fecha >= hoy).length;
+  const cancelDevuelta     = reservas.filter(r => r.estado === 'cancelado' && r.clase_devuelta === 1).length;
+  const cancelPerdida      = reservas.filter(r => r.estado === 'cancelado' && r.clase_devuelta === 0).length;
 
   // 4. Ausencias: reservas confirmadas sin asistencia (solo fechas pasadas)
   const ausencias_query = await db.query(
@@ -633,7 +673,7 @@ async function calcularEstadoAbono(db, documento, mes) {
     extra_admin:  parseInt(extra),
     consumidas,
     restantes,
-    reservas_activas: confirmadas
+    reservas_activas: confirmadasFuturas
   };
 }
 
@@ -711,6 +751,18 @@ router.post('/admin/abono/devolver', authenticateToken, async (req, res) => {
 // ================================================================
 // PAGOS PENDIENTES — lado alumno
 // ================================================================
+
+// GET /api/alumno/planes — lista de planes disponibles para el alumno (modal declarar pago)
+router.get('/alumno/planes', authAlumno, async (req, res) => {
+  const { getStudioPool } = require('../db');
+  const db = getStudioPool(req.alumno.studio_db);
+  try {
+    const [rows] = await db.query('SELECT codigo, nombre, clases, precio FROM planes_config ORDER BY precio ASC');
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Error al obtener planes.' });
+  }
+});
 
 // GET /api/alumno/config-pago — devuelve CBU/alias al alumno logueado
 router.get('/alumno/config-pago', authAlumno, async (req, res) => {
