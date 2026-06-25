@@ -661,7 +661,12 @@ async function calcularEstadoAbono(db, documento, mes) {
     abono_activo: abonoActivo,
     abono_agotado: abonoAgotado,
     sin_pago_registrado: !!(pago?._sinPago),  // activo por plan_actual pero sin pago este mes
-    plan: pago ? { codigo: pago.subscriptionType, nombre: pago.plan_nombre, clases: clasesPlan, monto: pago.amount } : null,
+    plan: pago ? {
+      codigo:  pago.subscriptionType,
+      nombre:  pagos.length > 1 ? `${clasesPlan} clases (${pagos.length} abonos)` : pago.plan_nombre,
+      clases:  clasesPlan,
+      monto:   pago.amount
+    } : null,
     clases_plan: clasesPlan,
     asistidas,
     ausencias,
