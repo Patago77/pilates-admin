@@ -334,22 +334,7 @@ router.post('/importar/agenda/confirmar', authenticateToken, upload.single('csv'
       mapaNombre[normalizarNombre(a.nombre)] = a;
     });
 
-    // Cargar cupo actual por slot para respetar la capacidad durante el import
     const CAPACIDAD = 5;
-    const fechas = [...new Set(futuros.map(r => r.fechaISO))];
-    const cupoActual = {};
-    if (fechas.length) {
-      const [ocupados] = await req.db.query(
-        `SELECT fecha, hora, COUNT(*) AS n FROM agenda_reservas
-         WHERE fecha IN (${fechas.map(() => '?').join(',')}) AND estado = 'confirmado'
-         GROUP BY fecha, hora`,
-        fechas
-      );
-      ocupados.forEach(o => {
-        const key = `${o.fecha instanceof Date ? o.fecha.toISOString().split('T')[0] : String(o.fecha).split('T')[0]}|${o.hora}`;
-        cupoActual[key] = o.n;
-      });
-    }
 
     let importados    = 0;
     let duplicados    = 0;
@@ -357,44 +342,63 @@ router.post('/importar/agenda/confirmar', authenticateToken, upload.single('csv'
     let sinCupo       = 0;
     const noEncontradosNombres = new Set();
 
-    for (const r of futuros) {
-      let docFinal = null;
-      if (r.documento && mapaDoc[r.documento]) {
-        docFinal = r.documento;
-      } else {
-        const norm = normalizarNombre(r.cliente);
-        if (mapaNombre[norm]) {
-          docFinal = mapaNombre[norm].documento;
+    const conn = await req.db.getConnection();
+    await conn.beginTransaction();
+    try {
+      const cupoActual = {};
+
+      for (const r of futuros) {
+        let docFinal = null;
+        if (r.documento && mapaDoc[r.documento]) {
+          docFinal = r.documento;
         } else {
-          const palabras = norm.split(' ').filter(p => p.length > 2);
-          const encontrado = alumnos.find(a => {
-            const na = normalizarNombre(a.nombre);
-            return palabras.length >= 2 && palabras.every(p => na.includes(p));
-          });
-          if (encontrado) docFinal = encontrado.documento;
+          const norm = normalizarNombre(r.cliente);
+          if (mapaNombre[norm]) {
+            docFinal = mapaNombre[norm].documento;
+          } else {
+            const palabras = norm.split(' ').filter(p => p.length > 2);
+            const encontrado = alumnos.find(a => {
+              const na = normalizarNombre(a.nombre);
+              return palabras.length >= 2 && palabras.every(p => na.includes(p));
+            });
+            if (encontrado) docFinal = encontrado.documento;
+          }
         }
-      }
 
-      if (!docFinal) { noEncontrados++; noEncontradosNombres.add(r.cliente); continue; }
+        if (!docFinal) { noEncontrados++; noEncontradosNombres.add(r.cliente); continue; }
 
-      const slotKey = `${r.fechaISO}|${r.hora}`;
-      if ((cupoActual[slotKey] || 0) >= CAPACIDAD) { sinCupo++; continue; }
+        const slotKey = `${r.fechaISO}|${r.hora}`;
 
-      try {
-        const [result] = await req.db.query(
+        // Leer cupo con lock la primera vez que vemos este slot en la transacción
+        if (cupoActual[slotKey] === undefined) {
+          const [[row]] = await conn.query(
+            `SELECT COUNT(*) AS n FROM agenda_reservas
+             WHERE fecha = ? AND hora = ? AND estado = 'confirmado' FOR UPDATE`,
+            [r.fechaISO, r.hora]
+          );
+          cupoActual[slotKey] = Number(row.n);
+        }
+
+        if (cupoActual[slotKey] >= CAPACIDAD) { sinCupo++; continue; }
+
+        const [result] = await conn.query(
           `INSERT IGNORE INTO agenda_reservas (fecha, hora, documento, estado) VALUES (?, ?, ?, 'confirmado')`,
           [r.fechaISO, r.hora, docFinal]
         );
         if (result.affectedRows > 0) {
           importados++;
-          cupoActual[slotKey] = (cupoActual[slotKey] || 0) + 1;
+          cupoActual[slotKey]++;
         } else {
           duplicados++;
         }
-      } catch (e) {
-        if (e.code === 'ER_DUP_ENTRY') duplicados++;
-        else throw e;
       }
+
+      await conn.commit();
+    } catch (e) {
+      await conn.rollback();
+      throw e;
+    } finally {
+      conn.release();
     }
 
     res.json({
