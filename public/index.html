@@ -391,7 +391,8 @@ small { color: var(--muted) !important; }
     <div class="sa-nav-lbl">Principal</div>
     <div class="sa-nav-item active" data-sa-page="dashboard">
       <div class="sa-nav-dot"></div><span>Dashboard</span>
-      <span id="badgeTransferencias" style="display:none;background:#E24B4A;color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:auto;"></span>
+      <span id="badgeTransferencias" style="display:none;background:#E24B4A;color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px;"></span>
+      <span id="badgeSolicitudes" style="display:none;background:#059669;color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px;"></span>
     </div>
     <div class="sa-nav-item" data-sa-page="movimientos">
       <div class="sa-nav-dot"></div><span>Movimientos</span>
@@ -512,6 +513,17 @@ small { color: var(--muted) !important; }
             <button onclick="cargarTransferenciasPendientes()" class="btn btn-sm btn-outline-warning">Actualizar</button>
           </div>
           <div class="sa-card-body" id="listaTransferenciasPendientes">
+            <div class="text-center text-muted py-3">Cargando…</div>
+          </div>
+        </div>
+
+        <!-- ── Panel: Solicitudes de clases adicionales ── -->
+        <div id="panelSolicitudesClases" class="sa-card mb-3" style="display:none;">
+          <div class="sa-card-hd" style="background:#f0fdf4;border-bottom:1px solid #bbf7d0;">
+            <span class="sa-card-ttl" style="color:#166534;">📩 Solicitudes de clases adicionales</span>
+            <button onclick="cargarSolicitudesClases()" class="btn btn-sm btn-outline-success">Actualizar</button>
+          </div>
+          <div class="sa-card-body" id="listaSolicitudesClases">
             <div class="text-center text-muted py-3">Cargando…</div>
           </div>
         </div>

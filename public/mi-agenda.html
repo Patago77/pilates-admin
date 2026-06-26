@@ -251,7 +251,7 @@
           <li>Si cancelás con <strong>menos de 12 horas</strong>, la clase <strong>se descuenta del abono igual</strong></li>
           <li>Solo podés reservar <strong>una clase por día</strong></li>
           <li>El abono <strong>no se traslada al mes siguiente</strong> — vence el último día del mes</li>
-          <li>Si agotás tu abono, contactá con la recepción para renovarlo</li>
+          <li>Si agotás tu cupo, podés solicitar clases adicionales directamente desde acá</li>
           <li>No hay clases los sábados ni domingos</li>
         </ul>
       </div>
@@ -647,6 +647,27 @@ async function reservar(fecha, hora) {
       fb.textContent = d.error;
       await cargarEstadoAbono();
       await cargarSlots(fecha);
+      if (d.codigo === 'ABONO_AGOTADO' && d.solicitar) {
+        const mesActual = fecha.substring(0, 7);
+        const precioTexto = d.precio_suelta > 0
+          ? `Precio estimado por clase adicional: <b>$${d.precio_suelta.toLocaleString('es-AR')}</b><br><br>`
+          : '';
+        const { isConfirmed, value } = await Swal.fire({
+          icon: 'info',
+          title: 'Cupo agotado',
+          html: `<p style="margin:0 0 8px;">${d.mensaje}</p>
+                 ${precioTexto}
+                 <p style="margin:0 0 10px;font-size:13px;color:#555;">Si ya realizaste el pago, avisanos y el administrador habilitará tus clases adicionales.</p>
+                 <textarea id="swal-nota" placeholder="Ej: ya transferí $X por las clases adicionales"
+                   style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;resize:none;" rows="3"></textarea>`,
+          showCancelButton: true,
+          confirmButtonText: '📩 Enviar solicitud',
+          cancelButtonText: 'Cerrar',
+          confirmButtonColor: '#059669',
+          preConfirm: () => document.getElementById('swal-nota').value.trim()
+        });
+        if (isConfirmed) await solicitarClasesExtra(mesActual, value);
+      }
       return;
     }
     if (!r.ok) { fb.className='feedback err'; fb.textContent=d.error; return; }
@@ -664,6 +685,29 @@ async function reservar(fecha, hora) {
       timerProgressBar: true
     });
   } catch(e) { fb.className='feedback err'; fb.textContent='Error al reservar.'; }
+}
+
+async function solicitarClasesExtra(mes, nota) {
+  try {
+    const r = await fetch(`${API}/alumno/solicitar-clases`, {
+      method: 'POST', headers: hdrs(),
+      body: JSON.stringify({ mes, cantidad: 1, nota_alumna: nota || null })
+    });
+    const d = await r.json();
+    if (!r.ok) {
+      await Swal.fire({ icon: 'warning', title: 'Atención', text: d.error, confirmButtonColor: '#6D28D9' });
+      return;
+    }
+    await Swal.fire({
+      icon: 'success',
+      title: '¡Solicitud enviada!',
+      text: 'El administrador revisará tu solicitud y habilitará las clases adicionales pronto.',
+      confirmButtonText: 'Entendido',
+      confirmButtonColor: '#059669'
+    });
+  } catch(e) {
+    await Swal.fire({ icon: 'error', title: 'Error', text: 'Error de conexión.', confirmButtonColor: '#6D28D9' });
+  }
 }
 
 async function cancelarPorId(id, fecha, hora) {

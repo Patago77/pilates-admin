@@ -297,9 +297,11 @@ router.post('/agenda/reservar', authAlumno, async (req, res) => {
 
     if (estadoAbono.abono_agotado || (estadoAbono.consumidas + futuras) >= estadoAbono.clases_plan) {
       return res.status(403).json({
-        error: 'Ya tenés todas tus clases del mes reservadas o usadas.',
+        error: 'Ya usaste todas tus clases del mes.',
         codigo: 'ABONO_AGOTADO',
-        mensaje: `Usaste o reservaste ${estadoAbono.consumidas + futuras} de ${estadoAbono.clases_plan} clases. Contactá con la recepción para ampliar o renovar tu abono.`
+        solicitar: true,
+        precio_suelta: estadoAbono.precio_clase_suelta,
+        mensaje: `Usaste o reservaste ${estadoAbono.consumidas + futuras} de ${estadoAbono.clases_plan} clases.`
       });
     }
 
@@ -574,19 +576,20 @@ async function calcularEstadoAbono(db, documento, mes) {
   // 1. Todos los pagos del mes (sin LIMIT) para sumar clases de planes múltiples
   // Ejemplo: plan_4 (4 clases) + clase_suelta (1 clase) = 5 clases en total
   const [pagos] = await db.query(
-    `SELECT p.subscriptionType, pc.nombre AS plan_nombre, COALESCE(pc.clases, 0) AS clases_plan,
-            p.amount, p.paymentDate,
+    `SELECT p.subscriptionType, pc.nombre AS plan_nombre,
+            COALESCE(p.clases_asignadas, pc.clases, 0) AS clases_plan,
+            p.amount, p.paymentDate, p.clases_asignadas,
             COALESCE(p.serviceMonth, DATE_FORMAT(p.paymentDate,'%Y-%m')) AS mes_servicio
      FROM payments p
      LEFT JOIN planes_config pc ON pc.codigo = p.subscriptionType
      WHERE p.documento = ?
        AND COALESCE(p.serviceMonth, DATE_FORMAT(p.paymentDate,'%Y-%m')) = ?
-     ORDER BY COALESCE(pc.clases, 0) DESC, p.paymentDate DESC`,
+     ORDER BY COALESCE(p.clases_asignadas, pc.clases, 0) DESC, p.paymentDate DESC`,
     [documento, mes]
   );
   // Plan principal = el que tiene más clases (primero tras ordenar)
   let pago = pagos[0] || null;
-  // Total de clases = suma de todos los pagos del mes
+  // Total de clases = suma de todos los pagos del mes (respeta clases_asignadas si está seteado)
   let clasesPlan = pagos.reduce((sum, p) => sum + (parseInt(p.clases_plan) || 0), 0);
 
   // Si no hay pago este mes, intentar con plan_actual del perfil del alumno
@@ -656,6 +659,12 @@ async function calcularEstadoAbono(db, documento, mes) {
   const abonoActivo = pago !== null;
   const abonoAgotado = abonoActivo && clasesPlan > 0 && restantes === 0;
 
+  // 9. Precio por clase suelta = monto total del mes / clases totales del plan
+  const montoTotal = pagos.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+  const precioSuelta = clasesPlan > 0 && montoTotal > 0
+    ? Math.ceil(montoTotal / clasesPlan)
+    : 0;
+
   return {
     mes,
     abono_activo: abonoActivo,
@@ -675,10 +684,11 @@ async function calcularEstadoAbono(db, documento, mes) {
       perdidas:    cancelPerdida,
       disponibles: Math.max(0, 2 - cancelDevuelta)
     },
-    extra_admin:  parseInt(extra),
+    extra_admin:     parseInt(extra),
     consumidas,
     restantes,
-    reservas_activas: confirmadasFuturas
+    reservas_activas:   confirmadasFuturas,
+    precio_clase_suelta: precioSuelta
   };
 }
 
@@ -976,6 +986,97 @@ router.get('/admin/agenda/feriado/:fecha', authenticateToken, async (req, res) =
     f.horas = f.horas ? JSON.parse(f.horas) : null;
     res.json(f);
   } catch(err) { res.status(500).json({ error: 'Error.' }); }
+});
+
+// ================================================================
+// SOLICITUDES DE CLASES ADICIONALES
+// ================================================================
+
+// POST /api/alumno/solicitar-clases — alumna solicita clases extra cuando agotó su cupo
+router.post('/alumno/solicitar-clases', authAlumno, async (req, res) => {
+  const { getStudioPool } = require('../db');
+  const db = getStudioPool(req.alumno.studio_db);
+  const { cantidad = 1, nota_alumna, mes } = req.body;
+  const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+  const mesFinal = mes || hoy.substring(0, 7);
+
+  try {
+    // Evitar solicitud duplicada pendiente en el mismo mes
+    const [dup] = await db.query(
+      `SELECT id FROM solicitudes_clases WHERE documento = ? AND mes = ? AND estado = 'pendiente'`,
+      [req.alumno.documento, mesFinal]
+    );
+    if (dup.length) {
+      return res.status(409).json({ error: 'Ya tenés una solicitud pendiente para este mes. Esperá que el administrador la revise.' });
+    }
+
+    await db.query(
+      `INSERT INTO solicitudes_clases (documento, mes, cantidad, nota_alumna) VALUES (?, ?, ?, ?)`,
+      [req.alumno.documento, mesFinal, parseInt(cantidad) || 1, nota_alumna || null]
+    );
+    res.json({ ok: true, mensaje: 'Solicitud enviada. Te avisaremos cuando el administrador la apruebe.' });
+  } catch (err) {
+    console.error('❌ Error solicitar clases:', err.message);
+    res.status(500).json({ error: 'Error al enviar la solicitud.' });
+  }
+});
+
+// GET /api/admin/solicitudes-clases — lista solicitudes pendientes
+router.get('/admin/solicitudes-clases', authenticateToken, async (req, res) => {
+  const estado = req.query.estado || 'pendiente';
+  try {
+    const [rows] = await req.db.query(
+      `SELECT sc.*, s.fullName AS nombre_alumna
+       FROM solicitudes_clases sc
+       LEFT JOIN students s ON s.documento = sc.documento
+       WHERE sc.estado = ?
+       ORDER BY sc.created_at DESC
+       LIMIT 50`,
+      [estado]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('❌ Error solicitudes:', err.message);
+    res.status(500).json({ error: 'Error al obtener solicitudes.' });
+  }
+});
+
+// POST /api/admin/solicitudes-clases/:id/aprobar — aprueba y agrega clases a clases_extra
+router.post('/admin/solicitudes-clases/:id/aprobar', authenticateToken, async (req, res) => {
+  try {
+    const [[sol]] = await req.db.query('SELECT * FROM solicitudes_clases WHERE id = ?', [req.params.id]);
+    if (!sol) return res.status(404).json({ error: 'Solicitud no encontrada.' });
+    if (sol.estado !== 'pendiente') return res.status(409).json({ error: 'La solicitud ya fue procesada.' });
+
+    await req.db.query(
+      `INSERT INTO clases_extra (documento, mes, cantidad, motivo, creado_por)
+       VALUES (?, ?, ?, 'Clases adicionales aprobadas por solicitud del portal', ?)`,
+      [sol.documento, sol.mes, sol.cantidad, req.user.email]
+    );
+    await req.db.query(
+      `UPDATE solicitudes_clases SET estado = 'aprobada', aprobado_por = ?, aprobado_en = NOW() WHERE id = ?`,
+      [req.user.email, req.params.id]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('❌ Error aprobar solicitud:', err.message);
+    res.status(500).json({ error: 'Error al aprobar.' });
+  }
+});
+
+// POST /api/admin/solicitudes-clases/:id/rechazar
+router.post('/admin/solicitudes-clases/:id/rechazar', authenticateToken, async (req, res) => {
+  try {
+    const [result] = await req.db.query(
+      `UPDATE solicitudes_clases SET estado = 'rechazada', aprobado_por = ?, aprobado_en = NOW() WHERE id = ?`,
+      [req.user.email, req.params.id]
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: 'Solicitud no encontrada.' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('❌ Error rechazar solicitud:', err.message);
+    res.status(500).json({ error: 'Error al rechazar.' });
+  }
 });
 
 module.exports = router;

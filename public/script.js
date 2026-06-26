@@ -1345,6 +1345,9 @@ async function cargarDashboard() {
     // Transferencias pendientes de confirmar (Opción C)
     if (typeof cargarTransferenciasPendientes === 'function') cargarTransferenciasPendientes();
 
+    // Solicitudes de clases adicionales de alumnas
+    if (typeof cargarSolicitudesClases === 'function') cargarSolicitudesClases();
+
     // Panel cobranza 1-10
     cargarPanelCobroMes(data.upcomingPayments?.length ?? 0, data.totalActivos ?? 0, data.ingresosMes ?? 0);
   } catch (error) {
@@ -2893,4 +2896,66 @@ window.agregarFeriado = async function() {
   document.getElementById('nuevoFeriadoFecha').value = '';
   document.getElementById('nuevoFeriadoNombre').value = '';
   cargarFeriados();
+};
+
+// ─────────────────────────────────────────────────────────────────
+// SOLICITUDES DE CLASES ADICIONALES
+// ─────────────────────────────────────────────────────────────────
+async function cargarSolicitudesClases() {
+  const panel = document.getElementById('panelSolicitudesClases');
+  const lista = document.getElementById('listaSolicitudesClases');
+  const badge = document.getElementById('badgeSolicitudes');
+  if (!panel || !lista) return;
+  try {
+    const r = await fetch(`${API_URL}/admin/solicitudes-clases?estado=pendiente`, { headers: getAuthHeaders() });
+    if (!r.ok) { lista.innerHTML = '<div class="text-danger small p-2">Error al cargar.</div>'; return; }
+    const rows = await r.json();
+
+    if (!rows.length) {
+      panel.style.display = 'none';
+      badge.style.display = 'none';
+      return;
+    }
+
+    panel.style.display = 'block';
+    badge.style.display = 'inline';
+    badge.textContent = rows.length;
+
+    lista.innerHTML = rows.map(s => {
+      const fecha = new Date(s.created_at).toLocaleDateString('es-AR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+      const nota = s.nota_alumna ? `<div style="font-size:11px;color:#555;margin-top:2px;font-style:italic;">"${s.nota_alumna}"</div>` : '';
+      return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #f0fdf4;">
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:600;">${s.nombre_alumna || s.documento}</div>
+          <div style="font-size:11px;color:var(--muted);">Mes: ${s.mes} · ${s.cantidad} clase(s) · ${fecha}</div>
+          ${nota}
+        </div>
+        <button onclick="aprobarSolicitud(${s.id})" style="background:#059669;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;white-space:nowrap;">✓ Aprobar</button>
+        <button onclick="rechazarSolicitud(${s.id})" style="background:#fce8e8;color:#a32d2d;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;">✕</button>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    lista.innerHTML = '<div class="text-danger small p-2">Error de conexión.</div>';
+  }
+}
+
+window.aprobarSolicitud = async function(id) {
+  if (!confirm('¿Aprobar esta solicitud? Se agregarán las clases al cupo de la alumna.')) return;
+  try {
+    const r = await fetch(`${API_URL}/admin/solicitudes-clases/${id}/aprobar`, {
+      method: 'POST', headers: getAuthHeaders()
+    });
+    if (!r.ok) { const d = await r.json(); alert(d.error || 'Error al aprobar.'); return; }
+    await cargarSolicitudesClases();
+  } catch(e) { alert('Error de conexión.'); }
+};
+
+window.rechazarSolicitud = async function(id) {
+  if (!confirm('¿Rechazar esta solicitud?')) return;
+  try {
+    await fetch(`${API_URL}/admin/solicitudes-clases/${id}/rechazar`, {
+      method: 'POST', headers: getAuthHeaders()
+    });
+    await cargarSolicitudesClases();
+  } catch(e) { alert('Error de conexión.'); }
 };

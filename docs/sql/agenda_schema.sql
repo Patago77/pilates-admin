@@ -32,6 +32,24 @@ CREATE TABLE IF NOT EXISTS agenda_reservas (
   INDEX idx_documento (documento)
 );
 
+-- Clases prorateadas o asignadas manualmente para un pago puntual
+-- ALTER TABLE payments ADD COLUMN clases_asignadas INT NULL AFTER serviceMonth;
+
+-- Solicitudes de clases adicionales iniciadas por la alumna desde el portal
+CREATE TABLE IF NOT EXISTS solicitudes_clases (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  documento     VARCHAR(30)  NOT NULL,
+  mes           VARCHAR(7)   NOT NULL,
+  cantidad      INT          NOT NULL DEFAULT 1,
+  nota_alumna   TEXT         NULL,
+  estado        ENUM('pendiente','aprobada','rechazada') DEFAULT 'pendiente',
+  aprobado_por  VARCHAR(100) NULL,
+  aprobado_en   TIMESTAMP    NULL,
+  created_at    TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_doc_mes (documento, mes),
+  INDEX idx_estado (estado)
+);
+
 -- Devoluciones manuales de clases por el admin
 CREATE TABLE IF NOT EXISTS clases_extra (
   id          INT AUTO_INCREMENT PRIMARY KEY,
