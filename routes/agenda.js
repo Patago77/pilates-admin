@@ -1026,7 +1026,7 @@ router.get('/admin/solicitudes-clases', authenticateToken, async (req, res) => {
   const estado = req.query.estado || 'pendiente';
   try {
     const [rows] = await req.db.query(
-      `SELECT sc.*, s.fullName AS nombre_alumna
+      `SELECT sc.*, s.nombre AS nombre_alumna
        FROM solicitudes_clases sc
        LEFT JOIN students s ON s.documento = sc.documento
        WHERE sc.estado = ?
