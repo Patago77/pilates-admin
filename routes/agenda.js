@@ -295,13 +295,14 @@ router.post('/agenda/reservar', authAlumno, async (req, res) => {
       [req.alumno.documento, mesFecha]
     );
 
-    if (estadoAbono.abono_agotado || (estadoAbono.consumidas + futuras) >= estadoAbono.clases_plan) {
+    const clasesEfectivas = estadoAbono.clases_plan + estadoAbono.extra_admin;
+    if (estadoAbono.abono_agotado || (estadoAbono.consumidas + futuras) >= clasesEfectivas) {
       return res.status(403).json({
         error: 'Ya usaste todas tus clases del mes.',
         codigo: 'ABONO_AGOTADO',
         solicitar: true,
         precio_suelta: estadoAbono.precio_clase_suelta,
-        mensaje: `Usaste o reservaste ${estadoAbono.consumidas + futuras} de ${estadoAbono.clases_plan} clases.`
+        mensaje: `Usaste o reservaste ${estadoAbono.consumidas + futuras} de ${clasesEfectivas} clases.`
       });
     }
 
