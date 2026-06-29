@@ -1195,7 +1195,13 @@ async function editarGasto(id) {
 
     const gasto = await res.json();
 
-    const { value: formValues } = await Swal.fire({ didOpen: () => { document.querySelector(".swal2-container").style.zIndex = "99999"; },
+    // Cerrar modal Bootstrap antes de SweetAlert2 para evitar que Bootstrap
+    // bloquee el foco e impida escribir en los inputs del formulario
+    const modalEl = document.getElementById('modalGastosMes');
+    const bsModal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+    if (bsModal) bsModal.hide();
+
+    const { value: formValues } = await Swal.fire({
       title: "Editar Gasto",
       html: `
         <input id="swal-fecha" class="swal2-input" type="date" value="${gasto.fecha.split("T")[0]}">
@@ -1204,6 +1210,9 @@ async function editarGasto(id) {
         <input id="swal-monto" class="swal2-input" type="number" placeholder="Monto" value="${gasto.monto}">
       `,
       focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'Guardar',
+      cancelButtonText: 'Cancelar',
       preConfirm: () => ({
         fecha: document.getElementById("swal-fecha").value,
         categoria: document.getElementById("swal-categoria").value,
@@ -1212,7 +1221,10 @@ async function editarGasto(id) {
       })
     });
 
-    if (!formValues) return;
+    if (!formValues) {
+      if (bsModal) bsModal.show();
+      return;
+    }
 
     const update = await fetch(`${API_URL}/gastos/${id}`, {
       method: "PUT",
@@ -1221,9 +1233,8 @@ async function editarGasto(id) {
     });
     if (!update.ok) throw new Error("No se pudo actualizar el gasto.");
 
-    Swal.fire("Actualizado", "El gasto fue actualizado exitosamente", "success");
-    const mes = gasto.fecha.slice(0, 7);
-    verDetalleGastos(mes);
+    await Swal.fire("Actualizado", "El gasto fue actualizado exitosamente", "success");
+    await window.abrirModalGastosMes();
   } catch (error) {
     handleError(error);
   }
