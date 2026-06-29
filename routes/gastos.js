@@ -128,6 +128,21 @@ router.get('/gastos', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
+// Obtener un gasto por id
+router.get('/gastos/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const [[row]] = await req.db.query(
+      `SELECT id, categoria, descripcion, monto, fecha FROM gastos WHERE id = ?`,
+      [req.params.id]
+    );
+    if (!row) return res.status(404).json({ error: "Gasto no encontrado." });
+    res.json(row);
+  } catch (err) {
+    console.error("❌ Error al obtener gasto:", err.message);
+    res.status(500).json({ error: "Error al obtener el gasto." });
+  }
+});
+
 // Registrar un nuevo gasto
 router.post('/gastos', authenticateToken, requireAdmin, async (req, res) => {
   const { categoria, descripcion, monto, fecha } = req.body;
