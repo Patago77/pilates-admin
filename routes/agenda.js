@@ -7,7 +7,7 @@ const { enviarOTP, enviarConfirmacionReserva, enviarCancelacion } = require('../
 const router = express.Router();
 const SECRET_KEY = process.env.SECRET_KEY;
 const CAPACIDAD = 5;
-const HORAS_CANCELACION = 12;
+const HORAS_CANCELACION = 24;
 
 const otpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -387,35 +387,21 @@ router.delete('/agenda/cancelar/:id', authAlumno, async (req, res) => {
       return res.json({ ok: true, clase_devuelta: false, mensaje: 'Cancelación tardía — la clase se descuenta del abono.' });
     }
 
-    // Con aviso — verificar límite de 2 por mes
-    const mes = fechaStr.substring(0, 7);
-    const [[{ cancelacionesValidas }]] = await db.query(
-      `SELECT COUNT(*) AS cancelacionesValidas FROM agenda_reservas
-       WHERE documento = ? AND clase_devuelta = 1
-         AND DATE_FORMAT(fecha,'%Y-%m') = ?`,
-      [req.alumno.documento, mes]
-    );
-
-    const devuelta = cancelacionesValidas < 2;
-    const motivo = devuelta ? null : 'limite_cancelaciones';
-
+    // Con aviso — siempre se devuelve la clase al abono
     await db.query(
-      `UPDATE agenda_reservas SET estado='cancelado', cancelado_en=NOW(), clase_devuelta=?, motivo_consumo=? WHERE id=?`,
-      [devuelta ? 1 : 0, motivo, reserva.id]
+      `UPDATE agenda_reservas SET estado='cancelado', cancelado_en=NOW(), clase_devuelta=1, motivo_consumo=NULL WHERE id=?`,
+      [reserva.id]
     );
 
     if (req.alumno.email) {
-      enviarCancelacion(req.alumno.email, req.alumno.nombre.split(' ')[0], fechaStr, reserva.hora, devuelta)
+      enviarCancelacion(req.alumno.email, req.alumno.nombre.split(' ')[0], fechaStr, reserva.hora, true)
         .catch(e => console.error('Email error:', e.message));
     }
 
     res.json({
       ok: true,
-      clase_devuelta: devuelta,
-      cancelaciones_validas_mes: cancelacionesValidas + (devuelta ? 1 : 0),
-      mensaje: devuelta
-        ? `Clase devuelta al abono. Usaste ${cancelacionesValidas + 1}/2 cancelaciones este mes.`
-        : 'Límite de 2 cancelaciones alcanzado — la clase se descuenta del abono.'
+      clase_devuelta: true,
+      mensaje: 'Clase devuelta al abono.'
     });
   } catch (err) {
     console.error('❌ Error cancelar:', err.message);
