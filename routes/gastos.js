@@ -7,7 +7,7 @@ router.get('/gastos/detalle/:mes', authenticateToken, requireAdmin, async (req, 
   const { mes } = req.params; // formato '2025-05'
   try {
     const [rows] = await req.db.query(`
-      SELECT fecha, categoria, descripcion, monto
+      SELECT id, fecha, categoria, descripcion, monto
       FROM gastos
       WHERE DATE_FORMAT(fecha, '%Y-%m') = ?
       ORDER BY fecha DESC
