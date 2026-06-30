@@ -173,7 +173,7 @@ router.get('/resumen/hoy', authenticateToken, async (req, res) => {
     `, [hoy]);
 
     const [pagos] = await req.db.query(`
-      SELECT s.nombre, p.subscriptionType, p.amount, p.paymentDate, p.status
+      SELECT s.nombre, p.subscriptionType, p.amount, p.paymentDate, p.estadoDeuda
       FROM payments p
       JOIN students s ON s.documento = p.documento
       WHERE p.paymentDate = ?

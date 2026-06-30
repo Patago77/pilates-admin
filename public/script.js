@@ -3003,7 +3003,7 @@ async function cargarActividadHoy() {
     ).join('');
 
     const filaPagos = pagos.map(p =>
-      `<li><strong>${p.nombre}</strong> — Plan ${p.subscriptionType} · $${Number(p.amount).toLocaleString('es-AR')} · ${p.status === 'pendiente' ? '⏳ pendiente' : '✅ confirmado'}</li>`
+      `<li><strong>${p.nombre}</strong> — Plan ${p.subscriptionType} · $${Number(p.amount).toLocaleString('es-AR')} · ${p.estadoDeuda === 'pendiente' ? '⏳ pendiente' : '✅ al día'}</li>`
     ).join('');
 
     const filaLogins = logins.map(l =>
