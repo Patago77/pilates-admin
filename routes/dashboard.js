@@ -158,7 +158,7 @@ router.get('/resumen/hoy', authenticateToken, async (req, res) => {
       SELECT s.nombre, r.hora, r.fecha, r.created_at
       FROM agenda_reservas r
       JOIN students s ON s.documento = r.documento
-      WHERE DATE(CONVERT_TZ(r.created_at, '+00:00', '-03:00')) = ?
+      WHERE DATE(r.created_at - INTERVAL 3 HOUR) = ?
         AND r.estado = 'confirmado'
       ORDER BY r.created_at DESC
     `, [hoy]);
@@ -167,7 +167,7 @@ router.get('/resumen/hoy', authenticateToken, async (req, res) => {
       SELECT s.nombre, r.hora, r.fecha, r.clase_devuelta, r.cancelado_en
       FROM agenda_reservas r
       JOIN students s ON s.documento = r.documento
-      WHERE DATE(CONVERT_TZ(r.cancelado_en, '+00:00', '-03:00')) = ?
+      WHERE DATE(r.cancelado_en - INTERVAL 3 HOUR) = ?
         AND r.estado = 'cancelado'
       ORDER BY r.cancelado_en DESC
     `, [hoy]);
@@ -176,7 +176,7 @@ router.get('/resumen/hoy', authenticateToken, async (req, res) => {
       SELECT s.nombre, p.subscriptionType, p.amount, p.paymentDate, p.estadoDeuda
       FROM payments p
       JOIN students s ON s.documento = p.documento
-      WHERE p.paymentDate = ?
+      WHERE DATE(p.created_at - INTERVAL 3 HOUR) = ?
       ORDER BY p.id DESC
     `, [hoy]);
 
@@ -184,7 +184,7 @@ router.get('/resumen/hoy', authenticateToken, async (req, res) => {
       SELECT s.nombre, s.email, MAX(t.created_at) AS ultimo_acceso
       FROM student_tokens t
       JOIN students s ON s.documento = t.documento
-      WHERE DATE(CONVERT_TZ(t.created_at, '+00:00', '-03:00')) = ?
+      WHERE DATE(t.created_at - INTERVAL 3 HOUR) = ?
       GROUP BY t.documento
       ORDER BY ultimo_acceso DESC
     `, [hoy]);
@@ -193,7 +193,7 @@ router.get('/resumen/hoy', authenticateToken, async (req, res) => {
       SELECT s.nombre, sc.cantidad, sc.nota_alumna, sc.estado, sc.created_at
       FROM solicitudes_clases sc
       JOIN students s ON s.documento = sc.documento
-      WHERE DATE(CONVERT_TZ(sc.created_at, '+00:00', '-03:00')) = ?
+      WHERE DATE(sc.created_at - INTERVAL 3 HOUR) = ?
       ORDER BY sc.created_at DESC
     `, [hoy]);
 
