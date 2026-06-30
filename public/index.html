@@ -642,6 +642,33 @@ small { color: var(--muted) !important; }
           </div>
         </div>
 
+        <!-- Tomar asistencia de clase -->
+        <div class="sa-card mb-3">
+          <div class="sa-card-hd" style="background:#f0fdf4;border-bottom:1px solid #bbf7d0;">
+            <span class="sa-card-ttl" style="color:#166534;">📋 Tomar asistencia de clase</span>
+          </div>
+          <div class="sa-card-body">
+            <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap;">
+              <select id="slotHoraAsist" class="form-control form-control-sm" style="width:120px;">
+                <option value="">Horario</option>
+                <option value="09:00">09:00</option>
+                <option value="10:00">10:00</option>
+                <option value="11:00">11:00</option>
+                <option value="12:00">12:00</option>
+                <option value="13:00">13:00</option>
+                <option value="14:00">14:00</option>
+                <option value="17:00">17:00</option>
+                <option value="18:00">18:00</option>
+                <option value="19:00">19:00</option>
+                <option value="20:00">20:00</option>
+              </select>
+              <button class="btn btn-success btn-sm" onclick="cargarSlotAsistencia()">Ver clase</button>
+              <span style="font-size:12px;color:var(--muted);">Seleccioná el horario para ver quién tiene reserva</span>
+            </div>
+            <div id="tablaSlotAsistencia"></div>
+          </div>
+        </div>
+
         <!-- Registro rápido -->
         <div class="sa-card">
           <div class="sa-card-hd">
@@ -2701,6 +2728,54 @@ async function iniciarBuscadorAlumno() {
 }
 
 // (funciones de asistencia consolidadas arriba en cargarAsistHoy / registrarAsistenciaRapida / eliminarAsistHoy)
+
+// ── TOMAR ASISTENCIA POR SLOT ──
+async function cargarSlotAsistencia() {
+  const fecha = document.getElementById("asistFiltroFecha")?.value
+    || new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+  const hora  = document.getElementById("slotHoraAsist")?.value;
+  const tabla = document.getElementById("tablaSlotAsistencia");
+  if (!hora) { if (tabla) tabla.innerHTML = '<p style="color:var(--danger);font-size:13px;">Seleccioná un horario primero.</p>'; return; }
+
+  try {
+    const res  = await fetch(`${API_URL}/asistencia/slot?fecha=${fecha}&hora=${hora}`, { headers: getAuthHeaders() });
+    const rows = await res.json();
+    if (!rows.length) {
+      tabla.innerHTML = '<p style="color:var(--muted);font-size:13px;text-align:center;padding:12px;">Sin reservas para este horario.</p>';
+      return;
+    }
+    tabla.innerHTML = `
+      <table class="table table-sm" style="margin-bottom:0;">
+        <thead><tr>
+          <th style="font-size:12px;">Alumna</th>
+          <th style="font-size:12px;text-align:center;">Estado</th>
+        </tr></thead>
+        <tbody>
+          ${rows.map(a => `<tr id="asist-row-${a.id}">
+            <td style="font-weight:600;">${a.nombre}</td>
+            <td style="text-align:center;">
+              ${a.motivo_consumo === 'ausente'
+                ? `<span style="color:#E24B4A;font-weight:700;font-size:12px;">❌ Ausente</span>
+                   <button class="btn btn-sm btn-outline-success ms-2" onclick="desmarcarAusente(${a.id})" style="font-size:11px;padding:2px 8px;">✓ Vino</button>`
+                : `<span style="color:#059669;font-weight:700;font-size:12px;">✅ Presente</span>
+                   <button class="btn btn-sm btn-outline-danger ms-2" onclick="marcarAusente(${a.id})" style="font-size:11px;padding:2px 8px;">No vino</button>`
+              }
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch(e) { tabla.innerHTML = '<p style="color:var(--danger);font-size:13px;">Error al cargar.</p>'; }
+}
+
+async function marcarAusente(id) {
+  await fetch(`${API_URL}/asistencia/ausente/${id}`, { method: 'POST', headers: getAuthHeaders() });
+  cargarSlotAsistencia();
+}
+
+async function desmarcarAusente(id) {
+  await fetch(`${API_URL}/asistencia/ausente/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+  cargarSlotAsistencia();
+}
 
 // ── ABONOS ADMIN ──
 function iniciarAbonos() {

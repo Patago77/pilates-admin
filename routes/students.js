@@ -258,4 +258,52 @@ router.delete('/asistencia/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// 📋 Alumnos con reserva en un slot — para tomar asistencia
+router.get('/asistencia/slot', authenticateToken, async (req, res) => {
+  const { fecha, hora } = req.query;
+  if (!fecha || !hora) return res.status(400).json({ error: 'Fecha y hora requeridas.' });
+  try {
+    const [rows] = await req.db.query(
+      `SELECT ar.id, ar.documento, ar.motivo_consumo, s.nombre
+       FROM agenda_reservas ar
+       JOIN students s ON s.documento = ar.documento
+       WHERE ar.fecha = ? AND ar.hora = ? AND ar.estado = 'confirmado'
+       ORDER BY s.nombre`,
+      [fecha, hora]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('❌ Error slot asistencia:', err.message);
+    res.status(500).json({ error: 'Error al obtener el slot.' });
+  }
+});
+
+// ❌ Marcar alumno como ausente en un slot
+router.post('/asistencia/ausente/:id', authenticateToken, async (req, res) => {
+  try {
+    await req.db.query(
+      `UPDATE agenda_reservas SET motivo_consumo = 'ausente' WHERE id = ?`,
+      [req.params.id]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('❌ Error marcar ausente:', err.message);
+    res.status(500).json({ error: 'Error al marcar ausente.' });
+  }
+});
+
+// ✅ Desmarcar ausente (vino a clase)
+router.delete('/asistencia/ausente/:id', authenticateToken, async (req, res) => {
+  try {
+    await req.db.query(
+      `UPDATE agenda_reservas SET motivo_consumo = NULL WHERE id = ? AND motivo_consumo = 'ausente'`,
+      [req.params.id]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('❌ Error desmarcar ausente:', err.message);
+    res.status(500).json({ error: 'Error al actualizar.' });
+  }
+});
+
 module.exports = router;
