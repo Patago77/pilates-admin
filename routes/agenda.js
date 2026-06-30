@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const authenticateToken = require('../authMiddleware');
+const { requireAdmin } = require('../authMiddleware');
 const { enviarOTP, enviarConfirmacionReserva, enviarCancelacion } = require('../emailService');
 
 const router = express.Router();
