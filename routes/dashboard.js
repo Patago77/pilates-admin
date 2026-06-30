@@ -150,4 +150,58 @@ router.get('/resumen/serie', authenticateToken, async (req, res) => {
 });
 
 
+// GET /resumen/hoy — actividad del día de hoy
+router.get('/resumen/hoy', authenticateToken, async (req, res) => {
+  const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+  try {
+    const [reservas] = await req.db.query(`
+      SELECT s.nombre, r.hora, r.fecha, r.created_at
+      FROM agenda_reservas r
+      JOIN students s ON s.documento = r.documento
+      WHERE DATE(CONVERT_TZ(r.created_at, '+00:00', '-03:00')) = ?
+        AND r.estado = 'confirmado'
+      ORDER BY r.created_at DESC
+    `, [hoy]);
+
+    const [cancelaciones] = await req.db.query(`
+      SELECT s.nombre, r.hora, r.fecha, r.clase_devuelta, r.cancelado_en
+      FROM agenda_reservas r
+      JOIN students s ON s.documento = r.documento
+      WHERE DATE(CONVERT_TZ(r.cancelado_en, '+00:00', '-03:00')) = ?
+        AND r.estado = 'cancelado'
+      ORDER BY r.cancelado_en DESC
+    `, [hoy]);
+
+    const [pagos] = await req.db.query(`
+      SELECT s.nombre, p.subscriptionType, p.amount, p.paymentDate, p.status
+      FROM payments p
+      JOIN students s ON s.documento = p.documento
+      WHERE p.paymentDate = ?
+      ORDER BY p.id DESC
+    `, [hoy]);
+
+    const [logins] = await req.db.query(`
+      SELECT s.nombre, s.email, MAX(t.created_at) AS ultimo_acceso
+      FROM student_tokens t
+      JOIN students s ON s.documento = t.documento
+      WHERE DATE(CONVERT_TZ(t.created_at, '+00:00', '-03:00')) = ?
+      GROUP BY t.documento
+      ORDER BY ultimo_acceso DESC
+    `, [hoy]);
+
+    const [solicitudes] = await req.db.query(`
+      SELECT s.nombre, sc.cantidad, sc.nota_alumna, sc.estado, sc.created_at
+      FROM solicitudes_clases sc
+      JOIN students s ON s.documento = sc.documento
+      WHERE DATE(CONVERT_TZ(sc.created_at, '+00:00', '-03:00')) = ?
+      ORDER BY sc.created_at DESC
+    `, [hoy]);
+
+    res.json({ fecha: hoy, reservas, cancelaciones, pagos, logins, solicitudes });
+  } catch (err) {
+    console.error('❌ Error resumen hoy:', err.message);
+    res.status(500).json({ error: 'Error al obtener actividad del día.' });
+  }
+});
+
 module.exports = router;

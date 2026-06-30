@@ -1359,6 +1359,9 @@ async function cargarDashboard() {
     // Solicitudes de clases adicionales de alumnas
     if (typeof cargarSolicitudesClases === 'function') cargarSolicitudesClases();
 
+    // Actividad del día
+    cargarActividadHoy();
+
     // Panel cobranza 1-10
     cargarPanelCobroMes(data.upcomingPayments?.length ?? 0, data.totalActivos ?? 0, data.ingresosMes ?? 0);
   } catch (error) {
@@ -2970,3 +2973,57 @@ window.rechazarSolicitud = async function(id) {
     await cargarSolicitudesClases();
   } catch(e) { alert('Error de conexión.'); }
 };
+
+// ─────────────────────────────────────────────────────────────────
+// ACTIVIDAD DE HOY
+// ─────────────────────────────────────────────────────────────────
+async function cargarActividadHoy() {
+  const contenido = document.getElementById('contenidoActividadHoy');
+  if (!contenido) return;
+  try {
+    const res = await fetch(`${API_URL}/resumen/hoy`, { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error();
+    const { reservas, cancelaciones, pagos, logins, solicitudes } = await res.json();
+
+    const seccion = (icono, titulo, color, items) => {
+      if (!items.length) return '';
+      return `
+        <div style="margin-bottom:14px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${color};margin-bottom:6px;">${icono} ${titulo} (${items.length})</div>
+          <ul style="margin:0;padding-left:18px;font-size:13px;color:#374151;line-height:1.9;">${items}</ul>
+        </div>`;
+    };
+
+    const filaReservas = reservas.map(r =>
+      `<li><strong>${r.nombre}</strong> — ${r.hora}hs del ${new Date(r.fecha+'T12:00:00').toLocaleDateString('es-AR')}</li>`
+    ).join('');
+
+    const filaCancelaciones = cancelaciones.map(r =>
+      `<li><strong>${r.nombre}</strong> — ${r.hora}hs del ${new Date(r.fecha+'T12:00:00').toLocaleDateString('es-AR')} ${r.clase_devuelta ? '✅ clase devuelta' : '❌ sin devolución'}</li>`
+    ).join('');
+
+    const filaPagos = pagos.map(p =>
+      `<li><strong>${p.nombre}</strong> — Plan ${p.subscriptionType} · $${Number(p.amount).toLocaleString('es-AR')} · ${p.status === 'pendiente' ? '⏳ pendiente' : '✅ confirmado'}</li>`
+    ).join('');
+
+    const filaLogins = logins.map(l =>
+      `<li><strong>${l.nombre}</strong> — ${new Date(l.ultimo_acceso).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})}</li>`
+    ).join('');
+
+    const filaSolicitudes = solicitudes.map(s =>
+      `<li><strong>${s.nombre}</strong> — ${s.cantidad} clase(s) extra · ${s.estado}</li>`
+    ).join('');
+
+    const hayActividad = reservas.length || cancelaciones.length || pagos.length || logins.length || solicitudes.length;
+
+    contenido.innerHTML = hayActividad
+      ? seccion('📅', 'Reservas nuevas', '#6D28D9', filaReservas)
+      + seccion('❌', 'Cancelaciones', '#E24B4A', filaCancelaciones)
+      + seccion('💰', 'Pagos declarados', '#059669', filaPagos)
+      + seccion('👤', 'Accesos al portal', '#0369A1', filaLogins)
+      + seccion('📩', 'Solicitudes de clases', '#92400E', filaSolicitudes)
+      : `<div class="text-center text-muted py-3">Sin actividad registrada hoy.</div>`;
+  } catch {
+    contenido.innerHTML = `<div class="text-center text-muted py-3">No se pudo cargar la actividad.</div>`;
+  }
+}

@@ -529,6 +529,17 @@ small { color: var(--muted) !important; }
           </div>
         </div>
 
+        <!-- ── Panel: Actividad de hoy ── -->
+        <div id="panelActividadHoy" class="sa-card mb-3">
+          <div class="sa-card-hd" style="background:#f0f4ff;border-bottom:1px solid #c7d2fe;">
+            <span class="sa-card-ttl" style="color:#3730a3;">📋 Actividad de hoy</span>
+            <button onclick="cargarActividadHoy()" class="btn btn-sm btn-outline-primary">Actualizar</button>
+          </div>
+          <div class="sa-card-body" id="contenidoActividadHoy">
+            <div class="text-center text-muted py-3">Cargando…</div>
+          </div>
+        </div>
+
         <div class="sa-card">
           <div class="sa-card-hd">
             <span class="sa-card-ttl">Buscar historial por documento</span>
