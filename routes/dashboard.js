@@ -176,7 +176,7 @@ router.get('/resumen/hoy', authenticateToken, async (req, res) => {
       SELECT s.nombre, p.subscriptionType, p.amount, p.paymentDate, p.estadoDeuda
       FROM payments p
       JOIN students s ON s.documento = p.documento
-      WHERE DATE(p.created_at - INTERVAL 3 HOUR) = ?
+      WHERE p.paymentDate = ?
       ORDER BY p.id DESC
     `, [hoy]);
 
