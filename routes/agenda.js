@@ -1066,5 +1066,23 @@ router.post('/admin/solicitudes-clases/:id/rechazar', authenticateToken, async (
   }
 });
 
+// POST /api/admin/cancelar-slot — cancela todas las reservas de un turno y devuelve la clase a todas las alumnas
+router.post('/admin/cancelar-slot', authenticateToken, requireAdmin, async (req, res) => {
+  const { fecha, hora } = req.body;
+  if (!fecha || !hora) return res.status(400).json({ error: 'Fecha y hora requeridas.' });
+  try {
+    const [result] = await req.db.query(
+      `UPDATE agenda_reservas
+       SET estado = 'cancelado', clase_devuelta = 1, cancelado_en = NOW(), motivo_consumo = 'clase_cancelada_estudio'
+       WHERE fecha = ? AND hora = ? AND estado = 'confirmado'`,
+      [fecha, hora]
+    );
+    res.json({ ok: true, canceladas: result.affectedRows });
+  } catch (err) {
+    console.error('❌ Error cancelar slot:', err.message);
+    res.status(500).json({ error: 'Error al cancelar el turno.' });
+  }
+});
+
 module.exports = router;
 module.exports.calcularEstadoAbono = calcularEstadoAbono;

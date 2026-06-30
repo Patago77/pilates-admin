@@ -3378,6 +3378,7 @@ async function agRenderDia(fecha) {
               </div>
             </div>
             <button class="sa-edit-btn" onclick="agregarAlumnoTurno('${fecha}','${s.hora}')">+ Agregar</button>
+            ${s.ocupados > 0 ? `<button onclick="cancelarClaseSlot('${fecha}','${s.hora}')" style="background:none;border:1.5px solid #E24B4A;color:#E24B4A;border-radius:7px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;">🚫 Cancelar clase</button>` : ''}
           </div>
           ${s.alumnos.length ? `<div style="padding:4px 14px 6px;">${listaAlumnos}</div>` : ''}
         </div>`;
@@ -3474,6 +3475,31 @@ window.quitarDelTurno = async function(id, fecha) {
     await fetch(`${API_URL}/admin/agenda/${id}`, { method:'DELETE', headers: getAuthHeaders() });
     cargarAgendaDia(fecha);
   } catch(e) { Swal.fire('Error','No se pudo quitar','error'); }
+};
+
+window.cancelarClaseSlot = async function(fecha, hora) {
+  const fechaDisplay = new Date(fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
+  const { isConfirmed } = await Swal.fire({
+    title: '¿Cancelar clase completa?',
+    html: `Se cancelarán <strong>todas las reservas</strong> del turno <strong>${hora}hs del ${fechaDisplay}</strong> y se devolverá la clase al abono de cada alumna.`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, cancelar clase',
+    cancelButtonText: 'No',
+    confirmButtonColor: '#E24B4A'
+  });
+  if (!isConfirmed) return;
+  try {
+    const res = await fetch(`${API_URL}/admin/cancelar-slot`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fecha, hora })
+    });
+    const data = await res.json();
+    if (!res.ok) { Swal.fire('Error', data.error || 'No se pudo cancelar', 'error'); return; }
+    await Swal.fire('Clase cancelada', `Se cancelaron ${data.canceladas} reserva(s) y se devolvieron las clases a los abonos.`, 'success');
+    cargarAgendaDia(fecha);
+  } catch(e) { Swal.fire('Error', 'No se pudo cancelar la clase', 'error'); }
 };
 
 // ── EDITAR ALUMNO ──
