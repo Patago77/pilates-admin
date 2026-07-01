@@ -198,16 +198,16 @@ router.post('/asistencia', authenticateToken, async (req, res) => {
   }
 });
 
-// 📋 Asistencias del día
+// 📋 Asistencias del día — lee de agenda_reservas (reservas confirmadas)
 router.get('/asistencia/hoy', authenticateToken, async (req, res) => {
-  const fecha = req.query.fecha || new Date().toISOString().split('T')[0];
+  const fecha = req.query.fecha || new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
   try {
     const [rows] = await req.db.query(
-      `SELECT a.id, a.documento, a.fecha, a.horario, a.created_at, s.nombre
-       FROM attendance a
-       LEFT JOIN students s ON s.documento = a.documento
-       WHERE a.fecha = ?
-       ORDER BY a.created_at DESC`,
+      `SELECT ar.id, ar.documento, ar.fecha, ar.hora AS horario, ar.created_at, ar.motivo_consumo, s.nombre
+       FROM agenda_reservas ar
+       JOIN students s ON s.documento = ar.documento
+       WHERE ar.fecha = ? AND ar.estado = 'confirmado'
+       ORDER BY ar.hora ASC, s.nombre ASC`,
       [fecha]
     );
     res.json(rows);
@@ -217,25 +217,23 @@ router.get('/asistencia/hoy', authenticateToken, async (req, res) => {
   }
 });
 
-// 📊 Resumen de asistencias de un mes
+// 📊 Resumen de asistencias de un mes — lee de agenda_reservas
 router.get('/asistencia/mes/:mes', authenticateToken, async (req, res) => {
   const { mes } = req.params;
   try {
-    // KPIs
     const [[{ total, alumnas, diasConClase }]] = await req.db.query(
       `SELECT COUNT(*) AS total,
               COUNT(DISTINCT documento) AS alumnas,
               COUNT(DISTINCT fecha) AS diasConClase
-       FROM attendance WHERE DATE_FORMAT(fecha,'%Y-%m') = ?`,
+       FROM agenda_reservas WHERE DATE_FORMAT(fecha,'%Y-%m') = ? AND estado = 'confirmado'`,
       [mes]
     );
-    // Ranking top 10
     const [ranking] = await req.db.query(
-      `SELECT a.documento, s.nombre, COUNT(*) AS clases
-       FROM attendance a
-       LEFT JOIN students s ON s.documento = a.documento
-       WHERE DATE_FORMAT(a.fecha,'%Y-%m') = ?
-       GROUP BY a.documento, s.nombre
+      `SELECT ar.documento, s.nombre, COUNT(*) AS clases
+       FROM agenda_reservas ar
+       JOIN students s ON s.documento = ar.documento
+       WHERE DATE_FORMAT(ar.fecha,'%Y-%m') = ? AND ar.estado = 'confirmado'
+       GROUP BY ar.documento, s.nombre
        ORDER BY clases DESC LIMIT 10`,
       [mes]
     );

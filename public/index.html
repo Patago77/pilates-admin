@@ -2514,9 +2514,12 @@ async function cargarAsistHoy() {
     if (tbody && Array.isArray(rows)) tbody.innerHTML = rows.map(a => `<tr>
       <td style="font-weight:600;">${a.nombre || "—"}</td>
       <td style="color:var(--muted);font-size:12px;">DNI ${a.documento}</td>
-      <td style="color:var(--muted);font-size:12px;">${a.horario || a.created_at?.substring(11,16) || "—"}</td>
-      <td><button class="sa-del-btn" onclick="eliminarAsistHoy(${a.id})" title="Eliminar">✕</button></td>
-    </tr>`).join("") || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">Sin asistencias este día.</td></tr>';
+      <td style="color:var(--muted);font-size:12px;">${a.horario || "—"}hs</td>
+      <td>${a.motivo_consumo === 'ausente'
+        ? '<span style="background:#FEE2E2;color:#B91C1C;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:700;">Ausente</span>'
+        : '<span style="background:#DCFCE7;color:#166534;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:700;">Presente</span>'
+      }</td>
+    </tr>`).join("") || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">Sin reservas este día.</td></tr>';
   } catch(e) { console.error("Error asistencias día:", e); }
 
   // KPIs y ranking del mes
