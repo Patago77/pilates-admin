@@ -2681,7 +2681,7 @@ window.seleccionarEstado = function(btn) {
 // ============================================================
 
 // ── HORARIO SEMANAL ──
-const AG_HORAS_TODAS = ['09:00','10:00','11:00','12:00','13:00','17:00','18:00','19:00','20:00'];
+const AG_HORAS_TODAS = ['09:00','10:00','11:00','12:00','13:00','14:00','17:00','18:00','19:00','20:00'];
 let _horarioSemanal = null;
 
 window.abrirHorarioSemanal = async function() {
