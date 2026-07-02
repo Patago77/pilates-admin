@@ -18,8 +18,8 @@ const otpLimiter = rateLimit({
   message: { error: 'Demasiados intentos. Esperá 15 minutos.' }
 });
 
-// Horarios disponibles (sin descanso 14-17)
-const HORAS_VALIDAS = ['09:00','10:00','11:00','12:00','13:00','17:00','18:00','19:00','20:00'];
+// Horarios disponibles
+const HORAS_VALIDAS = ['09:00','10:00','11:00','12:00','13:00','14:00','17:00','18:00','19:00','20:00'];
 
 // ── Middleware para autenticar al alumno (JWT del portal) ──
 function authAlumno(req, res, next) {
