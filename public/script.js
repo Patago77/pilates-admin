@@ -2896,7 +2896,9 @@ window.toggleFeriado = async function(fecha) {
 window.eliminarFeriado = async function(fecha) {
   if (!confirm('¿Eliminar este feriado?')) return;
   await fetch(`${API_URL}/admin/feriados/${fecha}`, { method: 'DELETE', headers: getAuthHeaders() });
-  cargarFeriados();
+  cargarListaBloques();
+  if (typeof cargarFeriados === 'function') cargarFeriados();
+  if (_agFecha === fecha && typeof agRenderDia === 'function') agRenderDia(fecha);
 };
 
 window.agregarFeriado = async function() {
