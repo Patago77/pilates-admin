@@ -491,6 +491,15 @@ router.post('/admin/agenda/agregar', authenticateToken, async (req, res) => {
       return res.status(409).json({ error: 'El turno está completo.' });
     }
 
+    const [[yaReservado]] = await conn.query(
+      `SELECT hora FROM agenda_reservas WHERE fecha = ? AND documento = ? AND estado = 'confirmado' AND hora != ?`,
+      [fecha, documento, hora]
+    );
+    if (yaReservado) {
+      await conn.rollback();
+      return res.status(409).json({ error: `La alumna ya tiene reserva a las ${yaReservado.hora}hs ese día.` });
+    }
+
     await conn.query(
       'INSERT INTO agenda_reservas (fecha, hora, documento, estado) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE estado = "confirmado", cancelado_en = NULL',
       [fecha, hora, documento, 'confirmado']
