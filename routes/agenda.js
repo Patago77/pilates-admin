@@ -606,15 +606,9 @@ async function calcularEstadoAbono(db, documento, mes) {
   const finMes    = new Date(parseInt(mes.split('-')[0]), parseInt(mes.split('-')[1]), 0)
                       .toISOString().split('T')[0];
 
-  // 2. Clases asistidas en el período (solo hasta hoy — no contar clases futuras)
   const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
-  const [[{ asistidas }]] = await db.query(
-    `SELECT COUNT(*) AS asistidas FROM attendance
-     WHERE documento = ? AND fecha BETWEEN ? AND ? AND fecha <= ?`,
-    [documento, inicioMes, finMes, hoy]
-  );
 
-  // 3. Reservas del período
+  // 2. Reservas del período
   const [reservas] = await db.query(
     `SELECT id, fecha, hora, estado, clase_devuelta, motivo_consumo
      FROM agenda_reservas
@@ -626,18 +620,12 @@ async function calcularEstadoAbono(db, documento, mes) {
   const cancelDevuelta     = reservas.filter(r => r.estado === 'cancelado' && r.clase_devuelta === 1).length;
   const cancelPerdida      = reservas.filter(r => r.estado === 'cancelado' && r.clase_devuelta === 0).length;
 
-  // 4. Ausencias: reservas confirmadas sin asistencia (solo fechas pasadas)
-  const ausencias_query = await db.query(
-    `SELECT ar.id FROM agenda_reservas ar
-     WHERE ar.documento = ? AND ar.fecha BETWEEN ? AND ?
-       AND ar.estado = 'confirmado' AND ar.fecha < ?
-       AND NOT EXISTS (
-         SELECT 1 FROM attendance a
-         WHERE a.documento = ar.documento AND a.fecha = ar.fecha
-       )`,
-    [documento, inicioMes, finMes, hoy]
-  );
-  const ausencias = ausencias_query[0].length;
+  // 3. Asistidas y ausencias desde agenda_reservas (fechas pasadas)
+  // Ausente = marcado explícitamente con motivo_consumo='ausente'
+  // Asistida = confirmada en fecha pasada sin marca de ausente
+  const pasadasConfirmadas = reservas.filter(r => r.estado === 'confirmado' && r.fecha < hoy);
+  const ausencias = pasadasConfirmadas.filter(r => r.motivo_consumo === 'ausente').length;
+  const asistidas = pasadasConfirmadas.filter(r => r.motivo_consumo !== 'ausente').length;
 
   // 5. Devoluciones manuales del admin
   const [[{ extra }]] = await db.query(
