@@ -132,10 +132,11 @@ router.get('/students/:documento/cuenta', authenticateToken, async (req, res) =>
       [documento]
     );
 
-    // Asistencias por mes (últimos 6 meses)
+    // Asistencias por mes — desde agenda_reservas (últimos 6 meses)
     const [asistMeses] = await req.db.query(
       `SELECT DATE_FORMAT(fecha,'%Y-%m') AS mes, COUNT(*) AS clases
-       FROM attendance WHERE documento = ?
+       FROM agenda_reservas
+       WHERE documento = ? AND estado = 'confirmado' AND motivo_consumo != 'ausente'
        GROUP BY mes ORDER BY mes DESC LIMIT 6`,
       [documento]
     );
