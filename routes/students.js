@@ -82,6 +82,33 @@ router.put('/students/:documento', authenticateToken, async (req, res) => {
   }
 });
 
+// 🔄 Cambiar DNI de un alumno (cascada en todas las tablas)
+router.put('/students/:documento/cambiar-documento', authenticateToken, async (req, res) => {
+  const { nuevoDocumento } = req.body;
+  const docViejo = req.params.documento;
+  if (!nuevoDocumento) return res.status(400).json({ error: "Nuevo documento requerido." });
+  if (nuevoDocumento === docViejo) return res.status(400).json({ error: "El documento es igual al actual." });
+  const conn = await req.db.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [[existe]] = await conn.query('SELECT id FROM students WHERE documento = ?', [nuevoDocumento]);
+    if (existe) { await conn.rollback(); conn.release(); return res.status(409).json({ error: "Ya existe un alumno con ese DNI." }); }
+    await conn.query('UPDATE payments SET documento=? WHERE documento=?', [nuevoDocumento, docViejo]);
+    await conn.query('UPDATE agenda_reservas SET documento=? WHERE documento=?', [nuevoDocumento, docViejo]);
+    await conn.query('UPDATE attendance SET documento=? WHERE documento=?', [nuevoDocumento, docViejo]);
+    await conn.query('UPDATE student_tokens SET documento=? WHERE documento=?', [nuevoDocumento, docViejo]);
+    await conn.query('UPDATE students SET documento=? WHERE documento=?', [nuevoDocumento, docViejo]);
+    await conn.commit();
+    conn.release();
+    res.json({ ok: true });
+  } catch (err) {
+    await conn.rollback();
+    conn.release();
+    console.error("❌ Error cambiar documento:", err.message);
+    res.status(500).json({ error: "Error al cambiar el documento." });
+  }
+});
+
 // 🗑️ Desactivar alumno (soft delete)
 router.delete('/students/:documento', authenticateToken, async (req, res) => {
   try {

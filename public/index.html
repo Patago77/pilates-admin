@@ -3512,7 +3512,14 @@ window.editarAlumno = async function(documento) {
     const d = await r.json();
     const a = (d.students || d)[0];
     if (!a) return Swal.fire("Error", "Alumno no encontrado", "error");
-    document.getElementById("editDocumento").value         = a.documento;
+    const editDocInput = document.getElementById("editDocumento");
+    editDocInput.value = a.documento;
+    editDocInput.dataset.docOriginal = a.documento;
+    editDocInput.setAttribute("readonly", true);
+    editDocInput.style.background = "#f5f5f5";
+    editDocInput.style.color = "#888";
+    editDocInput.style.cursor = "default";
+    document.getElementById("editDocumentoAviso").classList.add("d-none");
     document.getElementById("editNombre").value             = a.nombre || "";
     document.getElementById("editEmail").value              = a.email || "";
     document.getElementById("editTelefono").value           = a.telefono || "";
@@ -3524,7 +3531,8 @@ window.editarAlumno = async function(documento) {
 };
 
 window.guardarEdicionAlumno = async function() {
-  const doc             = document.getElementById("editDocumento").value;
+  const docOriginal     = document.getElementById("editDocumento").dataset.docOriginal || document.getElementById("editDocumento").value;
+  const docNuevo        = document.getElementById("editDocumento").value.trim();
   const nombre          = document.getElementById("editNombre").value.trim();
   const email           = document.getElementById("editEmail").value.trim();
   const telefono        = document.getElementById("editTelefono").value.trim();
@@ -3533,7 +3541,23 @@ window.guardarEdicionAlumno = async function() {
   const activo          = document.getElementById("editActivo").checked ? 1 : 0;
   if (!nombre) return Swal.fire("Error", "El nombre es obligatorio", "warning");
   try {
-    const r = await fetch(`${API_URL}/students/${encodeURIComponent(doc)}`, {
+    // Si cambió el DNI, primero hacer el cambio en cascada
+    if (docNuevo !== docOriginal) {
+      const { isConfirmed } = await Swal.fire({
+        title: '¿Cambiar DNI?',
+        html: `Se actualizará el DNI de <strong>${docOriginal}</strong> a <strong>${docNuevo}</strong> en todos los registros (pagos, reservas, asistencias).`,
+        icon: 'warning', showCancelButton: true,
+        confirmButtonText: 'Sí, cambiar', cancelButtonText: 'Cancelar', confirmButtonColor: '#E24B4A'
+      });
+      if (!isConfirmed) return;
+      const rc = await fetch(`${API_URL}/students/${encodeURIComponent(docOriginal)}/cambiar-documento`, {
+        method: 'PUT',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nuevoDocumento: docNuevo })
+      });
+      if (!rc.ok) { const e = await rc.json(); throw new Error(e.error || "Error al cambiar DNI"); }
+    }
+    const r = await fetch(`${API_URL}/students/${encodeURIComponent(docNuevo)}`, {
       method: "PUT",
       headers: getAuthHeaders(),
       body: JSON.stringify({ nombre, email, telefono, fechaNacimiento, planActual, activo })
@@ -3543,6 +3567,17 @@ window.guardarEdicionAlumno = async function() {
     Swal.fire({ toast:true, position:"top-end", icon:"success", title:"Alumno actualizado", showConfirmButton:false, timer:2000 });
     cargarAlumnosExt();
   } catch(e) { Swal.fire("Error", e.message, "error"); }
+};
+
+window.habilitarCambioDNI = function() {
+  const input = document.getElementById("editDocumento");
+  input.dataset.docOriginal = input.value;
+  input.removeAttribute("readonly");
+  input.style.background = "";
+  input.style.color = "";
+  input.style.cursor = "";
+  input.focus();
+  document.getElementById("editDocumentoAviso").classList.remove("d-none");
 };
 </script>
 
@@ -3557,7 +3592,11 @@ window.guardarEdicionAlumno = async function() {
       <div class="modal-body">
         <div class="mb-3">
           <label class="form-label">Documento (DNI)</label>
-          <input type="text" id="editDocumento" class="form-control" readonly style="background:#f5f5f5;color:#888;cursor:default;">
+          <div class="d-flex gap-2 align-items-center">
+            <input type="text" id="editDocumento" class="form-control" readonly style="background:#f5f5f5;color:#888;cursor:default;">
+            <button type="button" class="btn btn-outline-secondary btn-sm" style="white-space:nowrap;" onclick="habilitarCambioDNI()">✏️ Cambiar</button>
+          </div>
+          <small id="editDocumentoAviso" class="text-danger d-none">⚠️ Cambiar el DNI actualiza todos los registros vinculados.</small>
         </div>
         <div class="mb-3">
           <label class="form-label">Nombre completo</label>
