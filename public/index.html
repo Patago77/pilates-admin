@@ -3799,7 +3799,7 @@ async function cargarTransferenciasPendientes() {
         <div>
           <div class="fw-semibold">${p.nombre}</div>
           <div class="small text-muted">📋 ${planNombres[p.plan] || p.plan} — <strong>$${Number(p.monto).toLocaleString('es-AR')}</strong></div>
-          <div class="small text-muted">🕐 ${new Date(p.created_at).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}</div>
+          <div class="small text-muted">🕐 ${new Date(p.created_at.replace(' ', 'T') + 'Z').toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}</div>
         </div>
         <div class="d-flex gap-2 flex-wrap justify-content-end">
           <button class="btn btn-success btn-sm" onclick="confirmarTransferencia(${p.id})">✓ Confirmar pago</button>
