@@ -159,6 +159,16 @@ router.get('/students/:documento/cuenta', authenticateToken, async (req, res) =>
       [documento]
     );
 
+    // Reservas recientes — últimos 2 meses
+    const [reservasMes] = await req.db.query(
+      `SELECT id, fecha, hora, estado, motivo_consumo, clase_devuelta
+       FROM agenda_reservas
+       WHERE documento = ? AND fecha >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH),'%Y-%m-01')
+       ORDER BY fecha DESC, hora DESC
+       LIMIT 40`,
+      [documento]
+    );
+
     // Asistencias por mes — desde agenda_reservas (últimos 6 meses)
     const [asistMeses] = await req.db.query(
       `SELECT DATE_FORMAT(fecha,'%Y-%m') AS mes, COUNT(*) AS clases
@@ -188,7 +198,8 @@ router.get('/students/:documento/cuenta', authenticateToken, async (req, res) =>
         reservasActivas: estadoMes.reservas_activas,
         asistidas: estadoMes.asistidas,
         ausencias: estadoMes.ausencias
-      }
+      },
+      reservasMes
     });
   } catch (err) {
     console.error("❌ Error cuenta alumno:", err.message);
