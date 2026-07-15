@@ -1107,8 +1107,14 @@ async function editPayment(id) {
 
     document.getElementById("ep-fullName").value = pago.fullName || "";
     document.getElementById("ep-documento").value = pago.documento || "";
-    document.getElementById("ep-subscriptionType").value = pago.subscriptionType || "";
     document.getElementById("ep-amount").value = pago.amount || "";
+
+    const selectTipo = document.getElementById("ep-subscriptionType");
+    const planesRes = await fetch(`${API_URL}/planes`, { headers: getAuthHeaders() });
+    const planes = planesRes.ok ? await planesRes.json() : [];
+    selectTipo.innerHTML = planes.map(p =>
+      `<option value="${p.codigo}" ${p.codigo === pago.subscriptionType ? 'selected' : ''}>${p.nombre}</option>`
+    ).join('');
     document.getElementById("ep-paymentDate").value = new Date(pago.paymentDate).toISOString().split("T")[0];
     const epComentarios = document.getElementById("ep-comentarios");
     if (epComentarios) epComentarios.value = pago.comentarios || "";
@@ -1132,7 +1138,7 @@ async function editPayment(id) {
 async function guardarEditarPago() {
   const id = window.currentPaymentId;
   const fullName = document.getElementById("ep-fullName").value.trim();
-  const subscriptionType = document.getElementById("ep-subscriptionType").value.trim();
+  const subscriptionType = document.getElementById("ep-subscriptionType").value;
   const amount = parseFloat(document.getElementById("ep-amount").value);
   const paymentDate = document.getElementById("ep-paymentDate").value;
   const estadoDeuda = document.getElementById("ep-estadoDeuda")?.value || "al_dia";
