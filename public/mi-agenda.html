@@ -388,12 +388,13 @@ function mostrarApp(nombre) {
   cargarNotificaciones();
 }
 
-async function cargarEstadoAbono() {
-  const mesActual = fmtISO(new Date()).substring(0, 7);
+async function cargarEstadoAbono(mes) {
+  const mesReal     = fmtISO(new Date()).substring(0, 7);
+  const mesConsulta = mes || mesReal;
   const el       = document.getElementById('abonoStatus');
   const elSide   = document.getElementById('abonoStatusSidebar');
   try {
-    const r2 = await fetch(`${API}/alumno/estado-abono/${mesActual}`, { headers: hdrs() });
+    const r2 = await fetch(`${API}/alumno/estado-abono/${mesConsulta}`, { headers: hdrs() });
     if (!r2.ok) { el.innerHTML = ''; if (elSide) elSide.innerHTML = ''; return; }
     const d = await r2.json();
 
@@ -448,7 +449,7 @@ async function cargarEstadoAbono() {
     const diaHoy = new Date().toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', day: 'numeric' });
     const rec = document.getElementById('recordatorioPago');
     if (rec) {
-      if (parseInt(diaHoy) <= 10 && (!d.abono_activo || d.sin_pago_registrado)) {
+      if (mesConsulta === mesReal && parseInt(diaHoy) <= 10 && (!d.abono_activo || d.sin_pago_registrado)) {
         rec.innerHTML = `
           <div style="background:#FEF3C7;border:1.5px solid #F59E0B;border-radius:10px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
             <div>
@@ -539,7 +540,7 @@ function portalIrDia(fecha) {
 }
 
 // ── Semana ──
-function cambiarSemana(dir) { lunesActual = addDias(lunesActual, dir*7); renderSemana(); }
+function cambiarSemana(dir) { lunesActual = addDias(lunesActual, dir*7); renderSemana(); cargarEstadoAbono(fmtISO(lunesActual).substring(0,7)); }
 
 function renderSemana() {
   const hoy = fmtISO(new Date());
@@ -645,7 +646,7 @@ async function reservar(fecha, hora) {
     if (r.status === 403) {
       fb.className = 'feedback err';
       fb.textContent = d.error;
-      await cargarEstadoAbono();
+      await cargarEstadoAbono(fecha.substring(0, 7));
       await cargarSlots(fecha);
       if (d.codigo === 'ABONO_AGOTADO' && d.solicitar) {
         const mesActual = fecha.substring(0, 7);
@@ -671,7 +672,7 @@ async function reservar(fecha, hora) {
       return;
     }
     if (!r.ok) { fb.className='feedback err'; fb.textContent=d.error; return; }
-    cargarEstadoAbono();
+    cargarEstadoAbono(fecha.substring(0, 7));
     await cargarSlots(fecha);
     await cargarMisReservas();
     switchTab('misclases');
@@ -738,7 +739,7 @@ async function cancelarPorId(id, fecha, hora) {
     fb.textContent = d.clase_devuelta
       ? `✅ ${d.mensaje}`
       : `ℹ️ ${d.mensaje}`;
-    cargarEstadoAbono();
+    cargarEstadoAbono((fecha || fechaSeleccionada).substring(0, 7));
     await cargarSlots(fecha || fechaSeleccionada);
     await cargarMisReservas();
   } catch(e) { fb.className = 'feedback err'; fb.textContent = 'Error al cancelar.'; }
