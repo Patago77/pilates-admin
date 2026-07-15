@@ -3009,7 +3009,7 @@ async function cargarActividadHoy() {
     ).join('');
 
     const filaLogins = logins.map(l =>
-      `<li><strong>${l.nombre}</strong> — ${new Date(l.ultimo_acceso).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})}</li>`
+      `<li><strong>${l.nombre}</strong> — ${new Date(l.ultimo_acceso.replace(' ','T')+'Z').toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'})}</li>`
     ).join('');
 
     const filaSolicitudes = solicitudes.map(s =>
