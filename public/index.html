@@ -2606,7 +2606,7 @@ async function cargarAlumnosExt() {
     });
     tbody.innerHTML = filtrados.map(a => {
       const tel = (a.telefono || '').replace(/\D/g,'');
-      const wa  = tel ? `<a href="https://wa.me/54${tel}" target="_blank" style="color:#25D366;font-size:15px;text-decoration:none;" title="WhatsApp">💬</a>` : '';
+      const wa  = tel ? `<a href="https://wa.me/${tel.startsWith('54')?tel:'54'+tel}" target="_blank" style="color:#25D366;font-size:15px;text-decoration:none;" title="WhatsApp">💬</a>` : '';
       const mesActual = new Date().toLocaleDateString('en-CA', { timeZone:'America/Argentina/Buenos_Aires' }).substring(0,7);
       const pagoOk = a.ultimoMesPago === mesActual;
       const ultimoPagoFmt = a.ultimoPago
@@ -2842,7 +2842,7 @@ async function cargarAbonos(mes) {
           <div style="width:${pct}%;height:100%;background:${pct>=100?'var(--danger)':pct>=60?'#f9c74f':'var(--accent)'};border-radius:2px;"></div>
         </div>` : '';
       const tel = (a.telefono || '').replace(/\D/g,'');
-      const wa  = tel ? `<a href="https://wa.me/54${tel}" target="_blank" title="WhatsApp" style="color:#25D366;font-size:15px;margin-left:6px;">💬</a>` : '';
+      const wa  = tel ? `<a href="https://wa.me/${tel.startsWith('54')?tel:'54'+tel}" target="_blank" title="WhatsApp" style="color:#25D366;font-size:15px;margin-left:6px;">💬</a>` : '';
       const futuras = a.reservas_activas || 0;
       const badgeFuturas = futuras > 0 ? `<span title="${futuras} clases reservadas" style="background:#F0EEFF;color:var(--accent);border-radius:4px;padding:1px 5px;font-size:10px;margin-left:4px;">${futuras} reserv.</span>` : '';
 
@@ -2916,7 +2916,7 @@ async function cargarAlertaSinAbono(mes) {
 function verSinAbono() {
   const filas = _sinAbonoData.map(a => {
     const tel = (a.telefono || '').replace(/\D/g,'');
-    const wa  = tel ? `<a href="https://wa.me/54${tel}" target="_blank" style="color:#25D366;font-size:13px;text-decoration:none;">💬</a>` : '';
+    const wa  = tel ? `<a href="https://wa.me/${tel.startsWith('54')?tel:'54'+tel}" target="_blank" style="color:#25D366;font-size:13px;text-decoration:none;">💬</a>` : '';
     return `<tr style="border-bottom:1px solid #f0eeff;">
       <td style="padding:8px 4px;font-weight:600;font-size:13px;">${a.nombre || a.documento}</td>
       <td style="padding:8px 4px;color:var(--muted);font-size:12px;text-align:center;">${a.reservas}</td>
@@ -3356,7 +3356,7 @@ async function agRenderDia(fecha) {
 
       const listaAlumnos = s.alumnos.map(a => {
         const tel = a.telefono?.replace(/\D/g,'');
-        const waLink = tel ? `<a href="https://wa.me/54${tel}" target="_blank" title="WhatsApp" style="color:#25D366;font-size:16px;text-decoration:none;margin-left:6px;">💬</a>` : '';
+        const waLink = tel ? `<a href="https://wa.me/${tel.startsWith('54')?tel:'54'+tel}" target="_blank" title="WhatsApp" style="color:#25D366;font-size:16px;text-decoration:none;margin-left:6px;">💬</a>` : '';
         return `
           <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f0eeff;">
             <div style="display:flex;align-items:center;gap:4px;">
