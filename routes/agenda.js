@@ -170,9 +170,8 @@ router.get('/alumno/historial/:mes', authAlumno, async (req, res) => {
     // Historial: pasadas (confirmadas o canceladas) del mes
     const [historial] = await db.query(
       `SELECT ar.id, ar.fecha, ar.hora, ar.estado, ar.clase_devuelta, ar.motivo_consumo,
-              IF(a.id IS NOT NULL, 1, 0) AS asistio
+              IF(ar.motivo_consumo = 'ausente', 0, 1) AS asistio
        FROM agenda_reservas ar
-       LEFT JOIN attendance a ON a.documento = ar.documento AND a.fecha = ar.fecha
        WHERE ar.documento = ?
          AND ar.fecha BETWEEN ? AND ?
          AND (ar.estado = 'cancelado' OR (ar.estado = 'confirmado' AND ar.fecha < ?))
