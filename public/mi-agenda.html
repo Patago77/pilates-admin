@@ -937,6 +937,8 @@ async function abrirRenovarAbono() {
   document.getElementById('renovarFeedback').innerHTML = '';
   document.getElementById('renovarStep1').style.display = 'block';
   document.getElementById('renovarStep2').style.display = 'none';
+  const btnReset = document.getElementById('renovarConfirmBtn');
+  if (btnReset) { btnReset.disabled = false; btnReset.textContent = 'Ya transferí →'; }
 
   // Cargar planes y config pago en paralelo
   try {
@@ -993,7 +995,10 @@ async function confirmarTransferencia() {
   const monto = Number(opt.dataset.precio);
   const planNombre = opt.textContent.split('—')[0].trim();
 
-  document.getElementById('renovarFeedback').innerHTML = '<span style="color:#7C7A8E;">Registrando…</span>';
+  const btn = document.getElementById('renovarConfirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'Registrando…';
+  document.getElementById('renovarFeedback').innerHTML = '';
 
   try {
     const r = await fetch(`${API}/alumno/pago-pendiente`, {
@@ -1004,6 +1009,8 @@ async function confirmarTransferencia() {
     const data = await r.json();
     if (!r.ok) {
       document.getElementById('renovarFeedback').innerHTML = `<span style="color:#E24B4A;">${data.error || 'Error al registrar.'}</span>`;
+      btn.disabled = false;
+      btn.textContent = 'Ya transferí →';
       return;
     }
     // Mostrar paso 2 (confirmación)
@@ -1014,6 +1021,8 @@ async function confirmarTransferencia() {
       La profe lo confirmará cuando acredite la transferencia y tu cuenta quedará activa.`;
   } catch(e) {
     document.getElementById('renovarFeedback').innerHTML = '<span style="color:#E24B4A;">Error de conexión.</span>';
+    btn.disabled = false;
+    btn.textContent = 'Ya transferí →';
   }
 }
 
@@ -1086,7 +1095,7 @@ if (TOKEN_ALUMNO) {
 
       <div id="renovarFeedback" style="min-height:20px;margin-bottom:12px;font-size:13px;"></div>
 
-      <button onclick="confirmarTransferencia()" style="width:100%;background:#6D28D9;color:#fff;border:none;border-radius:10px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;">Ya transferí →</button>
+      <button id="renovarConfirmBtn" onclick="confirmarTransferencia()" style="width:100%;background:#6D28D9;color:#fff;border:none;border-radius:10px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;">Ya transferí →</button>
     </div>
 
     <!-- Paso 2: confirmación -->
