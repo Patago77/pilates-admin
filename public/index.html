@@ -33,6 +33,21 @@
   --t:         .2s cubic-bezier(.4,0,.2,1);
 }
 
+html.modo-noche {
+  --bg:         #0F0E1A;
+  --surface:    #1C1A2E;
+  --surface-2:  #2A2740;
+  --surface-3:  #353152;
+  --text:       #E8E6F8;
+  --muted:      #9E9CB0;
+  --accent:     #8B5CF6;
+  --accent-dim: rgba(139,92,246,.15);
+  --accent-mid: #7C3AED;
+  --green-dim:  rgba(29,158,117,.15);
+  --shadow:     0 1px 3px rgba(0,0,0,.4);
+  --shadow-soft:0 2px 8px rgba(0,0,0,.3);
+}
+
 *, *::before, *::after { box-sizing: border-box; }
 
 body {
@@ -440,6 +455,7 @@ small { color: var(--muted) !important; }
         <span class="sa-pg-title" id="saPgTitle">Dashboard</span>
       </div>
       <div class="sa-topbar-right">
+        <button id="btnModoNoche" onclick="toggleModoNoche()" title="Modo noche" style="background:none;border:1.5px solid rgba(109,40,217,.2);border-radius:8px;padding:5px 10px;font-size:16px;cursor:pointer;line-height:1;transition:.2s;">🌙</button>
         <button class="sa-btn-new" onclick="abrirModalMovimiento()">+ Registrar movimiento</button>
         <button id="logoutButton" class="btn btn-outline-secondary btn-sm">Cerrar sesión</button>
       </div>
@@ -2788,6 +2804,22 @@ async function desmarcarAusente(id) {
   await fetch(`${API_URL}/asistencia/ausente/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
   cargarSlotAsistencia();
 }
+
+// ── MODO NOCHE ──
+function toggleModoNoche() {
+  const noche = document.documentElement.classList.toggle('modo-noche');
+  document.getElementById('btnModoNoche').textContent = noche ? '☀️' : '🌙';
+  localStorage.setItem('modoNoche', noche ? '1' : '0');
+}
+(function() {
+  if (localStorage.getItem('modoNoche') === '1') {
+    document.documentElement.classList.add('modo-noche');
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn = document.getElementById('btnModoNoche');
+      if (btn) btn.textContent = '☀️';
+    });
+  }
+})();
 
 // ── TOGGLE MONTOS DASHBOARD ──
 function toggleMontos() {
