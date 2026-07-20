@@ -944,7 +944,10 @@ small { color: var(--muted) !important; }
         <div class="sa-card">
           <div class="sa-card-hd">
             <span class="sa-card-ttl">Estado de abonos</span>
-            <input type="month" id="abonosMes" class="form-control form-control-sm" style="width:160px;">
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="text" id="abonosBuscar" placeholder="🔍 Buscar alumna..." class="form-control form-control-sm" style="width:200px;">
+              <input type="month" id="abonosMes" class="form-control form-control-sm" style="width:160px;">
+            </div>
           </div>
           <div class="sa-card-body" style="padding-bottom:0;">
             <div id="abonosResumen" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;"></div>
@@ -2785,7 +2788,14 @@ function iniciarAbonos() {
   const inp = document.getElementById('abonosMes');
   if (!inp.value) inp.value = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).substring(0,7);
   cargarAbonos(inp.value);
-  inp.onchange = () => cargarAbonos(inp.value);
+  inp.onchange = () => { cargarAbonos(inp.value); document.getElementById('abonosBuscar').value = ''; };
+  document.getElementById('abonosBuscar').oninput = function() {
+    const q = this.value.toLowerCase().trim();
+    document.querySelectorAll('#tablaAbonos tr').forEach(tr => {
+      const nombre = tr.querySelector('td')?.textContent?.toLowerCase() || '';
+      tr.style.display = !q || nombre.includes(q) ? '' : 'none';
+    });
+  };
 }
 
 async function cargarAbonos(mes) {
