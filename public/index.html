@@ -3290,6 +3290,13 @@ async function agRenderDia(fecha) {
   const cont = document.getElementById('agVistaDiaPanel');
   cont.innerHTML = '<div class="text-muted text-center py-3">Cargando...</div>';
   try {
+    if (!_horarioSemanal) {
+      try {
+        const rh = await fetch(`${API_URL}/stats/agenda-horario`, { headers: getAuthHeaders() });
+        if (rh.ok) _horarioSemanal = await rh.json();
+      } catch {}
+    }
+
     const r = await fetch(`${API_URL}/admin/agenda/${fecha}`, { headers: getAuthHeaders() });
     const d = await r.json();
     const slots = d.slots || [];
