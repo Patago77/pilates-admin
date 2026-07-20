@@ -357,6 +357,7 @@ small { color: var(--muted) !important; }
 .sk-row  { height:38px; border-radius:6px; margin:6px 0; width:100%; }
 .sa-kpi-val.loading { color:transparent !important; position:relative; }
 .sa-kpi-val.loading::after { content:''; position:absolute; left:0; top:50%; transform:translateY(-50%); width:80px; height:22px; border-radius:6px; background:#e9e4ff; animation:sk-pulse 1.4s ease-in-out infinite; }
+.montos-ocultos .admin-only-kpi .sa-kpi-val { filter:blur(10px); user-select:none; pointer-events:none; }
 </style>
 </head>
 <body>
@@ -448,6 +449,11 @@ small { color: var(--muted) !important; }
 
       <!-- DASHBOARD -->
       <div id="paginaDashboard" class="sa-page active">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+          <button id="btnToggleMontos" onclick="toggleMontos()" style="background:none;border:1.5px solid #d1d5db;border-radius:8px;padding:5px 14px;font-size:12px;font-weight:600;color:#6b7280;cursor:pointer;display:flex;align-items:center;gap:6px;">
+            <span id="iconoOjo">👁️</span> <span id="textoOcultar">Ocultar montos</span>
+          </button>
+        </div>
         <div class="sa-kpi-row">
           <div class="sa-kpi admin-only-kpi">
             <div class="sa-kpi-accent" style="background:rgba(109,40,217,.07);"></div>
@@ -2782,6 +2788,25 @@ async function desmarcarAusente(id) {
   await fetch(`${API_URL}/asistencia/ausente/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
   cargarSlotAsistencia();
 }
+
+// ── TOGGLE MONTOS DASHBOARD ──
+function toggleMontos() {
+  const dash = document.getElementById('paginaDashboard');
+  const oculto = dash.classList.toggle('montos-ocultos');
+  document.getElementById('iconoOjo').textContent  = oculto ? '🙈' : '👁️';
+  document.getElementById('textoOcultar').textContent = oculto ? 'Mostrar montos' : 'Ocultar montos';
+  localStorage.setItem('montosOcultos', oculto ? '1' : '0');
+}
+// Restaurar estado al cargar
+(function() {
+  if (localStorage.getItem('montosOcultos') === '1') {
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('paginaDashboard')?.classList.add('montos-ocultos');
+      if (document.getElementById('iconoOjo')) document.getElementById('iconoOjo').textContent = '🙈';
+      if (document.getElementById('textoOcultar')) document.getElementById('textoOcultar').textContent = 'Mostrar montos';
+    });
+  }
+})();
 
 // ── ABONOS ADMIN ──
 function iniciarAbonos() {
