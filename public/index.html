@@ -3341,18 +3341,26 @@ async function agRenderDia(fecha) {
       const sobrevendido = s.ocupados > s.capacidad;
       const completo     = s.ocupados === s.capacidad;
       const vacio        = s.ocupados === 0;
+      const cerrado      = horasBase && !horasBase.includes(s.hora);
       const pct          = Math.min(100, Math.round((s.ocupados / s.capacidad) * 100));
-      const barColor     = sobrevendido ? '#E24B4A' : completo ? '#E24B4A' : s.ocupados >= 3 ? '#854F0B' : '#1D9E75';
-      const borderColor  = sobrevendido ? '#E24B4A' : completo ? '#E24B4A' : s.ocupados > 0 ? '#6D28D9' : '#e9e4ff';
-      const bgHeader     = sobrevendido ? '#fce8e8' : completo ? '#fff5f5' : s.ocupados > 0 ? '#F0EEFF' : '#fafafa';
+      const barColor     = cerrado ? (s.ocupados > 0 ? '#f59e0b' : '#d1d5db')
+                         : sobrevendido ? '#E24B4A' : completo ? '#E24B4A' : s.ocupados >= 3 ? '#854F0B' : '#1D9E75';
+      const borderColor  = cerrado ? (s.ocupados > 0 ? '#f59e0b' : '#d1d5db')
+                         : sobrevendido ? '#E24B4A' : completo ? '#E24B4A' : s.ocupados > 0 ? '#6D28D9' : '#e9e4ff';
+      const bgHeader     = cerrado ? (s.ocupados > 0 ? '#fffbeb' : '#f3f4f6')
+                         : sobrevendido ? '#fce8e8' : completo ? '#fff5f5' : s.ocupados > 0 ? '#F0EEFF' : '#fafafa';
 
-      const badge = sobrevendido
-        ? `<span style="background:#E24B4A;color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;animation:pulse 1.2s infinite;">⚠️ SOBREVENDIDO</span>`
-        : completo
-          ? `<span style="background:#fce8e8;color:#E24B4A;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;">COMPLETO</span>`
-          : vacio
-            ? `<span style="background:#f0f0f0;color:#aaa;border-radius:6px;padding:2px 8px;font-size:11px;">libre</span>`
-            : '';
+      const badge = cerrado
+        ? (s.ocupados > 0
+            ? `<span style="background:#f59e0b;color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;">🔒 CERRADO</span>`
+            : `<span style="background:#e5e7eb;color:#6b7280;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;">🔒 CERRADO</span>`)
+        : sobrevendido
+          ? `<span style="background:#E24B4A;color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;animation:pulse 1.2s infinite;">⚠️ SOBREVENDIDO</span>`
+          : completo
+            ? `<span style="background:#fce8e8;color:#E24B4A;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;">COMPLETO</span>`
+            : vacio
+              ? `<span style="background:#f0f0f0;color:#aaa;border-radius:6px;padding:2px 8px;font-size:11px;">libre</span>`
+              : '';
 
       const listaAlumnos = s.alumnos.map(a => {
         const tel = a.telefono?.replace(/\D/g,'');
