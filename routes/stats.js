@@ -162,6 +162,46 @@ router.post('/stats/reformers', authenticateToken, requireAdmin, async (req, res
 });
 
 // ============================================================
+// GET /stats/reformers/real — ocupación real últimas 4 semanas
+// ============================================================
+router.get('/stats/reformers/real', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const CAPACIDAD = 5;
+    const [rows] = await req.db.query(`
+      SELECT
+        (DAYOFWEEK(fecha) - 2)                                           AS dia_idx,
+        hora,
+        COUNT(DISTINCT fecha)                                            AS semanas,
+        ROUND(COUNT(*) * 1.0 / COUNT(DISTINCT fecha), 1)                AS promedio,
+        ROUND(COUNT(*) * 100.0 / (COUNT(DISTINCT fecha) * ?))           AS pct
+      FROM agenda_reservas
+      WHERE estado = 'confirmado'
+        AND fecha >= DATE_SUB(CURDATE(), INTERVAL 4 WEEK)
+        AND fecha < CURDATE()
+        AND DAYOFWEEK(fecha) BETWEEN 2 AND 6
+      GROUP BY DAYOFWEEK(fecha), hora
+      ORDER BY DAYOFWEEK(fecha), hora
+    `, [CAPACIDAD]);
+
+    let totalSlots = rows.length;
+    let sumPct = 0, deadSlots = 0;
+    rows.forEach(r => {
+      sumPct += r.pct;
+      if (r.pct < 30) deadSlots++;
+    });
+    const pctGeneral = totalSlots > 0 ? Math.round(sumPct / totalSlots) : 0;
+
+    res.json({
+      slots: rows,
+      resumen: { total: totalSlots, dead: deadSlots, pct: pctGeneral }
+    });
+  } catch (err) {
+    console.error('❌ Error GET reformers/real:', err.message);
+    res.status(500).json({ error: 'Error al cargar datos reales.' });
+  }
+});
+
+// ============================================================
 // GET /stats/informe-mes
 // ============================================================
 router.get('/stats/informe-mes', authenticateToken, requireAdmin, async (req, res) => {

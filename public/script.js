@@ -1972,6 +1972,94 @@ function rfBuildGrid() {
   });
 }
 
+function rfBuildRealGrid(slots) {
+  const g = document.getElementById('rfHorario');
+  if (!g) return;
+  g.innerHTML = '';
+
+  const dias = ['Lun','Mar','Mié','Jue','Vie'];
+  const todasHoras = [...new Set(slots.map(s => s.hora))].sort();
+  const lookup = {};
+  slots.forEach(s => {
+    if (!lookup[s.dia_idx]) lookup[s.dia_idx] = {};
+    lookup[s.dia_idx][s.hora] = s;
+  });
+
+  dias.forEach((d, di) => {
+    const col = document.createElement('div');
+    col.style.cssText = 'display:flex;flex-direction:column;gap:3px;min-width:54px';
+    const lbl = document.createElement('div');
+    lbl.style.cssText = 'font-size:11px;text-align:center;color:#888;padding-bottom:3px;font-weight:500';
+    lbl.textContent = d;
+    col.appendChild(lbl);
+    todasHoras.forEach(h => {
+      const sd = lookup[di] && lookup[di][h];
+      const el = document.createElement('div');
+      const hDisplay = h.replace(':00','h').replace(/^0/,'');
+      if (sd) {
+        const pct = sd.pct;
+        let bg, color, border;
+        if      (pct >= 80) { bg='#065f46'; color='#d1fae5'; border='#047857'; }
+        else if (pct >= 60) { bg='#d1e7dd'; color='#085041'; border='#5dcaa5'; }
+        else if (pct >= 40) { bg='#fef3c7'; color='#92400e'; border='#fbbf24'; }
+        else                { bg='#fee2e2'; color='#991b1b'; border='#f87171'; }
+        el.style.cssText = `height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;user-select:none;border:1px solid ${border};background:${bg};color:${color};font-weight:500;cursor:default`;
+        el.title = `${d} ${h}: ${pct}% (prom ${sd.promedio} alumnos, ${sd.semanas} sem)`;
+        el.textContent = pct + '%';
+      } else {
+        el.style.cssText = 'height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;user-select:none;border:1px solid transparent;background:#f8f9fa;color:#ccc;cursor:default';
+        el.textContent = hDisplay;
+      }
+      col.appendChild(el);
+    });
+    g.appendChild(col);
+  });
+}
+
+function rfCalcReal(resumen) {
+  const refs   = parseInt(document.getElementById('rfCantidad')?.value)    || 4;
+  const alq    = parseInt(document.getElementById('rfPrecioAlquiler')?.value) || 25000;
+  const sueldo = parseInt(document.getElementById('rfSueldoProfe')?.value)  || 8000;
+  const precio2= parseInt(document.getElementById('rfPrecioProfe')?.value)  || 15000;
+  const alumnos= parseInt(document.getElementById('rfAlumnos')?.value)      || 1;
+
+  const total = resumen.total;
+  const dead  = resumen.dead;
+  const ocu   = total - dead;
+  const pct   = resumen.pct;
+
+  const tRef = total * refs;
+  const oRef = ocu   * refs;
+  const dRef = dead  * refs;
+
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('rfTotal',    tRef + 'hs');
+  set('rfOcupadas', oRef + 'hs');
+  set('rfMuertas',  dRef + 'hs');
+  set('rfOcupacion', pct + '%');
+
+  const aSem = dRef * alq;
+  const aMes = aSem * 4.3;
+  const bIng = dRef * alumnos * precio2;
+  const bCos = dRef * sueldo;
+  const bNet = bIng - bCos;
+  const bMes = bNet * 4.3;
+
+  set('rfAHs',  dRef + 'hs');
+  set('rfASem', rfFmt(aSem));
+  set('rfAMes', rfFmt(aMes));
+  set('rfBIng', rfFmt(bIng) + '/sem');
+  set('rfBCos', rfFmt(bCos) + '/sem');
+  set('rfBNet', rfFmt(bNet) + '/sem');
+  set('rfBMes', rfFmt(bMes));
+
+  const aWins = aMes >= bMes;
+  const tagA = document.getElementById('rfTagA');
+  const tagB = document.getElementById('rfTagB');
+  if (tagA) { tagA.textContent = aWins ? 'Recomendado' : 'Alternativa'; tagA.className = 'badge ' + (aWins ? 'bg-success' : 'bg-secondary'); }
+  if (tagB) { tagB.textContent = !aWins ? 'Recomendado' : 'Alternativa'; tagB.className = 'badge ' + (!aWins ? 'bg-success' : 'bg-secondary'); }
+}
+
 function rfSlotStyle(el, on) {
   if (on) {
     el.style.background = '#d1e7dd';
@@ -2075,20 +2163,30 @@ async function guardarConfigReformers() {
 
 async function cargarReformers() {
   try {
-    const resp = await fetch(`${API_URL}/stats/reformers`, { headers: getAuthHeaders() });
-    if (!resp.ok) return;
-    const d = await resp.json();
+    const [resp, respReal] = await Promise.all([
+      fetch(`${API_URL}/stats/reformers`,      { headers: getAuthHeaders() }),
+      fetch(`${API_URL}/stats/reformers/real`, { headers: getAuthHeaders() })
+    ]);
 
-    if (d.cantidad) document.getElementById('rfCantidad').value = d.cantidad;
-    if (d.precio_clase) document.getElementById('rfPrecioClase').value = d.precio_clase;
-    if (d.precio_alquiler) document.getElementById('rfPrecioAlquiler').value = d.precio_alquiler;
-    if (d.sueldo_profe) document.getElementById('rfSueldoProfe').value = d.sueldo_profe;
-    if (d.precio_clase_profe) document.getElementById('rfPrecioProfe').value = d.precio_clase_profe;
-    if (d.alumnos_por_reformer) document.getElementById('rfAlumnos').value = d.alumnos_por_reformer;
+    if (resp.ok) {
+      const d = await resp.json();
+      if (d.cantidad)             document.getElementById('rfCantidad').value       = d.cantidad;
+      if (d.precio_clase)         document.getElementById('rfPrecioClase').value    = d.precio_clase;
+      if (d.precio_alquiler)      document.getElementById('rfPrecioAlquiler').value  = d.precio_alquiler;
+      if (d.sueldo_profe)         document.getElementById('rfSueldoProfe').value    = d.sueldo_profe;
+      if (d.precio_clase_profe)   document.getElementById('rfPrecioProfe').value    = d.precio_clase_profe;
+      if (d.alumnos_por_reformer) document.getElementById('rfAlumnos').value        = d.alumnos_por_reformer;
+    }
 
-    rfInitSlots(d.horario);
-    rfBuildGrid();
-    rfCalc();
+    if (respReal.ok) {
+      const real = await respReal.json();
+      rfBuildRealGrid(real.slots);
+      rfCalcReal(real.resumen);
+    } else {
+      rfInitSlots(null);
+      rfBuildGrid();
+      rfCalc();
+    }
   } catch (err) {
     handleError(err, true);
     rfInitSlots(null);
