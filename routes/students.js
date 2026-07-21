@@ -124,6 +124,22 @@ router.delete('/students/:documento', authenticateToken, async (req, res) => {
   }
 });
 
+// 🔄 Activar/desactivar alumno (toggle rápido desde el listado)
+router.patch('/students/:documento/activo', authenticateToken, async (req, res) => {
+  const { activo } = req.body;
+  try {
+    const [result] = await req.db.query(
+      `UPDATE students SET activo=? WHERE documento=?`,
+      [activo ? 1 : 0, req.params.documento]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ error: "Alumno no encontrado." });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("❌ Error al actualizar estado del alumno:", err.message);
+    res.status(500).json({ error: "Error al actualizar el estado." });
+  }
+});
+
 // 📊 Estado de cuenta completo del alumno
 router.get('/students/:documento/cuenta', authenticateToken, async (req, res) => {
   const { documento } = req.params;
@@ -281,6 +297,20 @@ router.get('/asistencia/mes/:mes', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error("❌ Error asistencia mes:", err.message);
     res.status(500).json({ error: "Error al obtener resumen del mes." });
+  }
+});
+
+// 📋 Historial de asistencias (tabla attendance) de un alumno puntual
+router.get('/asistencia/alumno/:documento', authenticateToken, async (req, res) => {
+  try {
+    const [rows] = await req.db.query(
+      `SELECT id, fecha, horario FROM attendance WHERE documento = ? ORDER BY fecha DESC LIMIT 100`,
+      [req.params.documento]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error("❌ Error historial asistencias alumno:", err.message);
+    res.status(500).json({ error: "Error al obtener el historial de asistencias." });
   }
 });
 

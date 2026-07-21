@@ -86,7 +86,7 @@ window.switchHistorialTab = function(tab) {
 // ===== HISTORIAL ASISTENCIAS POR ALUMNO =====
 window.verAsistenciasAlumno = async function(documento, nombre) {
   try {
-    const resp = await fetch(`${API_URL}/attendance/alumno/${documento}`, {
+    const resp = await fetch(`${API_URL}/asistencia/alumno/${documento}`, {
       headers: getAuthHeaders()
     });
     if (!resp.ok) throw new Error("No se pudieron obtener las asistencias.");
@@ -239,7 +239,7 @@ window.abrirModalAsistencias = async function() {
 
 async function cargarAsistenciasHoy() {
   try {
-    const resp = await fetch(`${API_URL}/attendance/hoy`, { headers: getAuthHeaders() });
+    const resp = await fetch(`${API_URL}/asistencia/hoy`, { headers: getAuthHeaders() });
     if (!resp.ok) throw new Error("No se pudieron obtener las asistencias.");
     const asistencias = await resp.json();
 
@@ -287,7 +287,7 @@ window.registrarAsistenciaModal = async function() {
   if (!horario)   return Swal.fire("Error", "Seleccioná un horario.", "warning");
 
   try {
-    const resp = await fetch(`${API_URL}/attendance`, {
+    const resp = await fetch(`${API_URL}/asistencia`, {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify({ documento, horario })
@@ -1507,7 +1507,7 @@ function abrirPago(documento, nombre) {
 // ===== ASISTENCIA =====
 async function registrarAsistencia(documento) {
   try {
-    const resp = await fetch(`${API_URL}/attendance`, {
+    const resp = await fetch(`${API_URL}/asistencia`, {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify({ documento })
