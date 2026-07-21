@@ -1,0 +1,958 @@
+openapi: 3.0.3
+info:
+  title: pilates-admin (StudioAdmin) API
+  version: "1.0.0"
+  description: |
+    Generado leyendo el código real (`server.js`, `routes/*.js`, `authMiddleware.js`) el 2026-07-21.
+    No es un contrato de diseño — describe el comportamiento actual, incluidas sus inconsistencias.
+
+    ## Arquitectura multi-tenant
+    El backend es multi-tenant por base de datos: una DB **core** (`studios`, `users`) y una DB **por estudio**
+    (`students`, `payments`, `agenda_reservas`, etc.). Casi todos los endpoints "admin" resuelven la DB del
+    estudio automáticamente a partir del JWT (`req.db`, ver `authMiddleware.js`) — nunca reciben el tenant
+    como parámetro del cliente.
+
+    ## Dos sistemas de autenticación distintos, no intercambiables
+    1. **Panel admin/instructora**: cookie httpOnly `admin_token` (JWT, seteada por `/api/login`). Contiene
+       `{ id, email, role, studio_id, studio_db }`. Rutas protegidas con `authenticateToken` (+ `requireAdmin`
+       cuando el rol debe ser `admin`, no alcanza con `recepcion`).
+    2. **Portal de la alumna**: JWT propio obtenido vía OTP por email (`/api/alumno/solicitar-otp` +
+       `/api/alumno/verificar-otp`), enviado como `Authorization: Bearer <token>` o `?token=`. Contiene
+       `{ documento, nombre, email, studio_db, rol: 'alumno' }`. Rutas protegidas con el middleware local
+       `authAlumno` (no es el mismo que `authenticateToken`).
+    Un token de un sistema no sirve para el otro.
+
+    ## Hallazgo pendiente de confirmar
+    `docs/data-model.md` documenta inconsistencias de schema encontradas al generar esta documentación
+    (columnas `nombre` vs `name`, tablas no creadas por `create_client.sh`, etc.) — revisar antes de asumir
+    que el modelo acá descripto es 100% fiel a cualquier entorno que no sea el estudio único activo hoy.
+
+servers:
+  - url: http://localhost:3005/api
+    description: Local dev
+  - url: https://app.studioadmin.pro/api
+    description: Producción (Hostinger, proyecto real en /root/pilates-admin)
+
+security:
+  - adminCookie: []
+
+components:
+  securitySchemes:
+    adminCookie:
+      type: apiKey
+      in: cookie
+      name: admin_token
+      description: JWT de panel admin/instructora, seteado por POST /login. Verificado por authenticateToken.
+    alumnaBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT del portal de alumna, obtenido vía OTP. Verificado por el middleware local authAlumno (no authenticateToken).
+
+  schemas:
+    Student:
+      type: object
+      properties:
+        id: { type: integer }
+        documento: { type: string }
+        nombre: { type: string }
+        telefono: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        fecha_nacimiento: { type: string, format: date, nullable: true }
+        plan_actual: { type: string, nullable: true, description: "código de planes_config, sincronizado automáticamente con el último pago" }
+        activo: { type: integer, enum: [0, 1], description: "soft delete — no hay DELETE físico de alumnas" }
+        creado_en: { type: string, format: date-time }
+
+    Payment:
+      type: object
+      properties:
+        id: { type: integer }
+        fullName: { type: string, description: "nombre copiado al momento del pago, no FK" }
+        documento: { type: string, nullable: true }
+        subscriptionType: { type: string, description: "código de planes_config" }
+        amount: { type: number }
+        paymentDate: { type: string, format: date }
+        serviceMonth: { type: string, description: "YYYY-MM, mes de servicio (puede diferir del mes de pago)" }
+        metodoPago: { type: string, nullable: true }
+        estadoDeuda: { type: string, enum: [al_dia, debe, le_debemos] }
+        comentarios: { type: string, nullable: true }
+        clases_asignadas: { type: integer, nullable: true, description: "prorrateo manual de clases del plan" }
+        creado_en: { type: string, format: date-time }
+
+    Gasto:
+      type: object
+      properties:
+        id: { type: integer }
+        fecha: { type: string, format: date }
+        categoria: { type: string }
+        descripcion: { type: string }
+        monto: { type: number }
+
+    PlanConfig:
+      type: object
+      properties:
+        codigo: { type: string }
+        nombre: { type: string }
+        clases: { type: integer }
+        precio: { type: number }
+
+    PagoPendiente:
+      type: object
+      properties:
+        id: { type: integer }
+        documento: { type: string }
+        nombre: { type: string }
+        plan: { type: string }
+        monto: { type: number }
+        estado: { type: string, enum: [pendiente, procesando, confirmado, rechazado] }
+        created_at: { type: string, format: date-time }
+
+    AgendaReserva:
+      type: object
+      properties:
+        id: { type: integer }
+        fecha: { type: string, format: date }
+        hora: { type: string, example: "09:00" }
+        documento: { type: string }
+        estado: { type: string, enum: [confirmado, cancelado] }
+        cancelado_en: { type: string, format: date-time, nullable: true }
+        clase_devuelta: { type: integer, enum: [0, 1] }
+        motivo_consumo: { type: string, nullable: true, enum: [ausente, sin_aviso, clase_cancelada_estudio] }
+        created_at: { type: string, format: date-time }
+
+    EstadoAbono:
+      type: object
+      description: "Resultado de calcularEstadoAbono() en routes/agenda.js — cruce de pagos, reservas y asistencias del mes"
+      properties:
+        mes: { type: string }
+        abono_activo: { type: boolean }
+        abono_agotado: { type: boolean }
+        sin_pago_registrado: { type: boolean }
+        plan: { type: object, nullable: true, properties: { codigo: {type: string}, nombre: {type: string}, clases: {type: integer}, monto: {type: number} } }
+        clases_plan: { type: integer }
+        asistidas: { type: integer }
+        ausencias: { type: integer }
+        cancelaciones: { type: object, properties: { devueltas: {type: integer}, perdidas: {type: integer}, disponibles: {type: integer} } }
+        extra_admin: { type: integer }
+        consumidas: { type: integer }
+        restantes: { type: integer }
+        reservas_activas: { type: integer }
+        precio_clase_suelta: { type: number }
+
+    SolicitudClase:
+      type: object
+      properties:
+        id: { type: integer }
+        documento: { type: string }
+        mes: { type: string }
+        cantidad: { type: integer }
+        nota_alumna: { type: string, nullable: true }
+        estado: { type: string, enum: [pendiente, aprobada, rechazada] }
+        aprobado_por: { type: string, nullable: true }
+        aprobado_en: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    Feriado:
+      type: object
+      properties:
+        fecha: { type: string, format: date }
+        nombre: { type: string }
+        habilitado: { type: integer, enum: [0, 1] }
+        tipo: { type: string, enum: [feriado, cierre] }
+        motivo: { type: string, nullable: true }
+        horas: { type: array, items: { type: string }, nullable: true, description: "horas habilitadas ese día si es cierre parcial" }
+
+    Notificacion:
+      type: object
+      properties:
+        id: { type: integer }
+        titulo: { type: string }
+        mensaje: { type: string }
+        tipo: { type: string, example: "fija | info", description: "'fija' nunca se marca como leída" }
+        para: { type: string, enum: [todos, individual, conAbono] }
+        documento_destino: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    ErrorResponse:
+      type: object
+      properties:
+        error: { type: string }
+
+paths:
+  # ============================================================
+  # AUTH — panel admin (definidas directo en server.js)
+  # ============================================================
+  /health:
+    get:
+      tags: [Auth]
+      summary: Healthcheck
+      security: []
+      responses:
+        "200": { description: OK }
+
+  /login:
+    post:
+      tags: [Auth]
+      summary: Login admin/instructora — resuelve studio_db vía JOIN users+studios en core DB
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties: { email: {type: string}, password: {type: string} }
+      responses:
+        "200": { description: "Setea cookie admin_token (httpOnly). Nota: la respuesta arma user.nombre pero el SELECT no trae esa columna — probablemente devuelve undefined (ver docs/data-model.md)." }
+        "400": { description: "Validación fallida" }
+        "401": { description: "Usuario o contraseña incorrectos" }
+      x-rateLimit: "30 intentos / 10 min"
+
+  /logout:
+    post:
+      tags: [Auth]
+      summary: Limpia la cookie admin_token
+      security: []
+      responses: { "200": { description: OK } }
+
+  /me:
+    get:
+      tags: [Auth]
+      summary: Datos del usuario admin logueado
+      responses: { "200": { description: "{ nombre, role }" } }
+
+  # ============================================================
+  # DASHBOARD
+  # ============================================================
+  /dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Resumen general — ingresos, pagos, riesgo de abandono, reservas de hoy
+      responses: { "200": { description: "totalIncome, totalPayments, ingresosMes, gastosMes, saldoMes, reservasHoy, totalActivos, paymentsPerMonth, overduePayments, upcomingPayments" } }
+
+  /resumen/serie:
+    get:
+      tags: [Dashboard]
+      summary: Serie mensual ingresos vs gastos
+      parameters:
+        - { name: months, in: query, schema: { type: integer, default: 12, maximum: 36 } }
+      responses: { "200": { description: "{ months, series: [{mes, totalIngresos, totalGastos, saldo}] }" } }
+
+  /resumen/hoy:
+    get:
+      tags: [Dashboard]
+      summary: Actividad del día — reservas, cancelaciones, pagos, logins de alumnas, solicitudes de clases
+      responses: { "200": { description: "{ fecha, reservas, cancelaciones, pagos, logins, solicitudes }" } }
+
+  # ============================================================
+  # PAYMENTS
+  # ============================================================
+  /payments:
+    get:
+      tags: [Payments]
+      summary: Listar pagos (paginado, búsqueda por nombre/documento, filtro por mes)
+      security: [{ adminCookie: [] }]
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 100, maximum: 200 } }
+        - { name: q, in: query, schema: { type: string } }
+        - { name: mes, in: query, schema: { type: string, example: "2026-07" } }
+      responses:
+        "200": { description: "{ payments: Payment[], total, page, limit }" }
+    post:
+      tags: [Payments]
+      summary: Registrar pago (requiere rol admin). Sincroniza students.plan_actual.
+      security: [{ adminCookie: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fullName, subscriptionType, paymentDate, amount]
+              properties:
+                fullName: { type: string }
+                subscriptionType: { type: string }
+                paymentDate: { type: string, format: date }
+                amount: { type: number }
+                documento: { type: string, nullable: true }
+                serviceMonth: { type: string, nullable: true }
+                comentarios: { type: string, nullable: true }
+                metodoPago: { type: string, nullable: true }
+                estadoDeuda: { type: string, enum: [al_dia, debe, le_debemos] }
+      responses: { "200": { description: Payment }, "400": { description: ErrorResponse } }
+
+  /payments/{id}:
+    get:
+      tags: [Payments]
+      summary: Obtener pago por id
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { "200": { description: Payment }, "404": { description: ErrorResponse } }
+    put:
+      tags: [Payments]
+      summary: Editar pago. Re-sincroniza plan_actual del alumno.
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { "200": { description: OK }, "404": { description: ErrorResponse } }
+    delete:
+      tags: [Payments]
+      summary: Eliminar pago. Recalcula plan_actual desde el pago restante más reciente.
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { "200": { description: OK }, "404": { description: ErrorResponse } }
+
+  /payments/buscar/{query}:
+    get:
+      tags: [Payments]
+      summary: Buscar pagos por documento exacto o nombre parcial
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: query, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: "Payment[]" } }
+
+  /alumnos/mensuales:
+    get:
+      tags: [Payments]
+      summary: Cantidad de alumnos con pago por mes
+      security: [{ adminCookie: [] }]
+      responses: { "200": { description: "[{mes, cantidad}]" } }
+
+  /abono/{documento}:
+    get:
+      tags: [Payments]
+      summary: Estado de abono simple del mes actual (clases_abono, usadas, restantes) — versión liviana, no confundir con /admin/abono
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: documento, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: "{ documento, subscriptionType, clases_abono, clases_usadas, restantes, personalizado }" } }
+
+  /estadisticas/abonos:
+    get:
+      tags: [Payments]
+      summary: Ingresos totales agrupados por tipo de abono
+      security: [{ adminCookie: [] }]
+      responses: { "200": { description: "[{tipo_abono, total}]" } }
+
+  /planes:
+    get:
+      tags: [Planes]
+      summary: Listar planes
+      security: [{ adminCookie: [] }]
+      responses: { "200": { description: "PlanConfig[]" } }
+    post:
+      tags: [Planes]
+      summary: Crear plan
+      security: [{ adminCookie: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [codigo, nombre]
+              properties: { codigo: {type: string}, nombre: {type: string}, clases: {type: integer}, precio: {type: number} }
+      responses: { "201": { description: PlanConfig }, "400": { description: "código duplicado" } }
+
+  /planes/{codigo}:
+    put:
+      tags: [Planes]
+      summary: Editar plan
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: codigo, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: OK }, "404": { description: ErrorResponse } }
+    delete:
+      tags: [Planes]
+      summary: Eliminar plan
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: codigo, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: OK }, "404": { description: ErrorResponse } }
+
+  /admin/pagos-pendientes:
+    get:
+      tags: [PagosPendientes]
+      summary: Listar pagos declarados por alumnas, pendientes de confirmar
+      security: [{ adminCookie: [] }]
+      responses: { "200": { description: "PagoPendiente[]" } }
+
+  /admin/pagos-pendientes/{id}/confirmar:
+    post:
+      tags: [PagosPendientes]
+      summary: Confirmar pago pendiente → crea Payment real y sincroniza plan_actual. Lock atómico contra doble confirmación.
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { "200": { description: OK }, "409": { description: "ya confirmado o inexistente" } }
+
+  /admin/pagos-pendientes/{id}:
+    delete:
+      tags: [PagosPendientes]
+      summary: Rechazar pago pendiente
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { "200": { description: OK } }
+
+  /admin/config-pago:
+    get:
+      tags: [ConfigPago]
+      summary: Obtener datos de cobro (CBU/alias) — clave-valor en studio_config, prefijo pago_
+      security: [{ adminCookie: [] }]
+      responses: { "200": { description: "{ cbu, alias, titular, alias_mp, titular_mp }" } }
+    post:
+      tags: [ConfigPago]
+      summary: Guardar datos de cobro
+      security: [{ adminCookie: [] }]
+      responses: { "200": { description: OK } }
+
+  # ============================================================
+  # GASTOS
+  # ============================================================
+  /gastos:
+    get:
+      tags: [Gastos]
+      summary: Listar todos los gastos
+      security: [{ adminCookie: [] }]
+      responses: { "200": { description: "Gasto[]" } }
+    post:
+      tags: [Gastos]
+      summary: Registrar gasto
+      security: [{ adminCookie: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [categoria, descripcion, monto, fecha]
+              properties: { categoria: {type: string}, descripcion: {type: string}, monto: {type: number}, fecha: {type: string, format: date} }
+      responses: { "200": { description: Gasto } }
+
+  /gastos/{id}:
+    get: { tags: [Gastos], summary: Obtener gasto por id, security: [{adminCookie: []}], parameters: [{name: id, in: path, required: true, schema: {type: integer}}], responses: {"200": {description: Gasto}, "404": {description: ErrorResponse}} }
+    put: { tags: [Gastos], summary: Editar gasto, security: [{adminCookie: []}], parameters: [{name: id, in: path, required: true, schema: {type: integer}}], responses: {"200": {description: OK}, "404": {description: ErrorResponse}} }
+    delete: { tags: [Gastos], summary: Eliminar gasto, security: [{adminCookie: []}], parameters: [{name: id, in: path, required: true, schema: {type: integer}}], responses: {"200": {description: OK}, "404": {description: ErrorResponse}} }
+
+  /gastos/detalle/{mes}:
+    get: { tags: [Gastos], summary: "Detalle de gastos de un mes (YYYY-MM)", security: [{adminCookie: []}], parameters: [{name: mes, in: path, required: true, schema: {type: string}}], responses: {"200": {description: "Gasto[]"}} }
+
+  /gastos/mensuales/total:
+    get: { tags: [Gastos], summary: Total de gastos del mes actual, security: [{adminCookie: []}], responses: {"200": {description: "{totalGastos}"}} }
+
+  /gastos/mensuales:
+    get: { tags: [Gastos], summary: Gastos del mes actual agrupados por categoría, security: [{adminCookie: []}], responses: {"200": {description: "[{categoria, total}]"}} }
+
+  /gastos/por-mes:
+    get: { tags: [Gastos], summary: Gastos totales por mes (últimos 24), security: [{adminCookie: []}], responses: {"200": {description: "[{mes, total}]"}} }
+
+  /resumen/mensual:
+    get: { tags: [Gastos], summary: Ingresos/gastos/saldo consolidado del mes actual, security: [{adminCookie: []}], responses: {"200": {description: "{totalIngresos, totalGastos, saldo}"}} }
+
+  # ============================================================
+  # STUDENTS
+  # ============================================================
+  /students:
+    get:
+      tags: [Students]
+      summary: Listar alumnas (paginado, búsqueda), incluye último pago
+      security: [{ adminCookie: [] }]
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 100, maximum: 1000 } }
+        - { name: q, in: query, schema: { type: string } }
+      responses: { "200": { description: "{ students: Student[], total, page, limit }" } }
+    post:
+      tags: [Students]
+      summary: Registrar alumna nueva (documento único)
+      security: [{ adminCookie: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nombre, documento]
+              properties: { nombre: {type: string}, documento: {type: string}, email: {type: string}, telefono: {type: string}, fechaNacimiento: {type: string, format: date}, planActual: {type: string} }
+      responses: { "200": { description: Student }, "400": { description: "documento duplicado" } }
+
+  /students/{documento}:
+    put:
+      tags: [Students]
+      summary: Editar alumna
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: documento, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: OK }, "404": { description: ErrorResponse } }
+    delete:
+      tags: [Students]
+      summary: "Desactivar alumna (soft delete: activo=0, no borra la fila)"
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: documento, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: OK }, "404": { description: ErrorResponse } }
+
+  /students/{documento}/activo:
+    patch:
+      tags: [Students]
+      summary: "Toggle rápido activar/desactivar (agregado 2026-07-21 — el frontend ya lo llamaba pero la ruta no existía, endpoint 404 en producción hasta este fix)"
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: documento, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, required: [activo], properties: { activo: { type: integer, enum: [0, 1] } } }
+      responses: { "200": { description: OK }, "404": { description: ErrorResponse } }
+
+  /students/{documento}/cambiar-documento:
+    put:
+      tags: [Students]
+      summary: Cambiar DNI de una alumna en cascada (payments, agenda_reservas, attendance, student_tokens, students) — transaccional
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: documento, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, required: [nuevoDocumento], properties: { nuevoDocumento: {type: string} } }
+      responses: { "200": { description: OK }, "409": { description: "el nuevo DNI ya existe" } }
+
+  /students/{documento}/cuenta:
+    get:
+      tags: [Students]
+      summary: Estado de cuenta completo — datos, pagos recientes, asistencias, estado del abono del mes
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: documento, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: "{ alumno, totalPagado, ultimoPago, pagosRecientes, asistMeses, mesActual, reservasMes }" }, "404": { description: ErrorResponse } }
+
+  /asistencia:
+    post:
+      tags: [Asistencia]
+      summary: "Registrar asistencia rápida en tabla attendance (distinta de agenda_reservas — asistencia libre sin turno reservado)"
+      security: [{ adminCookie: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, required: [documento], properties: { documento: {type: string}, fecha: {type: string, format: date}, horario: {type: string} } }
+      responses: { "200": { description: OK }, "404": { description: "alumna no encontrada" }, "409": { description: "ya registrada hoy" } }
+
+  /asistencia/hoy:
+    get:
+      tags: [Asistencia]
+      summary: "Asistencias del día — en realidad lee agenda_reservas confirmadas, no la tabla attendance"
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: fecha, in: query, schema: { type: string, format: date } }]
+      responses: { "200": { description: "reservas confirmadas del día con nombre de alumna" } }
+
+  /asistencia/mes/{mes}:
+    get:
+      tags: [Asistencia]
+      summary: "Resumen del mes — total, alumnas distintas, días con clase, ranking (lee agenda_reservas)"
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: mes, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: "{ total, alumnas, diasConClase, ranking }" } }
+
+  /asistencia/alumno/{documento}:
+    get:
+      tags: [Asistencia]
+      summary: "Historial de asistencias (tabla attendance) de una alumna puntual (agregado 2026-07-21 — el frontend ya llamaba a /attendance/alumno/:documento, que nunca existió; 404 en producción hasta este fix)"
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: documento, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: "[{id, fecha, horario}]" } }
+
+  /asistencia/{id}:
+    delete:
+      tags: [Asistencia]
+      summary: "Eliminar registro de la tabla attendance (no de agenda_reservas)"
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { "200": { description: OK }, "404": { description: ErrorResponse } }
+
+  /asistencia/slot:
+    get:
+      tags: [Asistencia]
+      summary: Alumnas con reserva confirmada en un fecha+hora específicos — para tomar asistencia
+      security: [{ adminCookie: [] }]
+      parameters:
+        - { name: fecha, in: query, required: true, schema: { type: string, format: date } }
+        - { name: hora, in: query, required: true, schema: { type: string } }
+      responses: { "200": { description: "reservas del slot" } }
+
+  /asistencia/ausente/{id}:
+    post:
+      tags: [Asistencia]
+      summary: Marcar reserva (agenda_reservas) como ausente
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { "200": { description: OK } }
+    delete:
+      tags: [Asistencia]
+      summary: Desmarcar ausente
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { "200": { description: OK } }
+
+  # ============================================================
+  # STATS
+  # ============================================================
+  /stats/salud:
+    get:
+      tags: [Stats]
+      summary: "Score de salud del estudio: tasa de cobranza, margen, alumnos en riesgo, potencial de facturación"
+      security: [{ adminCookie: [] }]
+      responses: { "200": { description: "{ score, tasa_cobranza, margen, ticket_promedio, ticket_max, en_riesgo, potencial }" } }
+
+  /stats/reformers:
+    get: { tags: [Stats], summary: "Config guardada de reformers (cantidad, precios, sueldo profe) — clave-valor en studio_config, prefijo rf_", security: [{adminCookie: []}], responses: {"200": {description: "config object"}} }
+    post: { tags: [Stats], summary: Guardar config de reformers, security: [{adminCookie: []}], responses: {"200": {description: OK}} }
+
+  /stats/reformers/real:
+    get:
+      tags: [Stats]
+      summary: Ocupación real de reformers últimas 4 semanas, por día/hora, capacidad hardcodeada en 5
+      security: [{ adminCookie: [] }]
+      responses: { "200": { description: "{ slots, resumen: {total, dead, pct} }" } }
+
+  /stats/informe-mes:
+    get:
+      tags: [Stats]
+      summary: Informe del mes — alumnas sin pagar, sin venir, que no volvieron, regulares, días para el próximo cobro
+      security: [{ adminCookie: [] }]
+      responses: { "200": { description: "{ periodo_cobro_activo, dias_para_cobro, sin_pagar, sin_venir, no_volvieron, regulares }" } }
+
+  /stats/alumnos-aviso:
+    get:
+      tags: [Stats]
+      summary: Listado de alumnas filtradas para avisos/campañas
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: filtro, in: query, schema: { type: string, enum: [todos, conAbono, sinPago, inactivos], default: todos } }]
+      responses: { "200": { description: "Student[] (subset de campos)" } }
+
+  /stats/campana-email:
+    post:
+      tags: [Stats]
+      summary: Enviar campaña de email masiva según filtro (responde inmediato, envía en background)
+      security: [{ adminCookie: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, required: [mensaje], properties: { mensaje: {type: string}, asunto: {type: string}, filtro: {type: string, enum: [todos, conAbono, sinPago, inactivos]} } }
+      responses: { "200": { description: "{ ok, enviados, errores, total } — el conteo real de errores llega solo por log del server, no por response" } }
+
+  /stats/agenda-horario:
+    get:
+      tags: [Stats]
+      summary: Horario semanal configurado (clave agenda_horario_semana en studio_config)
+      responses: { "200": { description: "{ [dia_semana]: horas[] }" } }
+    post:
+      tags: [Stats]
+      summary: Guardar horario semanal
+      security: [{ adminCookie: [] }]
+      responses: { "200": { description: OK } }
+
+  # ============================================================
+  # RECIBO
+  # ============================================================
+  /recibo/{id}:
+    get:
+      tags: [Recibo]
+      summary: Genera un PDF de recibo para un pago (pdfkit, streaming)
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { "200": { description: "application/pdf", content: { application/pdf: { schema: { type: string, format: binary } } } }, "404": { description: ErrorResponse } }
+      x-nota: "authenticateToken acepta token también por ?token= para permitir descarga directa en <a href>"
+
+  # ============================================================
+  # IMPORTAR (CSV de Neocita)
+  # ============================================================
+  /importar/preview:
+    post:
+      tags: [Importar]
+      summary: Previsualizar importación de asistencias desde CSV (multipart, campo 'csv')
+      security: [{ adminCookie: [] }]
+      requestBody: { content: { multipart/form-data: { schema: { type: object, properties: { csv: { type: string, format: binary } } } } } }
+      responses: { "200": { description: "{ asistieron, no_asistieron, reconocidos, no_reconocidos, fechas_rango, muestra, no_reconocidos_lista }" } }
+
+  /importar/confirmar:
+    post:
+      tags: [Importar]
+      summary: Confirmar importación de asistencias (INSERT IGNORE en attendance, evita duplicados)
+      security: [{ adminCookie: [] }]
+      requestBody: { content: { multipart/form-data: { schema: { type: object, properties: { csv: { type: string, format: binary } } } } } }
+      responses: { "200": { description: "{ ok, mensaje }" } }
+
+  /importar/clientes:
+    post:
+      tags: [Importar]
+      summary: Crear/actualizar alumnas desde CSV (detecta formato agenda vs clientes por header)
+      security: [{ adminCookie: [] }]
+      requestBody: { content: { multipart/form-data: { schema: { type: object, properties: { csv: { type: string, format: binary } } } } } }
+      responses: { "200": { description: "{ ok, mensaje }" } }
+
+  /importar/agenda/preview:
+    post:
+      tags: [Importar]
+      summary: Previsualizar reservas futuras a importar, con matching por documento o nombre (exacto/parcial)
+      security: [{ adminCookie: [] }]
+      requestBody: { content: { multipart/form-data: { schema: { type: object, properties: { csv: { type: string, format: binary } } } } } }
+      responses: { "200": { description: "{ resumen, registros }" } }
+
+  /importar/agenda/confirmar:
+    post:
+      tags: [Importar]
+      summary: Insertar reservas futuras en agenda_reservas respetando capacidad (transaccional, con locks)
+      security: [{ adminCookie: [] }]
+      requestBody: { content: { multipart/form-data: { schema: { type: object, properties: { csv: { type: string, format: binary } } } } } }
+      responses: { "200": { description: "{ ok, mensaje, importados, duplicados, noEncontrados, noEncontradosLista }" } }
+
+  # ============================================================
+  # USERS (usuarios del panel — no confundir con students)
+  # ============================================================
+  /users:
+    get:
+      tags: [Users]
+      summary: Usuarios del estudio actual (admin/instructoras/recepción)
+      security: [{ adminCookie: [] }]
+      responses: { "200": { description: "[{id, email, nombre, role, active}]" } }
+    post:
+      tags: [Users]
+      summary: Crear usuario del panel
+      security: [{ adminCookie: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, required: [nombre, email, password], properties: { nombre: {type: string}, email: {type: string}, password: {type: string}, rol: {type: string, default: recepcion} } }
+      responses: { "201": { description: OK }, "400": { description: "email duplicado" } }
+
+  /users/{id}:
+    put: { tags: [Users], summary: Editar usuario, security: [{adminCookie: []}], parameters: [{name: id, in: path, required: true, schema: {type: integer}}], responses: {"200": {description: OK}} }
+
+  /users/{id}/active:
+    patch: { tags: [Users], summary: Activar/desactivar usuario, security: [{adminCookie: []}], parameters: [{name: id, in: path, required: true, schema: {type: integer}}], responses: {"200": {description: OK}} }
+
+  # ============================================================
+  # AUTH ALUMNA (OTP)
+  # ============================================================
+  /alumno/solicitar-otp:
+    post:
+      tags: [AuthAlumna]
+      summary: Solicitar código OTP por email (requiere studio_slug — login siempre es por estudio)
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, required: [documento, studio_slug], properties: { documento: {type: string}, studio_slug: {type: string} } }
+      responses: { "200": { description: "{ ok, emailMask, nombre }" }, "404": { description: "estudio o documento no encontrado" } }
+      x-rateLimit: "10 intentos / 15 min"
+
+  /alumno/verificar-otp:
+    post:
+      tags: [AuthAlumna]
+      summary: Verificar OTP y emitir JWT de alumna (7 días)
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, required: [documento, otp, studio_slug], properties: { documento: {type: string}, otp: {type: string}, studio_slug: {type: string} } }
+      responses: { "200": { description: "{ token, nombre }" }, "401": { description: "código incorrecto o expirado" } }
+      x-rateLimit: "10 intentos / 15 min"
+
+  # ============================================================
+  # AGENDA — ALUMNA
+  # ============================================================
+  /alumno/mis-reservas:
+    get: { tags: [AgendaAlumna], summary: Reservas futuras confirmadas de la alumna, security: [{alumnaBearer: []}], responses: {"200": {description: "AgendaReserva[]"}} }
+
+  /alumno/historial/{mes}:
+    get: { tags: [AgendaAlumna], summary: "Próximas + historial del mes (YYYY-MM)", security: [{alumnaBearer: []}], parameters: [{name: mes, in: path, required: true, schema: {type: string, pattern: '^\d{4}-\d{2}$'}}], responses: {"200": {description: "{ proximas, historial }"}} }
+
+  /agenda/disponibilidad/{fecha}:
+    get:
+      tags: [AgendaAlumna]
+      summary: Slots disponibles del día (respeta horario semanal configurado, feriados/cierres, capacidad 5)
+      security: [{ alumnaBearer: [] }]
+      parameters: [{ name: fecha, in: path, required: true, schema: { type: string, format: date } }]
+      responses: { "200": { description: "[{hora, ocupados, disponibles, capacidad, miReserva, reservaId, pasado}]" } }
+
+  /agenda/reservar:
+    post:
+      tags: [AgendaAlumna]
+      summary: Reservar turno — valida abono activo, cupo restante del plan, y capacidad del slot (transaccional con locks)
+      security: [{ alumnaBearer: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, required: [fecha, hora], properties: { fecha: {type: string, format: date}, hora: {type: string} } }
+      responses: { "200": { description: OK }, "403": { description: "sin abono activo (codigo SIN_ABONO) o clases agotadas (codigo ABONO_AGOTADO)" }, "409": { description: "ya tiene reserva ese día o turno completo" } }
+
+  /agenda/cancelar/{id}:
+    delete:
+      tags: [AgendaAlumna]
+      summary: "Cancelar reserva propia — con 24hs+ de aviso devuelve la clase, sin aviso la consume (motivo_consumo='sin_aviso')"
+      security: [{ alumnaBearer: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { "200": { description: "{ ok, clase_devuelta, mensaje }" }, "404": { description: ErrorResponse } }
+
+  /alumno/estado-abono/{mes}:
+    get: { tags: [AgendaAlumna], summary: Estado del abono propio del mes, security: [{alumnaBearer: []}], parameters: [{name: mes, in: path, required: true, schema: {type: string}}], responses: {"200": {description: EstadoAbono}} }
+
+  /alumno/planes:
+    get: { tags: [AgendaAlumna], summary: Planes disponibles para declarar un pago, security: [{alumnaBearer: []}], responses: {"200": {description: "PlanConfig[]"}} }
+
+  /alumno/config-pago:
+    get: { tags: [AgendaAlumna], summary: CBU/alias del estudio para que la alumna transfiera, security: [{alumnaBearer: []}], responses: {"200": {description: "{cbu, alias, titular, alias_mp, titular_mp}"}} }
+
+  /alumno/pago-pendiente:
+    post:
+      tags: [AgendaAlumna]
+      summary: Declarar que se hizo una transferencia (crea pagos_pendientes, no un Payment real)
+      security: [{ alumnaBearer: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, required: [plan, monto], properties: { plan: {type: string}, monto: {type: number} } }
+      responses: { "200": { description: OK }, "409": { description: "ya tiene uno pendiente" } }
+
+  /alumno/notificaciones:
+    get: { tags: [AgendaAlumna], summary: Notificaciones no leídas dirigidas a la alumna (todos/individual/conAbono), security: [{alumnaBearer: []}], responses: {"200": {description: "Notificacion[]"}} }
+
+  /alumno/notificaciones/{id}/leer:
+    post: { tags: [AgendaAlumna], summary: Marcar notificación como leída, security: [{alumnaBearer: []}], parameters: [{name: id, in: path, required: true, schema: {type: integer}}], responses: {"200": {description: OK}} }
+
+  /alumno/solicitar-clases:
+    post:
+      tags: [AgendaAlumna]
+      summary: Solicitar clases extra cuando se agotó el cupo del mes (una pendiente por mes)
+      security: [{ alumnaBearer: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, properties: { cantidad: {type: integer, default: 1}, nota_alumna: {type: string}, mes: {type: string} } }
+      responses: { "200": { description: OK }, "409": { description: "ya tiene una solicitud pendiente ese mes" } }
+
+  # ============================================================
+  # AGENDA — ADMIN
+  # ============================================================
+  /admin/agenda/sin-abono/{mes}:
+    get: { tags: [AgendaAdmin], summary: Alumnas con reservas ese mes pero sin pago registrado, security: [{adminCookie: []}], parameters: [{name: mes, in: path, required: true, schema: {type: string}}], responses: {"200": {description: "lista con conteo de reservas"}} }
+
+  /admin/agenda/{fecha}:
+    get: { tags: [AgendaAdmin], summary: Vista del día agrupada por horario/slot, security: [{adminCookie: []}], parameters: [{name: fecha, in: path, required: true, schema: {type: string, format: date}}], responses: {"200": {description: "{fecha, slots}"}} }
+
+  /admin/agenda/agregar:
+    post:
+      tags: [AgendaAdmin]
+      summary: Admin agrega manualmente una alumna a un turno (valida cupo y que no tenga otra reserva ese día)
+      security: [{ adminCookie: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, required: [fecha, hora, documento], properties: { fecha: {type: string, format: date}, hora: {type: string}, documento: {type: string} } }
+      responses: { "200": { description: OK }, "409": { description: "turno completo o ya tiene otra reserva ese día" } }
+
+  /admin/agenda/{id}:
+    delete: { tags: [AgendaAdmin], summary: Quitar alumna de un turno (marca cancelado, no borra), security: [{adminCookie: []}], parameters: [{name: id, in: path, required: true, schema: {type: integer}}], responses: {"200": {description: OK}} }
+
+  /admin/agenda/mes/{mes}:
+    get: { tags: [AgendaAdmin], summary: Resumen de reservas por día/hora de un mes completo, security: [{adminCookie: []}], parameters: [{name: mes, in: path, required: true, schema: {type: string}}], responses: {"200": {description: "[{fecha, hora, total}]"}} }
+
+  /admin/agenda/semana/{lunes}:
+    get: { tags: [AgendaAdmin], summary: Agenda de la semana completa (lunes a viernes) desde una fecha de lunes, security: [{adminCookie: []}], parameters: [{name: lunes, in: path, required: true, schema: {type: string, format: date}}], responses: {"200": {description: "AgendaReserva[] con nombre"}} }
+
+  /admin/abono/{documento}/{mes}:
+    get: { tags: [AgendaAdmin], summary: Estado de abono completo (cruce pagos/reservas/asistencias) de una alumna, security: [{adminCookie: []}], parameters: [{name: documento, in: path, required: true, schema: {type: string}}, {name: mes, in: path, required: true, schema: {type: string}}], responses: {"200": {description: EstadoAbono}} }
+
+  /admin/abonos/mes/{mes}:
+    get: { tags: [AgendaAdmin], summary: Estado de abono de todas las alumnas activas con actividad ese mes (N+1 queries, sin paginar), security: [{adminCookie: []}], parameters: [{name: mes, in: path, required: true, schema: {type: string}}], responses: {"200": {description: "(Student & EstadoAbono)[]"}} }
+
+  /admin/abono/devolver:
+    post:
+      tags: [AgendaAdmin]
+      summary: Admin devuelve clases manualmente (INSERT en clases_extra)
+      security: [{ adminCookie: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, required: [documento, mes, cantidad], properties: { documento: {type: string}, mes: {type: string}, cantidad: {type: integer}, motivo: {type: string} } }
+      responses: { "200": { description: "{ ok, estado: EstadoAbono }" } }
+
+  /admin/notificacion:
+    post:
+      tags: [Notificaciones]
+      summary: Crear notificación para alumnas
+      security: [{ adminCookie: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, required: [titulo, mensaje], properties: { titulo: {type: string}, mensaje: {type: string}, tipo: {type: string, default: info}, para: {type: string, enum: [todos, individual, conAbono], default: todos}, documento_destino: {type: string} } }
+      responses: { "200": { description: "{ ok, id }" } }
+
+  /admin/notificaciones:
+    get: { tags: [Notificaciones], summary: Últimas 50 notificaciones enviadas con conteo de leídas, security: [{adminCookie: []}], responses: {"200": {description: "Notificacion[] + leidas"}} }
+
+  /admin/notificacion/{id}:
+    delete: { tags: [Notificaciones], summary: Eliminar notificación (y sus lecturas), security: [{adminCookie: []}], parameters: [{name: id, in: path, required: true, schema: {type: integer}}], responses: {"200": {description: OK}} }
+
+  /admin/feriados:
+    get: { tags: [Feriados], summary: Listar feriados y cierres, security: [{adminCookie: []}], responses: {"200": {description: "Feriado[]"}} }
+    post:
+      tags: [Feriados]
+      summary: Agregar/actualizar feriado o cierre (upsert por fecha)
+      security: [{ adminCookie: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, required: [fecha, nombre], properties: { fecha: {type: string, format: date}, nombre: {type: string}, tipo: {type: string, enum: [feriado, cierre]}, motivo: {type: string} } }
+      responses: { "200": { description: OK } }
+
+  /admin/feriados/{fecha}:
+    put: { tags: [Feriados], summary: Toggle habilitado/deshabilitado del día completo, security: [{adminCookie: []}], parameters: [{name: fecha, in: path, required: true, schema: {type: string, format: date}}], responses: {"200": {description: OK}} }
+    delete: { tags: [Feriados], summary: Eliminar feriado, security: [{adminCookie: []}], parameters: [{name: fecha, in: path, required: true, schema: {type: string, format: date}}], responses: {"200": {description: OK}} }
+
+  /admin/feriados/{fecha}/horas:
+    put:
+      tags: [Feriados]
+      summary: Guardar horas específicas habilitadas ese día (cierre parcial)
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: fecha, in: path, required: true, schema: { type: string, format: date } }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, properties: { horas: { type: array, items: { type: string } } } }
+      responses: { "200": { description: OK } }
+
+  /admin/agenda/feriado/{fecha}:
+    get: { tags: [Feriados], summary: Consultar si una fecha específica es feriado, security: [{adminCookie: []}], parameters: [{name: fecha, in: path, required: true, schema: {type: string, format: date}}], responses: {"200": {description: "Feriado | null"}} }
+
+  /admin/solicitudes-clases:
+    get:
+      tags: [SolicitudesClases]
+      summary: Listar solicitudes de clases extra por estado
+      security: [{ adminCookie: [] }]
+      parameters: [{ name: estado, in: query, schema: { type: string, enum: [pendiente, aprobada, rechazada], default: pendiente } }]
+      responses: { "200": { description: "SolicitudClase[]" } }
+
+  /admin/solicitudes-clases/{id}/aprobar:
+    post: { tags: [SolicitudesClases], summary: Aprobar solicitud → crea clases_extra, security: [{adminCookie: []}], parameters: [{name: id, in: path, required: true, schema: {type: integer}}], responses: {"200": {description: OK}, "409": {description: "ya procesada"}} }
+
+  /admin/solicitudes-clases/{id}/rechazar:
+    post: { tags: [SolicitudesClases], summary: Rechazar solicitud, security: [{adminCookie: []}], parameters: [{name: id, in: path, required: true, schema: {type: integer}}], responses: {"200": {description: OK}, "404": {description: ErrorResponse}} }
+
+  /admin/cancelar-slot:
+    post:
+      tags: [AgendaAdmin]
+      summary: Cancelar todas las reservas confirmadas de un turno y devolver la clase a todas las afectadas (requiere rol admin, no alcanza recepción)
+      security: [{ adminCookie: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, required: [fecha, hora], properties: { fecha: {type: string, format: date}, hora: {type: string} } }
+      responses: { "200": { description: "{ ok, canceladas }" } }
+
+tags:
+  - { name: Auth, description: "Login/logout/sesión del panel admin" }
+  - { name: AuthAlumna, description: "Login por OTP del portal de alumna" }
+  - { name: Dashboard, description: "Resúmenes generales del estudio" }
+  - { name: Payments, description: "Pagos de alumnas" }
+  - { name: Planes, description: "Catálogo de planes/abonos" }
+  - { name: PagosPendientes, description: "Pagos declarados por alumna, a confirmar" }
+  - { name: ConfigPago, description: "Datos de cobro (CBU/alias)" }
+  - { name: Gastos, description: "Egresos del estudio" }
+  - { name: Students, description: "Alumnas" }
+  - { name: Asistencia, description: "Registro de asistencia (dos mecanismos: attendance libre y agenda_reservas con turno)" }
+  - { name: Stats, description: "Estadísticas y reportes" }
+  - { name: Recibo, description: "Generación de comprobantes PDF" }
+  - { name: Importar, description: "Importación masiva desde CSV de Neocita" }
+  - { name: Users, description: "Usuarios del panel (admin/instructora/recepción) — no confundir con Students" }
+  - { name: AgendaAlumna, description: "Reservas, abono y notificaciones vistas por la alumna" }
+  - { name: AgendaAdmin, description: "Gestión de agenda desde el panel admin" }
+  - { name: Notificaciones, description: "Notificaciones internas para alumnas" }
+  - { name: Feriados, description: "Feriados y cierres del estudio" }
+  - { name: SolicitudesClases, description: "Pedidos de clases extra hechos por alumnas" }

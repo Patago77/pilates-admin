@@ -1,0 +1,34 @@
+schema: spec-driven
+
+context: |
+  Tech stack: Node.js, Express 4, mysql2/promise (raw SQL, no ORM, no TypeScript). Frontend: static HTML + vanilla JS + Bootstrap 5 + SweetAlert2, no build step, no framework.
+  Architecture: multi-tenant by database — one core DB (studios, users) + one database per studio client (studio_<slug>_db). Tenant is always derived from a verified JWT (req.db / getStudioPool(req.alumno.studio_db)), never from client-supplied input.
+  Two separate, non-interchangeable auth systems: admin/instructora panel (httpOnly cookie admin_token, authenticateToken/requireAdmin) vs alumna portal (Bearer JWT via OTP login, local authAlumno middleware).
+  No automated test suite exists. Verification is manual: curl against a running local server (mandatory), plus a multi-tenant isolation check (/review-tenant) whenever a change touches a studio-DB query.
+  Existing code, comments, and all user-facing text are in Spanish (Argentina) — do not translate existing identifiers to English. New documentation/specs are written in English.
+  Known risk: docs/data-model.md documents confirmed drift between the documented schema, create_client.sh, and the real production DB — verify against the real system before trusting a doc blindly.
+
+  Project specs (single source of truth): all artifact creation and implementation MUST follow this project's technical context in docs/ and ai-specs/. Read and apply these when creating or implementing:
+  - docs/base-standards.md — core principles, what "testing" means here, symlink caveat on this machine
+  - docs/backend-standards.md — Express/mysql2 conventions, the multi-tenant isolation rule, the two auth systems
+  - docs/frontend-standards.md — static HTML/JS conventions, escapeHtml requirement, no-build-step constraint
+  - docs/api-spec.yml — the real API contract
+  - docs/data-model.md — the real data model, including documented schema drift
+  - docs/documentation-standards.md — when/how to keep docs in sync
+  - docs/openspec-tasks-mandatory-steps.md — mandatory curl testing + tenant isolation check for tasks.md
+  For implementation: adopt ai-specs/agents/backend-developer.md for backend work and ai-specs/agents/frontend-developer.md for frontend work. Use ai-specs/skills/ for workflow guidance when applicable.
+
+rules:
+  proposal:
+    - Read and apply docs/base-standards.md before drafting
+    - Note whether the change is backend, frontend, or both, and which of docs/backend-standards.md / docs/frontend-standards.md applies
+  design:
+    - For backend-related design, follow docs/backend-standards.md and ai-specs/agents/backend-developer.md conventions
+    - For frontend-related design, follow docs/frontend-standards.md and ai-specs/agents/frontend-developer.md conventions
+    - Use docs/api-spec.yml and docs/data-model.md for API and data consistency
+  specs:
+    - Use docs/api-spec.yml and docs/data-model.md as the source of truth for current behavior when describing requirements
+  tasks:
+    - Every tasks.md must include a mandatory curl-testing step per docs/openspec-tasks-mandatory-steps.md — no automated test suite exists in this project
+    - Every tasks.md touching a studio-database query must include a mandatory /review-tenant check before the change is considered complete
+    - No Playwright/E2E step — this project has no such infrastructure; frontend changes are verified manually
