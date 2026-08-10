@@ -186,6 +186,10 @@ router.get('/stats/reformers/real', authenticateToken, requireAdmin, async (req,
     let totalSlots = rows.length;
     let sumPct = 0, deadSlots = 0;
     rows.forEach(r => {
+      // ROUND()/AVG() en MySQL devuelven DECIMAL, y mysql2 lo trae como string (no number).
+      // Sumar con += sobre strings concatena en vez de sumar (ver auditoría 2026-08-10).
+      r.pct = Number(r.pct);
+      r.promedio = Number(r.promedio);
       sumPct += r.pct;
       if (r.pct < 30) deadSlots++;
     });
