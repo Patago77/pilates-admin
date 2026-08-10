@@ -29,7 +29,11 @@ CREATE TABLE IF NOT EXISTS agenda_reservas (
   created_at      TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uk_reserva (fecha, hora, documento),
   INDEX idx_fecha (fecha),
-  INDEX idx_documento (documento)
+  INDEX idx_documento (documento),
+  -- Cubre el FOR UPDATE de "¿ya reservó ese día?" en agenda.js (POST /agenda/reservar).
+  -- Sin esto, el lock cae sobre todas las reservas de la fecha (o del documento), no solo la propia,
+  -- y bajo uso concurrente dispara "Lock wait timeout exceeded" en reservas/cancelaciones simultáneas.
+  INDEX idx_documento_fecha (documento, fecha, estado)
 );
 
 -- Clases prorateadas o asignadas manualmente para un pago puntual
