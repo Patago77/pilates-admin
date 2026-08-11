@@ -1116,6 +1116,8 @@ async function editPayment(id) {
       `<option value="${p.codigo}" ${p.codigo === pago.subscriptionType ? 'selected' : ''}>${p.nombre}</option>`
     ).join('');
     document.getElementById("ep-paymentDate").value = new Date(pago.paymentDate).toISOString().split("T")[0];
+    const epServiceMonth = document.getElementById("ep-serviceMonth");
+    if (epServiceMonth) epServiceMonth.value = pago.serviceMonth || "";
     const epComentarios = document.getElementById("ep-comentarios");
     if (epComentarios) epComentarios.value = pago.comentarios || "";
 
@@ -1141,6 +1143,7 @@ async function guardarEditarPago() {
   const subscriptionType = document.getElementById("ep-subscriptionType").value;
   const amount = parseFloat(document.getElementById("ep-amount").value);
   const paymentDate = document.getElementById("ep-paymentDate").value;
+  const serviceMonth = document.getElementById("ep-serviceMonth")?.value || "";
   const estadoDeuda = document.getElementById("ep-estadoDeuda")?.value || "al_dia";
   const comentarios = document.getElementById("ep-comentarios")?.value?.trim() || "";
 
@@ -1152,7 +1155,7 @@ async function guardarEditarPago() {
     const res = await fetch(`${API_URL}/payments/${id}`, {
       method: "PUT",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ fullName, subscriptionType, amount, paymentDate, estadoDeuda, comentarios })
+      body: JSON.stringify({ fullName, subscriptionType, amount, paymentDate, serviceMonth, estadoDeuda, comentarios })
     });
     if (!res.ok) throw new Error("No se pudo actualizar el pago");
 
@@ -1916,6 +1919,8 @@ async function cargarSaludEstudio() {
       potEl.textContent = '$' + d.potencial.total.toLocaleString('es-AR');
       potEl.className = 'fw-bold text-success';
     }
+    const potAlumnasEl = document.getElementById('saludPotencialAlumnas');
+    if (potAlumnasEl) potAlumnasEl.textContent = d.potencial.alumnas ?? '-';
 
   } catch (err) {
     handleError(err, true);

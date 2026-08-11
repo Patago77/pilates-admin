@@ -1036,7 +1036,7 @@ small { color: var(--muted) !important; }
             <div class="alert alert-light border mb-0 py-2 px-3 small">
               <strong>Potencial del mes:</strong>
               <span id="saludPotencial" class="fw-bold text-success">-</span>
-              <span class="text-muted"> si activas todas las oportunidades</span>
+              <span class="text-muted"> si cobrás a las <span id="saludPotencialAlumnas">-</span> alumnas que vinieron y todavía no pagaron</span>
             </div>
           </div>
         </div>
@@ -2012,6 +2012,11 @@ small { color: var(--muted) !important; }
         <div class="mb-3">
           <label class="form-label">Fecha</label>
           <input type="date" id="ep-paymentDate" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label for="ep-serviceMonth" class="form-label">📆 Mes del servicio</label>
+          <input type="month" id="ep-serviceMonth" class="form-control">
+          <small class="text-muted">El mes que se muestra como "mes abono" en Movimientos y en la ficha del alumno.</small>
         </div>
         <div class="mb-3">
           <label class="form-label fw-semibold">📋 Estado</label>

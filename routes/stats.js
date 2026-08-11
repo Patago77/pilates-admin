@@ -90,15 +90,22 @@ router.get('/stats/salud', authenticateToken, requireAdmin, async (req, res) => 
       (en_riesgo === 0 ? 20 : en_riesgo <= 3 ? 10 : 0)
     ));
 
-    // Potencial: alumnos activos sin pago este mes * ticket promedio
-    const [[{ sin_pagar }]] = await req.db.query(
-      `SELECT COUNT(DISTINCT documento) AS sin_pagar FROM attendance
-       WHERE DATE_FORMAT(fecha, '%Y-%m') = ?
-         AND documento NOT IN (
-           SELECT DISTINCT documento FROM payments
-           WHERE documento IS NOT NULL
-             AND COALESCE(serviceMonth, DATE_FORMAT(paymentDate,'%Y-%m')) = ?
-         )`,
+    // Potencial: alumnas que vinieron este mes pero no pagaron, valorizadas según SU plan actual
+    // (no el ticket promedio del mes en curso, que da $0 a principio de mes cuando casi nadie pagó todavía)
+    const [[{ sin_pagar, potencial_total }]] = await req.db.query(
+      `SELECT COUNT(*) AS sin_pagar, COALESCE(SUM(pc.precio), 0) AS potencial_total
+       FROM (
+         SELECT DISTINCT a.documento
+         FROM attendance a
+         WHERE DATE_FORMAT(a.fecha, '%Y-%m') = ?
+           AND a.documento NOT IN (
+             SELECT DISTINCT documento FROM payments
+             WHERE documento IS NOT NULL
+               AND COALESCE(serviceMonth, DATE_FORMAT(paymentDate,'%Y-%m')) = ?
+           )
+       ) sp
+       JOIN students s ON s.documento = sp.documento
+       LEFT JOIN planes_config pc ON pc.codigo = s.plan_actual`,
       [mesActualAR, mesActualAR]
     );
 
@@ -110,7 +117,8 @@ router.get('/stats/salud', authenticateToken, requireAdmin, async (req, res) => 
       ticket_max: Math.round(ticket_max),
       en_riesgo,
       potencial: {
-        total: Math.round(sin_pagar * ticket_promedio)
+        total: Math.round(Number(potencial_total)),
+        alumnas: sin_pagar
       }
     });
   } catch (err) {

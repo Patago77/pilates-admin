@@ -59,13 +59,14 @@ router.post('/payments', authenticateToken, requireAdmin, async (req, res) => {
 // ✏️ Editar un pago existente por ID
 router.put('/payments/:id', authenticateToken, requireAdmin, async (req, res) => {
   const paymentId = req.params.id;
-  const { fullName, subscriptionType, paymentDate, amount, documento, estadoDeuda, metodoPago, comentarios } = req.body;
+  const { fullName, subscriptionType, paymentDate, amount, documento, serviceMonth, estadoDeuda, metodoPago, comentarios } = req.body;
 
   if (!fullName || !subscriptionType || !paymentDate || isNaN(amount)) {
     return res.status(400).json({ error: "Todos los campos son obligatorios y el monto debe ser válido." });
   }
 
   const estadoFinal = ['al_dia','debe','le_debemos'].includes(estadoDeuda) ? estadoDeuda : null;
+  const mesServicio = serviceMonth !== undefined ? (serviceMonth || paymentDate.substring(0, 7)) : undefined;
 
   try {
     await ensurePaymentColumns(req.db);
@@ -74,11 +75,13 @@ router.put('/payments/:id', authenticateToken, requireAdmin, async (req, res) =>
       const [result] = await req.db.query(
         `UPDATE payments
          SET fullName = ?, subscriptionType = ?, paymentDate = ?, amount = ?
+             ${mesServicio !== undefined ? ', serviceMonth = ?' : ''}
              ${estadoFinal !== null ? ', estadoDeuda = ?' : ''}
              ${metodoPago !== undefined ? ', metodoPago = ?' : ''}
              ${comentarios !== undefined ? ', comentarios = ?' : ''}
          WHERE id = ?`,
         [fullName, subscriptionType, paymentDate, amount,
+         ...(mesServicio !== undefined ? [mesServicio] : []),
          ...(estadoFinal !== null ? [estadoFinal] : []),
          ...(metodoPago !== undefined ? [metodoPago || null] : []),
          ...(comentarios !== undefined ? [comentarios || null] : []),
@@ -96,11 +99,13 @@ router.put('/payments/:id', authenticateToken, requireAdmin, async (req, res) =>
     const [result] = await req.db.query(
       `UPDATE payments
        SET fullName = ?, subscriptionType = ?, paymentDate = ?, amount = ?, documento = ?
+           ${mesServicio !== undefined ? ', serviceMonth = ?' : ''}
            ${estadoFinal !== null ? ', estadoDeuda = ?' : ''}
            ${metodoPago !== undefined ? ', metodoPago = ?' : ''}
            ${comentarios !== undefined ? ', comentarios = ?' : ''}
        WHERE id = ?`,
       [fullName, subscriptionType, paymentDate, amount, doc,
+       ...(mesServicio !== undefined ? [mesServicio] : []),
        ...(estadoFinal !== null ? [estadoFinal] : []),
        ...(metodoPago !== undefined ? [metodoPago || null] : []),
        ...(comentarios !== undefined ? [comentarios || null] : []),
