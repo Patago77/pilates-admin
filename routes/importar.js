@@ -1,6 +1,7 @@
 const express = require('express');
 const multer  = require('multer');
 const authenticateToken = require('../authMiddleware');
+const { requireAdmin } = require('../authMiddleware');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
@@ -40,7 +41,7 @@ function parsearCSVNeocita(buffer) {
 }
 
 // ── POST /importar/preview — previsualizar importación de asistencias ──
-router.post('/importar/preview', authenticateToken, upload.single('csv'), async (req, res) => {
+router.post('/importar/preview', authenticateToken, requireAdmin, upload.single('csv'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se recibió archivo.' });
   try {
     const registros = parsearCSVNeocita(req.file.buffer);
@@ -91,7 +92,7 @@ router.post('/importar/preview', authenticateToken, upload.single('csv'), async 
 });
 
 // ── POST /importar/confirmar — importar asistencias desde CSV de Neocita ──
-router.post('/importar/confirmar', authenticateToken, upload.single('csv'), async (req, res) => {
+router.post('/importar/confirmar', authenticateToken, requireAdmin, upload.single('csv'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se recibió archivo.' });
   try {
     const registros = parsearCSVNeocita(req.file.buffer);
@@ -132,7 +133,7 @@ router.post('/importar/confirmar', authenticateToken, upload.single('csv'), asyn
 });
 
 // ── POST /importar/clientes — crear/actualizar alumnos desde CSV de Neocita (agenda o clientes) ──
-router.post('/importar/clientes', authenticateToken, upload.single('csv'), async (req, res) => {
+router.post('/importar/clientes', authenticateToken, requireAdmin, upload.single('csv'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se recibió archivo.' });
   try {
     const texto = req.file.buffer.toString('utf8');
@@ -257,7 +258,7 @@ function normalizarNombre(nombre) {
 }
 
 // ── POST /importar/agenda/preview — previsualizar reservas futuras a importar ──
-router.post('/importar/agenda/preview', authenticateToken, upload.single('csv'), async (req, res) => {
+router.post('/importar/agenda/preview', authenticateToken, requireAdmin, upload.single('csv'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se recibió archivo.' });
   try {
     const registros = parsearCSVNeocitaAgenda(req.file.buffer);
@@ -319,7 +320,7 @@ router.post('/importar/agenda/preview', authenticateToken, upload.single('csv'),
 });
 
 // ── POST /importar/agenda/confirmar — insertar reservas futuras en agenda_reservas ──
-router.post('/importar/agenda/confirmar', authenticateToken, upload.single('csv'), async (req, res) => {
+router.post('/importar/agenda/confirmar', authenticateToken, requireAdmin, upload.single('csv'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se recibió archivo.' });
   try {
     const registros = parsearCSVNeocitaAgenda(req.file.buffer);

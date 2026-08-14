@@ -1,11 +1,12 @@
 // routes/students.js
 const express = require('express');
 const authenticateToken = require('../authMiddleware');
+const { requireAdmin } = require('../authMiddleware');
 const { calcularEstadoAbono } = require('./agenda');
 const router = express.Router();
 
 // 👉 Registrar un nuevo alumno
-router.post('/students', authenticateToken, async (req, res) => {
+router.post('/students', authenticateToken, requireAdmin, async (req, res) => {
   const { nombre, documento, email, telefono, fechaNacimiento, planActual } = req.body;
   if (!nombre || !documento) {
     return res.status(400).json({ error: "Nombre y documento son obligatorios." });
@@ -66,7 +67,7 @@ router.get('/students', authenticateToken, async (req, res) => {
 });
 
 // ✏️ Editar alumno
-router.put('/students/:documento', authenticateToken, async (req, res) => {
+router.put('/students/:documento', authenticateToken, requireAdmin, async (req, res) => {
   const { nombre, email, telefono, activo, fechaNacimiento, planActual } = req.body;
   if (!nombre) return res.status(400).json({ error: "El nombre es obligatorio." });
   try {
@@ -83,7 +84,7 @@ router.put('/students/:documento', authenticateToken, async (req, res) => {
 });
 
 // 🔄 Cambiar DNI de un alumno (cascada en todas las tablas)
-router.put('/students/:documento/cambiar-documento', authenticateToken, async (req, res) => {
+router.put('/students/:documento/cambiar-documento', authenticateToken, requireAdmin, async (req, res) => {
   const { nuevoDocumento } = req.body;
   const docViejo = req.params.documento;
   if (!nuevoDocumento) return res.status(400).json({ error: "Nuevo documento requerido." });
@@ -110,7 +111,7 @@ router.put('/students/:documento/cambiar-documento', authenticateToken, async (r
 });
 
 // 🗑️ Desactivar alumno (soft delete)
-router.delete('/students/:documento', authenticateToken, async (req, res) => {
+router.delete('/students/:documento', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const [result] = await req.db.query(
       `UPDATE students SET activo=0 WHERE documento=?`,
@@ -125,7 +126,7 @@ router.delete('/students/:documento', authenticateToken, async (req, res) => {
 });
 
 // 🔄 Activar/desactivar alumno (toggle rápido desde el listado)
-router.patch('/students/:documento/activo', authenticateToken, async (req, res) => {
+router.patch('/students/:documento/activo', authenticateToken, requireAdmin, async (req, res) => {
   const { activo } = req.body;
   try {
     const [result] = await req.db.query(

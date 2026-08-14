@@ -2148,15 +2148,15 @@ async function cargarUsuarios() {
     if (!grid) return;
     grid.innerHTML = users.map((u, i) => {
       const color = AVATAR_COLORS[i % AVATAR_COLORS.length];
-      const inicial = (u.nombre || u.email || "?")[0].toUpperCase();
+      const inicial = escapeHtml((u.nombre || u.email || "?")[0].toUpperCase());
       const activo = u.active == 1;
       return `<div style="background:#fff;border-radius:14px;border:1px solid rgba(109,40,217,.1);padding:24px 20px;text-align:center;box-shadow:0 2px 8px rgba(109,40,217,.06);transition:.2s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(109,40,217,.14)'" onmouseout="this.style.boxShadow='0 2px 8px rgba(109,40,217,.06)'">
         <div style="width:52px;height:52px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;color:#fff;margin:0 auto 12px;">${inicial}</div>
-        <div style="font-weight:600;font-size:.92rem;color:#1C1A2E;margin-bottom:2px;">${u.nombre || "Sin nombre"}</div>
-        <div style="font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7C3AED;margin-bottom:4px;">${u.rol || u.role || "admin"}</div>
-        <div style="font-size:.75rem;color:#7C7A8E;margin-bottom:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${u.email}</div>
+        <div style="font-weight:600;font-size:.92rem;color:#1C1A2E;margin-bottom:2px;">${escapeHtml(u.nombre) || "Sin nombre"}</div>
+        <div style="font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7C3AED;margin-bottom:4px;">${escapeHtml(u.rol || u.role || "admin")}</div>
+        <div style="font-size:.75rem;color:#7C7A8E;margin-bottom:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(u.email)}</div>
         <div style="display:flex;gap:8px;justify-content:center;">
-          <button onclick="editarUsuario(${u.id},'${u.nombre||''}','${u.email}','${u.rol||u.role||'admin'}')" style="flex:1;padding:7px;background:rgba(109,40,217,.08);border:none;border-radius:8px;color:#7C3AED;font-size:.75rem;font-weight:600;cursor:pointer;">Editar</button>
+          <button onclick="editarUsuario(${u.id},'${escapeJsAttr(u.nombre||'')}','${escapeJsAttr(u.email)}','${escapeJsAttr(u.rol||u.role||'admin')}')" style="flex:1;padding:7px;background:rgba(109,40,217,.08);border:none;border-radius:8px;color:#7C3AED;font-size:.75rem;font-weight:600;cursor:pointer;">Editar</button>
           <button onclick="toggleUsuario(${u.id},${activo?0:1})" style="padding:7px 10px;background:${activo?'rgba(29,158,117,.08)':'rgba(226,75,74,.08)'};border:none;border-radius:8px;color:${activo?'#1D9E75':'#E24B4A'};font-size:.75rem;font-weight:600;cursor:pointer;">${activo?'Activo':'Inactivo'}</button>
         </div>
       </div>`;
@@ -2414,14 +2414,14 @@ async function cargarMovimientosExt() {
       const mesAbono = p.serviceMonth || (p.paymentDate || "").substring(0, 7);
       return `<tr>
       <td style="color:var(--muted);font-size:.72rem;">${p.id}</td>
-      <td style="font-weight:600">${p.fullName}</td>
+      <td style="font-weight:600">${escapeHtml(p.fullName)}</td>
       <td style="color:var(--muted)">${new Date(p.paymentDate + 'T12:00:00').toLocaleDateString("es-AR")}</td>
       <td style="font-size:.75rem;font-weight:600;color:var(--accent);">${fmtMes(mesAbono)}</td>
-      <td style="font-size:.75rem;">${p.subscriptionType || "—"}</td>
+      <td style="font-size:.75rem;">${escapeHtml(p.subscriptionType) || "—"}</td>
       <td style="text-align:right;font-weight:600">$${parseFloat(p.amount).toLocaleString("es-AR")}</td>
       <td style="font-size:.75rem;">${p.metodoPago ? metodoLabel[p.metodoPago] || p.metodoPago : "—"}</td>
       <td style="font-size:.75rem;color:${estadoColor[p.estadoDeuda]||'var(--muted)'};">${p.estadoDeuda ? estadoLabel[p.estadoDeuda] || p.estadoDeuda : "—"}</td>
-      <td style="font-size:.75rem;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.comentarios || "—"}</td>
+      <td style="font-size:.75rem;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(p.comentarios) || "—"}</td>
       <td><div style="display:flex;gap:6px;">
         <button class="sa-edit-btn" title="Descargar recibo PDF" onclick="descargarRecibo(${p.id})">PDF</button>
         <button class="sa-edit-btn" onclick="editPayment(${p.id})">✎</button>
@@ -2473,14 +2473,14 @@ function _asistMostrarDropdown(q) {
     : _todosAlumnosAsist.slice(0, 30);
 
   if (!res.length) {
-    dropdown.innerHTML = '<div style="padding:10px 14px;color:var(--muted);font-size:13px;">Sin resultados para "' + filtro + '"</div>';
+    dropdown.innerHTML = '<div style="padding:10px 14px;color:var(--muted);font-size:13px;">Sin resultados para "' + escapeHtml(filtro) + '"</div>';
   } else {
     dropdown.innerHTML = res.map(a => `
-      <div data-doc="${a.documento}" data-nombre="${a.nombre}"
+      <div data-doc="${escapeHtml(a.documento)}" data-nombre="${escapeHtml(a.nombre)}"
            style="padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid #f5f4ff;display:flex;justify-content:space-between;align-items:center;background:#fff;"
            onmouseover="this.style.background='#F0EEFF'" onmouseout="this.style.background='#fff'">
-        <span style="font-weight:600;">${a.nombre}</span>
-        <span style="color:var(--muted);font-size:11px;">${a.activo == 0 ? '(inactiva) ' : ''}DNI ${a.documento}</span>
+        <span style="font-weight:600;">${escapeHtml(a.nombre)}</span>
+        <span style="color:var(--muted);font-size:11px;">${a.activo == 0 ? '(inactiva) ' : ''}DNI ${escapeHtml(a.documento)}</span>
       </div>`).join('');
 
     // click en una opción — usar onclick en el div para evitar problemas con blur
@@ -2542,8 +2542,8 @@ async function cargarAsistHoy() {
     if (badge) badge.textContent = Array.isArray(rows) ? rows.length : 0;
     if (kpiHoy) kpiHoy.textContent = Array.isArray(rows) ? rows.length : 0;
     if (tbody && Array.isArray(rows)) tbody.innerHTML = rows.map(a => `<tr>
-      <td style="font-weight:600;">${a.nombre || "—"}</td>
-      <td style="color:var(--muted);font-size:12px;">DNI ${a.documento}</td>
+      <td style="font-weight:600;">${escapeHtml(a.nombre) || "—"}</td>
+      <td style="color:var(--muted);font-size:12px;">DNI ${escapeHtml(a.documento)}</td>
       <td style="color:var(--muted);font-size:12px;">${a.horario || "—"}hs</td>
       <td>${a.motivo_consumo === 'ausente'
         ? '<span style="background:#FEE2E2;color:#B91C1C;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:700;">Ausente</span>'
@@ -2565,7 +2565,7 @@ async function cargarAsistHoy() {
     if (lbl) { const [y,m] = mesAR.split('-'); lbl.textContent = `${meses[parseInt(m)]} ${y}`; }
     const ranking = document.getElementById("tablaAsistRanking");
     if (ranking) ranking.innerHTML = (d.ranking || []).map((a, i) => `<tr>
-      <td><span style="color:var(--muted);font-size:11px;margin-right:6px;">${i+1}.</span>${a.nombre || a.documento}</td>
+      <td><span style="color:var(--muted);font-size:11px;margin-right:6px;">${i+1}.</span>${escapeHtml(a.nombre || a.documento)}</td>
       <td style="text-align:center;font-weight:700;color:var(--accent);">${a.clases}</td>
     </tr>`).join("") || '<tr><td colspan="2" style="text-align:center;color:var(--muted);padding:16px;">Sin datos este mes.</td></tr>';
   } catch(e) { console.error("Error asist mes:", e); }
@@ -2644,11 +2644,11 @@ async function cargarAlumnosExt() {
         : '—';
       return `<tr>
         <td>
-          <div style="font-weight:600;font-size:13px;">${a.nombre || "—"}</div>
-          ${a.email ? `<div style="font-size:11px;color:var(--muted);">${a.email}</div>` : ''}
+          <div style="font-weight:600;font-size:13px;">${escapeHtml(a.nombre) || "—"}</div>
+          ${a.email ? `<div style="font-size:11px;color:var(--muted);">${escapeHtml(a.email)}</div>` : ''}
         </td>
-        <td style="color:var(--muted);font-size:13px;">${a.documento || "—"}</td>
-        <td style="font-size:15px;">${wa}${a.telefono ? `<span style="font-size:11px;color:var(--muted);margin-left:4px;">${a.telefono}</span>` : '<span style="color:var(--muted);font-size:12px;">Sin tel.</span>'}</td>
+        <td style="color:var(--muted);font-size:13px;">${escapeHtml(a.documento) || "—"}</td>
+        <td style="font-size:15px;">${wa}${a.telefono ? `<span style="font-size:11px;color:var(--muted);margin-left:4px;">${escapeHtml(a.telefono)}</span>` : '<span style="color:var(--muted);font-size:12px;">Sin tel.</span>'}</td>
         <td><span class="sa-bdg ${a.activo == 1 ? 'sa-bdg-ok' : 'sa-bdg-pend'}">${a.activo == 1 ? 'Activo' : 'Inactivo'}</span></td>
         <td style="font-size:12px;">
           <span style="color:${pagoOk?'var(--green)':'var(--muted)'};">${ultimoPagoFmt}</span>
@@ -2685,7 +2685,7 @@ async function cargarGastosExt() {
     if (totalEl) totalEl.textContent = "$" + Math.round(total).toLocaleString("es-AR");
     tbody.innerHTML = gastos.map(g => `<tr>
       <td style="color:var(--muted)">${g.fecha ? g.fecha.split("T")[0] : "—"}</td>
-      <td>${g.descripcion || "—"}<br><small style="color:var(--muted)">${g.categoria || ""}</small></td>
+      <td>${escapeHtml(g.descripcion) || "—"}<br><small style="color:var(--muted)">${escapeHtml(g.categoria)}</small></td>
       <td style="text-align:right;font-weight:600;color:var(--danger)">$${parseFloat(g.monto).toLocaleString("es-AR")}</td>
       <td><div style="display:flex;gap:6px;">
         <button class="sa-edit-btn" onclick="editarGasto(${g.id})">✎</button>
@@ -2732,11 +2732,11 @@ async function iniciarBuscadorAlumno() {
       dropdown.innerHTML = '<div style="padding:10px 14px;color:var(--muted);font-size:13px;">Sin resultados</div>';
     } else {
       dropdown.innerHTML = res.map(a => `
-        <div data-doc="${a.documento}" data-nombre="${a.nombre}"
+        <div data-doc="${escapeHtml(a.documento)}" data-nombre="${escapeHtml(a.nombre)}"
              style="padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid #f5f4ff;display:flex;justify-content:space-between;"
              onmouseover="this.style.background='#F0EEFF'" onmouseout="this.style.background='#fff'">
-          <span style="font-weight:600">${a.nombre}</span>
-          <span style="color:var(--muted);font-size:11px;">${a.documento}</span>
+          <span style="font-weight:600">${escapeHtml(a.nombre)}</span>
+          <span style="color:var(--muted);font-size:11px;">${escapeHtml(a.documento)}</span>
         </div>`).join('');
       dropdown.querySelectorAll('[data-doc]').forEach(el => {
         el.addEventListener('mousedown', (e) => {
@@ -2785,7 +2785,7 @@ async function cargarSlotAsistencia() {
         </tr></thead>
         <tbody>
           ${rows.map(a => `<tr id="asist-row-${a.id}">
-            <td style="font-weight:600;">${a.nombre}</td>
+            <td style="font-weight:600;">${escapeHtml(a.nombre)}</td>
             <td style="text-align:center;">
               ${a.motivo_consumo === 'ausente'
                 ? `<span style="color:#E24B4A;font-weight:700;font-size:12px;">❌ Ausente</span>
@@ -2920,10 +2920,10 @@ async function cargarAbonos(mes) {
 
       return `<tr style="${bgRow}">
         <td>
-          <div style="font-weight:600;font-size:13px;">${a.nombre}${wa}</div>
-          <div style="font-size:11px;color:var(--muted);">${a.documento}${badgeFuturas}</div>
+          <div style="font-weight:600;font-size:13px;">${escapeHtml(a.nombre)}${wa}</div>
+          <div style="font-size:11px;color:var(--muted);">${escapeHtml(a.documento)}${badgeFuturas}</div>
         </td>
-        <td class="text-center" style="font-size:12px;">${a.plan ? a.plan.nombre : '<span style="color:var(--muted)">—</span>'}</td>
+        <td class="text-center" style="font-size:12px;">${a.plan ? escapeHtml(a.plan.nombre) : '<span style="color:var(--muted)">—</span>'}</td>
         <td class="text-center">${a.clases_plan > 0 ? a.clases_plan : '—'}${barra}</td>
         <td class="text-center"><span style="color:var(--green);font-weight:600;">${a.asistidas}</span></td>
         <td class="text-center"><span style="color:${a.ausencias>0?'var(--danger)':'var(--muted)'};font-weight:600;">${a.ausencias}</span></td>
@@ -2933,7 +2933,7 @@ async function cargarAbonos(mes) {
         </td>
         <td class="text-center"><span style="font-weight:700;color:${colorRestantes};">${a.clases_plan > 0 ? a.restantes : '—'}</span></td>
         <td>
-          <button class="sa-edit-btn" onclick="devolverClase('${a.documento}','${a.nombre}','${mes}')">+ Devolver</button>
+          <button class="sa-edit-btn" onclick="devolverClase('${escapeJsAttr(a.documento)}','${escapeJsAttr(a.nombre)}','${escapeJsAttr(mes)}')">+ Devolver</button>
         </td>
       </tr>`;
     }).join('');
@@ -2990,7 +2990,7 @@ function verSinAbono() {
     const tel = (a.telefono || '').replace(/\D/g,'');
     const wa  = tel ? `<a href="https://wa.me/${tel.startsWith('54')?tel:'54'+tel}" target="_blank" style="color:#25D366;font-size:13px;text-decoration:none;">💬</a>` : '';
     return `<tr style="border-bottom:1px solid #f0eeff;">
-      <td style="padding:8px 4px;font-weight:600;font-size:13px;">${a.nombre || a.documento}</td>
+      <td style="padding:8px 4px;font-weight:600;font-size:13px;">${escapeHtml(a.nombre || a.documento)}</td>
       <td style="padding:8px 4px;color:var(--muted);font-size:12px;text-align:center;">${a.reservas}</td>
       <td style="padding:8px 4px;text-align:center;">${wa}</td>
     </tr>`;
@@ -3218,7 +3218,7 @@ async function agRenderSemana(lunes) {
       if (!mapa[key]) mapa[key] = { n: 0, nombres: [] };
       mapa[key].n++;
       const primerNombre = (rv.nombre || '').split(' ')[0];
-      if (primerNombre) mapa[key].nombres.push(primerNombre);
+      if (primerNombre) mapa[key].nombres.push(escapeHtml(primerNombre));
     });
 
     const NOMBRES_CORTOS = ['Lun','Mar','Mié','Jue','Vie'];
@@ -3386,8 +3386,8 @@ async function agRenderDia(fecha) {
       cont.innerHTML = `
         <div style="background:#fff8e1;border:1.5px solid #f9c74f;border-radius:10px;padding:20px 24px;text-align:center;margin-bottom:12px;">
           <div style="font-size:22px;margin-bottom:6px;">🗓️</div>
-          <div style="font-weight:700;font-size:15px;color:#7a4f00;margin-bottom:4px;">${feriado.tipo === 'cierre' ? '🔒 Cierre' : '🗓️ Feriado'} — ${feriado.nombre}</div>
-          <div style="color:#854F0B;font-size:13px;margin-bottom:14px;">${feriado.motivo || 'El estudio está cerrado este día.'}</div>
+          <div style="font-weight:700;font-size:15px;color:#7a4f00;margin-bottom:4px;">${feriado.tipo === 'cierre' ? '🔒 Cierre' : '🗓️ Feriado'} — ${escapeHtml(feriado.nombre)}</div>
+          <div style="color:#854F0B;font-size:13px;margin-bottom:14px;">${escapeHtml(feriado.motivo) || 'El estudio está cerrado este día.'}</div>
           <button onclick="seleccionarHorasFeriado('${fecha}')" style="background:#6D28D9;color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;">Habilitar horas...</button>
         </div>`;
       return;
@@ -3447,7 +3447,7 @@ async function agRenderDia(fecha) {
         return `
           <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f0eeff;">
             <div style="display:flex;align-items:center;gap:4px;">
-              <span style="font-weight:600;font-size:13px;">${a.nombre || a.documento}</span>
+              <span style="font-weight:600;font-size:13px;">${escapeHtml(a.nombre || a.documento)}</span>
               ${waLink}
             </div>
             <button class="sa-del-btn" onclick="quitarDelTurno(${a.id},'${fecha}')" title="Quitar del turno">✕</button>
@@ -3520,10 +3520,10 @@ window.agregarAlumnoTurno = async function(fecha, hora) {
         ).slice(0, 30);
 
         lista.innerHTML = filtrados.map(a => `
-          <div data-doc="${a.documento}" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0eeff;display:flex;justify-content:space-between;align-items:center;"
+          <div data-doc="${escapeHtml(a.documento)}" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0eeff;display:flex;justify-content:space-between;align-items:center;"
                onmouseover="this.style.background='#F0EEFF'" onmouseout="this.style.background=this.classList.contains('sel')?'#e9e4ff':'#fff'">
-            <span style="font-weight:600">${a.nombre}</span>
-            <span style="color:var(--muted);font-size:11px;">${a.documento}</span>
+            <span style="font-weight:600">${escapeHtml(a.nombre)}</span>
+            <span style="color:var(--muted);font-size:11px;">${escapeHtml(a.documento)}</span>
           </div>`).join('') || '<div style="padding:12px;color:var(--muted);font-size:13px;text-align:center;">Sin resultados</div>';
 
         lista.querySelectorAll('[data-doc]').forEach(el => {
@@ -3789,10 +3789,10 @@ window.verCuentaAlumno = async function(documento) {
       <div class="row g-3 mb-3">
         <div class="col-md-6">
           <div style="background:var(--surface-2);border-radius:10px;padding:16px;">
-            <div style="font-size:17px;font-weight:700;margin-bottom:4px;">${a.nombre}${badgeDeuda}</div>
-            <div style="color:var(--muted);font-size:13px;">Doc: ${a.documento}</div>
-            ${a.telefono ? `<div style="color:var(--muted);font-size:13px;">📞 ${a.telefono}</div>` : ""}
-            ${a.email    ? `<div style="color:var(--muted);font-size:13px;">✉️ ${a.email}</div>` : ""}
+            <div style="font-size:17px;font-weight:700;margin-bottom:4px;">${escapeHtml(a.nombre)}${badgeDeuda}</div>
+            <div style="color:var(--muted);font-size:13px;">Doc: ${escapeHtml(a.documento)}</div>
+            ${a.telefono ? `<div style="color:var(--muted);font-size:13px;">📞 ${escapeHtml(a.telefono)}</div>` : ""}
+            ${a.email    ? `<div style="color:var(--muted);font-size:13px;">✉️ ${escapeHtml(a.email)}</div>` : ""}
             <span class="sa-bdg ${a.activo==1?'sa-bdg-ok':'sa-bdg-pend'} mt-2 d-inline-block">${a.activo==1?"Activo":"Inactivo"}</span>
           </div>
         </div>
@@ -3800,7 +3800,7 @@ window.verCuentaAlumno = async function(documento) {
           <div style="background:var(--surface-2);border-radius:10px;padding:16px;">
             <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">ESTE MES</div>
             ${d.mesActual.plan
-              ? `<div style="font-weight:600;font-size:15px;">${d.mesActual.plan.nombre}
+              ? `<div style="font-weight:600;font-size:15px;">${escapeHtml(d.mesActual.plan.nombre)}
                    ${d.mesActual.sinPagoRegistrado ? `<span style="font-size:11px;background:#FEF3C7;color:#92400E;border-radius:4px;padding:1px 7px;margin-left:6px;font-weight:600;">sin pago registrado</span>` : ''}
                  </div>
                  <div style="font-size:13px;margin:4px 0;">
@@ -3924,8 +3924,8 @@ async function cargarTransferenciasPendientes() {
     lista.innerHTML = rows.map(p => `
       <div class="d-flex align-items-center justify-content-between border rounded p-3 mb-2" style="background:#fffdf0;">
         <div>
-          <div class="fw-semibold">${p.nombre}</div>
-          <div class="small text-muted">📋 ${planNombres[p.plan] || p.plan} — <strong>$${Number(p.monto).toLocaleString('es-AR')}</strong></div>
+          <div class="fw-semibold">${escapeHtml(p.nombre)}</div>
+          <div class="small text-muted">📋 ${planNombres[p.plan] || escapeHtml(p.plan)} — <strong>$${Number(p.monto).toLocaleString('es-AR')}</strong></div>
           <div class="small text-muted">🕐 ${new Date(p.created_at.replace(' ', 'T') + 'Z').toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}</div>
         </div>
         <div class="d-flex gap-2 flex-wrap justify-content-end">
@@ -4017,8 +4017,8 @@ async function cargarDestinatarios() {
     lista.innerHTML = conTel.map((a, i) => `
       <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom" id="avisoRow_${i}">
         <div>
-          <div class="fw-semibold" style="font-size:13px;">${a.nombre}</div>
-          <div class="small text-muted">${a.telefono}</div>
+          <div class="fw-semibold" style="font-size:13px;">${escapeHtml(a.nombre)}</div>
+          <div class="small text-muted">${escapeHtml(a.telefono)}</div>
         </div>
         <button class="btn btn-sm btn-outline-success" onclick="enviarAvisoUno(${i})" id="avisoBtn_${i}">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-right:4px;"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/></svg>

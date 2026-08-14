@@ -4,6 +4,22 @@ function escapeHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+// Para interpolar dentro de onclick="fn('${x}')": el navegador decodea entidades HTML
+// del atributo ANTES de que el JS parsee el string, así que &#39; no alcanza para
+// bloquear una comilla — hay que escaparla como \' (secuencia JS), no como entidad.
+function escapeJsAttr(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 // ===== MODAL FORMULARIO MOVIMIENTO =====
 window.abrirModalMovimiento = async function() {
   // Setear fecha de hoy si está vacía
@@ -266,7 +282,7 @@ async function cargarAsistenciasHoy() {
         <div class="d-flex flex-wrap gap-2">
           ${alumnos.map(a => `
             <span class="badge bg-light text-dark border px-3 py-2">
-              ${a.nombre || a.documento}
+              ${escapeHtml(a.nombre || a.documento)}
             </span>
           `).join("")}
         </div>
@@ -384,8 +400,8 @@ window.abrirModalGastosMes = async function() {
       tbody.innerHTML = gastos.map(g => `
         <tr>
           <td>${new Date(g.fecha).toLocaleDateString("es-AR")}</td>
-          <td>${g.categoria}</td>
-          <td>${g.descripcion || "—"}</td>
+          <td>${escapeHtml(g.categoria)}</td>
+          <td>${escapeHtml(g.descripcion) || "—"}</td>
           <td class="text-end">$${parseFloat(g.monto).toLocaleString("es-AR")}</td>
           <td>
             <button class="btn btn-sm btn-warning" onclick="editarGasto(${g.id})">✏️</button>
@@ -494,7 +510,7 @@ function aplicarFiltroMovimientosModal() {
   tbody.innerHTML = filtrados.map(p => `
     <tr>
       <td>${p.id}</td>
-      <td>${p.fullName}</td>
+      <td>${escapeHtml(p.fullName)}</td>
       <td>${new Date(p.paymentDate).toLocaleDateString('es-AR')}</td>
       <td class="text-end">$${parseFloat(p.amount).toLocaleString('es-AR')}</td>
       <td>
@@ -542,7 +558,7 @@ function aplicarFiltroMovimientos() {
   tbody.innerHTML = filtrados.map(p => `
     <tr>
       <td>${p.id}</td>
-      <td>${p.fullName}</td>
+      <td>${escapeHtml(p.fullName)}</td>
       <td>${new Date(p.paymentDate).toLocaleDateString('es-AR')}</td>
       <td class="text-end">$${parseFloat(p.amount).toLocaleString('es-AR')}</td>
       <td>
@@ -622,7 +638,7 @@ async function cargarAlumnos() {
     if (selectAsist && selectAsist.tagName === 'SELECT') {
       selectAsist.innerHTML = '<option value="">Seleccioná un alumno</option>';
       alumnos.forEach(a => {
-        selectAsist.innerHTML += `<option value="${a.documento}">${a.nombre} (${a.documento})</option>`;
+        selectAsist.innerHTML += `<option value="${escapeHtml(a.documento)}">${escapeHtml(a.nombre)} (${escapeHtml(a.documento)})</option>`;
       });
     }
   } catch (error) {
@@ -771,25 +787,25 @@ function renderCards({ list, containerId, pageState, metaId, pageId, status }) {
     return `
       <div class="mini-card ${status === "paid" ? "paid" : "pending"}">
         <div class="d-flex justify-content-between align-items-start gap-2">
-          <div class="name">${item.nombre}</div>
+          <div class="name">${escapeHtml(item.nombre)}</div>
           <span class="badge-soft ${badgeClass}">${badgeText}</span>
         </div>
         ${extra}
         <div class="mt-2 d-flex gap-1">
           <button class="btn btn-sm btn-outline-primary"
-            onclick="verHistorialAlumno('${item.documento || ""}')">
+            onclick="verHistorialAlumno('${escapeJsAttr(item.documento || "")}')">
             Historial
           </button>
           <button class="btn btn-sm btn-outline-success"
-            onclick="recordatorioWhatsapp('${item.nombre || ""}', '${item.telefono || ""}')">
+            onclick="recordatorioWhatsapp('${escapeJsAttr(item.nombre || "")}', '${escapeJsAttr(item.telefono || "")}')">
             ${item.telefono ? "💬 WhatsApp" : "WhatsApp"}
           </button>
           <button class="btn btn-sm btn-outline-info"
-            onclick="registrarAsistencia('${item.documento}')">
+            onclick="registrarAsistencia('${escapeJsAttr(item.documento)}')">
             Asistencia
           </button>
           <button class="btn btn-sm btn-outline-secondary"
-            onclick="verAsistenciasAlumno('${item.documento}', '${item.nombre}')">
+            onclick="verAsistenciasAlumno('${escapeJsAttr(item.documento)}', '${escapeJsAttr(item.nombre)}')">
             📋
           </button>
           <button class="btn btn-sm btn-outline-primary"
@@ -990,8 +1006,8 @@ async function verDetalleGastos(mes) {
       const fila = document.createElement("tr");
       fila.innerHTML = `
         <td>${new Date(gasto.fecha).toLocaleDateString("es-AR")}</td>
-        <td>${gasto.categoria}</td>
-        <td>${gasto.descripcion}</td>
+        <td>${escapeHtml(gasto.categoria)}</td>
+        <td>${escapeHtml(gasto.descripcion)}</td>
         <td class="text-end">$${parseFloat(gasto.monto).toLocaleString("es-AR")}</td>
         <td>
           <button class="btn btn-sm btn-warning" onclick="editarGasto(${gasto.id})">✏️</button>
@@ -1113,7 +1129,7 @@ async function editPayment(id) {
     const planesRes = await fetch(`${API_URL}/planes`, { headers: getAuthHeaders() });
     const planes = planesRes.ok ? await planesRes.json() : [];
     selectTipo.innerHTML = planes.map(p =>
-      `<option value="${p.codigo}" ${p.codigo === pago.subscriptionType ? 'selected' : ''}>${p.nombre}</option>`
+      `<option value="${escapeHtml(p.codigo)}" ${p.codigo === pago.subscriptionType ? 'selected' : ''}>${escapeHtml(p.nombre)}</option>`
     ).join('');
     document.getElementById("ep-paymentDate").value = new Date(pago.paymentDate).toISOString().split("T")[0];
     const epServiceMonth = document.getElementById("ep-serviceMonth");
@@ -1214,8 +1230,8 @@ async function editarGasto(id) {
       title: "Editar Gasto",
       html: `
         <input id="swal-fecha" class="swal2-input" type="date" value="${gasto.fecha.split("T")[0]}">
-        <input id="swal-categoria" class="swal2-input" placeholder="Categoría" value="${gasto.categoria}">
-        <input id="swal-descripcion" class="swal2-input" placeholder="Descripción" value="${gasto.descripcion}">
+        <input id="swal-categoria" class="swal2-input" placeholder="Categoría" value="${escapeHtml(gasto.categoria)}">
+        <input id="swal-descripcion" class="swal2-input" placeholder="Descripción" value="${escapeHtml(gasto.descripcion)}">
         <input id="swal-monto" class="swal2-input" type="number" placeholder="Monto" value="${gasto.monto}">
       `,
       focusConfirm: false,
@@ -1485,7 +1501,7 @@ window.verHistorialAlumno = async function(documento) {
     if (!pagos.length) {
       tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Sin pagos registrados</td></tr>';
     } else {
-      tbody.innerHTML = pagos.map(p => '<tr><td>' + new Date(p.paymentDate).toLocaleDateString("es-AR") + '</td><td>' + p.subscriptionType + '</td><td class="text-end">$' + parseFloat(p.amount).toLocaleString("es-AR") + '</td><td>' + (p.comentarios || "") + '</td></tr>').join("");
+      tbody.innerHTML = pagos.map(p => '<tr><td>' + new Date(p.paymentDate).toLocaleDateString("es-AR") + '</td><td>' + escapeHtml(p.subscriptionType) + '</td><td class="text-end">$' + parseFloat(p.amount).toLocaleString("es-AR") + '</td><td>' + escapeHtml(p.comentarios || "") + '</td></tr>').join("");
     }
 
     const modalEl = document.getElementById("modalHistorialAlumno");
@@ -1806,9 +1822,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       cuerpoTabla.innerHTML = pagos.map(p => `
         <tr>
           <td>${new Date(p.paymentDate).toLocaleDateString("es-AR")}</td>
-          <td>${p.subscriptionType}</td>
+          <td>${escapeHtml(p.subscriptionType)}</td>
           <td class="text-end">$${parseFloat(p.amount).toLocaleString("es-AR")}</td>
-          <td>${p.comentarios || ''}</td>
+          <td>${escapeHtml(p.comentarios || '')}</td>
         </tr>
       `).join('');
     } catch (error) {
@@ -2295,7 +2311,7 @@ window.previewAgenda = async function() {
         <div class="small fw-bold mb-1">Muestra de asistencias a importar:</div>
         <div class="table-responsive"><table class="table table-sm table-striped mb-0">
           <thead><tr><th>Fecha</th><th>Hora</th><th>Alumno</th><th>Documento</th></tr></thead>
-          <tbody>${d.muestra.map(r => `<tr><td>${r.fecha}</td><td>${r.hora}</td><td>${r.nombre}</td><td>${r.documento}</td></tr>`).join('')}</tbody>
+          <tbody>${d.muestra.map(r => `<tr><td>${escapeHtml(r.fecha)}</td><td>${escapeHtml(r.hora)}</td><td>${escapeHtml(r.nombre)}</td><td>${escapeHtml(r.documento)}</td></tr>`).join('')}</tbody>
         </table></div>` : ''}
       ${d.no_reconocidos_lista.length ? `
         <div class="small fw-bold mt-2 mb-1 text-warning">Alumnos no encontrados en el sistema:</div>
@@ -2444,11 +2460,11 @@ function renderListaInforme(containerId, lista, tipo) {
   el.innerHTML = lista.map(a => `
     <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:0.5px solid var(--color-border-tertiary);margin-bottom:6px;background:var(--color-background-primary)">
       <div style="width:34px;height:34px;border-radius:50%;background:${tipo==='sinPagar'?'#FCEBEB':'#FAEEDA'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:${tipo==='sinPagar'?'#791F1F':'#633806'};flex-shrink:0">
-        ${(a.nombre||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}
+        ${escapeHtml((a.nombre||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase())}
       </div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">${a.nombre || a.documento}</div>
-        <div style="font-size:11px;color:var(--color-text-tertiary)">Doc: ${a.documento}</div>
+        <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">${escapeHtml(a.nombre || a.documento)}</div>
+        <div style="font-size:11px;color:var(--color-text-tertiary)">Doc: ${escapeHtml(a.documento)}</div>
       </div>
       ${a.telefono ? `
       <a href="https://wa.me/${a.telefono.replace(/\D/g,'')}" target="_blank"
@@ -2456,7 +2472,7 @@ function renderListaInforme(containerId, lista, tipo) {
         WhatsApp
       </a>` : ''}
       ${tipo === 'sinPagar' ? `
-      <button onclick="cobrarRapido('${a.documento}','${(a.nombre||'').replace(/'/g,"\\'")}');event.stopPropagation();"
+      <button onclick="cobrarRapido('${escapeJsAttr(a.documento)}','${escapeJsAttr(a.nombre || '')}');event.stopPropagation();"
         style="background:#6d28d9;border:none;border-radius:6px;padding:4px 10px;font-size:11px;color:#fff;white-space:nowrap;cursor:pointer;">
         Cobrar
       </button>` : ''}
@@ -2570,7 +2586,7 @@ function renderTablaPlanes() {
           ${planesData.map(p => `
             <tr>
               <td>
-                <div class="fw-500" style="font-size:13px">${p.nombre}</div>
+                <div class="fw-500" style="font-size:13px">${escapeHtml(p.nombre)}</div>
                 <div style="font-size:11px;color:var(--color-text-tertiary)">${p.codigo}</div>
               </td>
               <td class="text-center">${p.clases || '—'}</td>
@@ -2692,8 +2708,8 @@ window.verPerfilAlumno = async function(documento) {
     document.getElementById('perfilBody').innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <div>
-          ${d.alumno.email ? `<div style="font-size:12px;color:var(--color-text-secondary)">${d.alumno.email}</div>` : ''}
-          ${d.alumno.telefono ? `<div style="font-size:12px;color:var(--color-text-secondary)">${d.alumno.telefono}</div>` : ''}
+          ${d.alumno.email ? `<div style="font-size:12px;color:var(--color-text-secondary)">${escapeHtml(d.alumno.email)}</div>` : ''}
+          ${d.alumno.telefono ? `<div style="font-size:12px;color:var(--color-text-secondary)">${escapeHtml(d.alumno.telefono)}</div>` : ''}
         </div>
         ${wappLink}
       </div>
@@ -2918,8 +2934,8 @@ async function cargarListaBloques() {
     const icono = f.tipo === 'cierre' ? '🔒' : '🗓️';
     return `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #f0eeff;font-size:12px;">
       <span>${icono}</span>
-      <div style="flex:1;"><div style="font-weight:600;">${f.nombre}</div><div style="color:var(--muted);font-size:10px;">${label}</div></div>
-      <button onclick="eliminarFeriado('${f.fecha}')" style="background:none;border:none;color:#a32d2d;font-size:13px;cursor:pointer;padding:0 4px;">✕</button>
+      <div style="flex:1;"><div style="font-weight:600;">${escapeHtml(f.nombre)}</div><div style="color:var(--muted);font-size:10px;">${label}</div></div>
+      <button onclick="eliminarFeriado('${escapeJsAttr(f.fecha)}')" style="background:none;border:none;color:#a32d2d;font-size:13px;cursor:pointer;padding:0 4px;">✕</button>
     </div>`;
   }).join('');
 }
@@ -2987,7 +3003,7 @@ window.cargarFeriados = async function() {
     const fechaFmt = new Date(f.fecha + 'T12:00:00-03:00').toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
     return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f0eeff;">
       <div style="flex:1;">
-        <div style="font-size:13px;font-weight:600;">${f.nombre}</div>
+        <div style="font-size:13px;font-weight:600;">${escapeHtml(f.nombre)}</div>
         <div style="font-size:11px;color:var(--muted);">${fechaFmt}</div>
       </div>
       <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;background:${f.habilitado?'#e6f7f1':'#fff8e1'};color:${f.habilitado?'#0f6e56':'#7a4f00'};">${f.habilitado?'Habilitado':'Cerrado'}</span>
@@ -3106,23 +3122,23 @@ async function cargarActividadHoy() {
     };
 
     const filaReservas = reservas.map(r =>
-      `<li><strong>${r.nombre}</strong> — ${r.hora}hs del ${new Date(r.fecha+'T12:00:00').toLocaleDateString('es-AR')}</li>`
+      `<li><strong>${escapeHtml(r.nombre)}</strong> — ${escapeHtml(r.hora)}hs del ${new Date(r.fecha+'T12:00:00').toLocaleDateString('es-AR')}</li>`
     ).join('');
 
     const filaCancelaciones = cancelaciones.map(r =>
-      `<li><strong>${r.nombre}</strong> — ${r.hora}hs del ${new Date(r.fecha+'T12:00:00').toLocaleDateString('es-AR')} ${r.clase_devuelta ? '✅ clase devuelta' : '❌ sin devolución'}</li>`
+      `<li><strong>${escapeHtml(r.nombre)}</strong> — ${escapeHtml(r.hora)}hs del ${new Date(r.fecha+'T12:00:00').toLocaleDateString('es-AR')} ${r.clase_devuelta ? '✅ clase devuelta' : '❌ sin devolución'}</li>`
     ).join('');
 
     const filaPagos = pagos.map(p =>
-      `<li><strong>${p.nombre}</strong> — Plan ${p.subscriptionType} · $${Number(p.amount).toLocaleString('es-AR')} · ${p.estadoDeuda === 'pendiente' ? '⏳ pendiente' : '✅ al día'}</li>`
+      `<li><strong>${escapeHtml(p.nombre)}</strong> — Plan ${escapeHtml(p.subscriptionType)} · $${Number(p.amount).toLocaleString('es-AR')} · ${p.estadoDeuda === 'pendiente' ? '⏳ pendiente' : '✅ al día'}</li>`
     ).join('');
 
     const filaLogins = logins.map(l =>
-      `<li><strong>${l.nombre}</strong> — ${new Date(l.ultimo_acceso.replace(' ','T')+'Z').toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'})}</li>`
+      `<li><strong>${escapeHtml(l.nombre)}</strong> — ${new Date(l.ultimo_acceso.replace(' ','T')+'Z').toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'})}</li>`
     ).join('');
 
     const filaSolicitudes = solicitudes.map(s =>
-      `<li><strong>${s.nombre}</strong> — ${s.cantidad} clase(s) extra · ${s.estado}</li>`
+      `<li><strong>${escapeHtml(s.nombre)}</strong> — ${escapeHtml(s.cantidad)} clase(s) extra · ${escapeHtml(s.estado)}</li>`
     ).join('');
 
     const hayActividad = reservas.length || cancelaciones.length || pagos.length || logins.length || solicitudes.length;
