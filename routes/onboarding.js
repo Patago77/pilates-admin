@@ -167,6 +167,16 @@ router.post('/onboarding/solicitudes/:id/aprobar', authenticateToken, requireAdm
     const schemaAgenda = fs.readFileSync(path.join(__dirname, '..', 'docs', 'sql', 'agenda_schema.sql'), 'utf8');
     await conn.query(schemaBase);
     await conn.query(schemaAgenda);
+    // studio_config no vive en ningun schema.sql - la app la crea sola la primera vez
+    // que alguien entra al panel Reformers (ensureConfigTable en routes/stats.js).
+    // La creamos ya de una para que el estudio quede completo desde el dia uno.
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS studio_config (
+        clave VARCHAR(80) PRIMARY KEY,
+        valor TEXT NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
   } catch (err) {
     console.error('❌ Error creando base/schema:', err.message);
     await marcarError(core, id, `Falló la creación de la base '${dbName}': ${err.message}. Puede haber quedado creada a medias — revisar manualmente.`);

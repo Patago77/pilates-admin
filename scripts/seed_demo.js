@@ -129,6 +129,16 @@ async function main() {
   }
 
   // 5) Config del estudio — horario semanal + reformers, para que esos paneles no queden vacíos
+  // studio_config no la crea ningun schema.sql: la app la crea sola (ensureConfigTable en
+  // routes/stats.js) la primera vez que alguien entra al panel Reformers. En un estudio
+  // recien creado todavia no existe, asi que la creamos acá con la misma definicion.
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS studio_config (
+      clave VARCHAR(80) PRIMARY KEY,
+      valor TEXT NOT NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `);
   const horarioSemana = { '1': HORAS, '2': HORAS, '3': HORAS, '4': HORAS, '5': HORAS };
   await conn.query(
     `INSERT INTO studio_config (clave, valor) VALUES ('agenda_horario_semana', ?)
