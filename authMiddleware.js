@@ -19,16 +19,16 @@ if (!SECRET_KEY) {
  */
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
-  // Cookie httpOnly (admin panel) → header Authorization (fallback) → query param (descarga PDF)
+  // Cookie httpOnly (admin panel) → header Authorization (fallback)
   const token = req.cookies?.admin_token
                 || (authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null)
-                || req.query.token || null;
+                || null;
 
   if (!token) {
     return res.status(401).json({ error: 'Token no proporcionado o formato incorrecto' });
   }
 
-  jwt.verify(token, SECRET_KEY, (err, user) => {
+  jwt.verify(token, SECRET_KEY, { algorithms: ['HS256'] }, (err, user) => {
     if (err) return res.status(403).json({ error: 'Token inválido o expirado' });
 
     // user: { id, email, role, studio_id, studio_db }

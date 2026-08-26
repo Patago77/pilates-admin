@@ -23,10 +23,10 @@ const HORAS_VALIDAS = ['09:00','10:00','11:00','12:00','13:00','14:00','17:00','
 
 // ── Middleware para autenticar al alumno (JWT del portal) ──
 function authAlumno(req, res, next) {
-  const token = req.headers['authorization']?.split(' ')[1] || req.query.token;
+  const token = req.headers['authorization']?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'No autenticado.' });
   try {
-    req.alumno = jwt.verify(token, SECRET_KEY);
+    req.alumno = jwt.verify(token, SECRET_KEY, { algorithms: ['HS256'] });
     next();
   } catch {
     res.status(401).json({ error: 'Sesión expirada. Ingresá nuevamente.' });
