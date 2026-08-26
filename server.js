@@ -22,6 +22,7 @@ const reciboRouter = require('./routes/recibo');
 const agendaRouter = require('./routes/agenda');
 const usersRouter   = require('./routes/users');
 const importarRouter = require('./routes/importar');
+const onboardingRouter = require('./routes/onboarding');
 
 const { getCorePool } = require('./db');
 const authenticateToken = require('./authMiddleware');
@@ -146,6 +147,7 @@ app.use('/api', reciboRouter);
 app.use('/api', agendaRouter);
 app.use('/api', usersRouter);
 app.use('/api', importarRouter);
+app.use('/api', onboardingRouter);
 
 const path = require('path');
 

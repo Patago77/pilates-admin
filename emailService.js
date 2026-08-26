@@ -55,6 +55,30 @@ async function enviarOTP(email, nombre, otp) {
   });
 }
 
+async function enviarCredencialesEstudio(email, nombreEstudio, emailLogin, password) {
+  const to = destino(email);
+  const loginUrl = process.env.APP_URL || 'https://app.studioadmin.pro';
+  await transporter.sendMail({
+    from: FROM,
+    to,
+    subject: `Tu cuenta de Studio Admin — ${nombreEstudio}`,
+    html: wrapEmail(`
+      <h2 style="color:#1C1A2E;margin:0 0 8px;">¡Bienvenido a Studio Admin!</h2>
+      <p style="color:#555;margin:0 0 16px;">Ya podés entrar a administrar <b>${nombreEstudio}</b>:</p>
+      <div style="background:#f5f4ff;border-radius:10px;padding:18px 20px;margin-bottom:16px;">
+        <div style="font-size:13px;color:#666;margin-bottom:4px;">Usuario</div>
+        <div style="font-size:15px;color:#1C1A2E;margin-bottom:12px;">${emailLogin}</div>
+        <div style="font-size:13px;color:#666;margin-bottom:4px;">Contraseña</div>
+        <div style="font-size:15px;color:#1C1A2E;font-weight:700;">${password}</div>
+      </div>
+      <p style="color:#888;font-size:13px;margin:0 0 16px;">Te recomendamos cambiar la contraseña apenas ingreses.</p>
+      <p style="text-align:center;margin:0;">
+        <a href="${loginUrl}" style="display:inline-block;background:#6D28D9;color:#fff;text-decoration:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:600;">Entrar al sistema</a>
+      </p>
+      ${OVERRIDE ? `<p style="color:#E24B4A;font-size:11px;margin-top:12px;">[TEST] Destinatario original: ${email}</p>` : ''}`),
+  });
+}
+
 async function enviarConfirmacionReserva(email, nombre, fecha, hora) {
   const to = destino(email);
   const fechaFmt = fmtFecha(fecha);
@@ -133,4 +157,4 @@ async function enviarCampana(email, nombre, mensajeTexto, asunto) {
   });
 }
 
-module.exports = { enviarOTP, enviarConfirmacionReserva, enviarCancelacion, enviarRecordatorio, enviarCampana };
+module.exports = { enviarOTP, enviarConfirmacionReserva, enviarCancelacion, enviarRecordatorio, enviarCampana, enviarCredencialesEstudio };
