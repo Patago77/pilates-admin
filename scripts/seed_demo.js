@@ -55,6 +55,13 @@ async function main() {
 
   console.log(`→ Sembrando ${cantidadAlumnas} alumnas de ejemplo en ${dbName}...`);
 
+  // 0) Limpiar datos de una siembra anterior — el script no es acumulativo,
+  // correrlo dos veces sobre la misma base debe dar el mismo resultado, no duplicar.
+  // Seguro: dbName ya pasó el chequeo de patrón studio_..._db de más arriba.
+  for (const tabla of ['agenda_reservas', 'payments', 'gastos', 'students']) {
+    await conn.query(`TRUNCATE TABLE ${tabla}`);
+  }
+
   // 1) Alumnas
   const alumnas = [];
   for (let i = 0; i < cantidadAlumnas; i++) {
