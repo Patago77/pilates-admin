@@ -72,7 +72,7 @@ async function main() {
   }
   for (const a of alumnas) {
     await conn.query(
-      'INSERT INTO students (fullName, documento, email) VALUES (?, ?, ?)',
+      'INSERT INTO students (nombre, documento, email, activo) VALUES (?, ?, ?, 1)',
       [a.fullName, a.documento, a.email]
     );
   }
