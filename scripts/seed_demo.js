@@ -58,7 +58,18 @@ async function main() {
   // 0) Limpiar datos de una siembra anterior — el script no es acumulativo,
   // correrlo dos veces sobre la misma base debe dar el mismo resultado, no duplicar.
   // Seguro: dbName ya pasó el chequeo de patrón studio_..._db de más arriba.
-  for (const tabla of ['agenda_reservas', 'payments', 'gastos', 'students']) {
+  // Por si esto corre contra un estudio creado antes del fix de extra_schema.sql.
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS planes_config (
+      codigo VARCHAR(50) NOT NULL,
+      nombre VARCHAR(120) NOT NULL,
+      clases INT NOT NULL DEFAULT 0,
+      precio DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+      PRIMARY KEY (codigo)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  for (const tabla of ['agenda_reservas', 'payments', 'gastos', 'students', 'planes_config']) {
     await conn.query(`TRUNCATE TABLE ${tabla}`);
   }
 
@@ -135,7 +146,15 @@ async function main() {
     }
   }
 
-  // 5) Config del estudio — horario semanal + reformers, para que esos paneles no queden vacíos
+  // 5) Planes — mismos que se usaron para los pagos de arriba
+  for (const p of PLANES) {
+    await conn.query(
+      'INSERT INTO planes_config (codigo, nombre, clases, precio) VALUES (?, ?, ?, ?)',
+      [p.nombre, p.nombre, parseInt(p.nombre, 10) || 0, p.precio]
+    );
+  }
+
+  // 6) Config del estudio — horario semanal + reformers, para que esos paneles no queden vacíos
   // studio_config no la crea ningun schema.sql: la app la crea sola (ensureConfigTable en
   // routes/stats.js) la primera vez que alguien entra al panel Reformers. En un estudio
   // recien creado todavia no existe, asi que la creamos acá con la misma definicion.

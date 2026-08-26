@@ -165,8 +165,10 @@ router.post('/onboarding/solicitudes/:id/aprobar', authenticateToken, requireAdm
     conn = await conectarComoRoot(dbName);
     const schemaBase = fs.readFileSync(path.join(__dirname, '..', 'docs', 'sql', 'studio_schema.sql'), 'utf8');
     const schemaAgenda = fs.readFileSync(path.join(__dirname, '..', 'docs', 'sql', 'agenda_schema.sql'), 'utf8');
+    const schemaExtra = fs.readFileSync(path.join(__dirname, '..', 'docs', 'sql', 'extra_schema.sql'), 'utf8');
     await conn.query(schemaBase);
     await conn.query(schemaAgenda);
+    await conn.query(schemaExtra);
     // studio_config no vive en ningun schema.sql - la app la crea sola la primera vez
     // que alguien entra al panel Reformers (ensureConfigTable en routes/stats.js).
     // La creamos ya de una para que el estudio quede completo desde el dia uno.
