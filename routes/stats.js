@@ -174,7 +174,19 @@ router.post('/stats/reformers', authenticateToken, requireAdmin, async (req, res
 // ============================================================
 router.get('/stats/reformers/real', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const CAPACIDAD = 5;
+    await ensureConfigTable(req.db);
+    const [configRows] = await req.db.query(
+      `SELECT clave, valor FROM studio_config WHERE clave IN ('rf_cantidad','rf_alumnos_por_reformer')`
+    );
+    const cfg = {};
+    configRows.forEach(r => {
+      try { cfg[r.clave] = JSON.parse(r.valor); } catch { cfg[r.clave] = r.valor; }
+    });
+    // Cada estudio tiene su propia cantidad de camillas — nunca asumir un número fijo para todos.
+    const cantidad = Number(cfg.rf_cantidad) || 5;
+    const alumnosPorReformer = Number(cfg.rf_alumnos_por_reformer) || 1;
+    const CAPACIDAD = cantidad * alumnosPorReformer;
+
     const [rows] = await req.db.query(`
       SELECT
         (DAYOFWEEK(fecha) - 2)                                           AS dia_idx,
